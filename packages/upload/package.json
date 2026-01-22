@@ -1,0 +1,58 @@
+{
+  "name": "@cmtx/upload",
+  "version": "0.1.0",
+  "description": "Object storage upload helpers for cmtx-core",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cc01cc/cmtx-project.git",
+    "directory": "packages/upload"
+  },
+  "bugs": {
+    "url": "https://github.com/cc01cc/cmtx-project/issues"
+  },
+  "homepage": "https://github.com/cc01cc/cmtx-project",
+  "author": "cc01cc",
+  "keywords": [
+    "upload",
+    "oss",
+    "markdown",
+    "cmtx"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "docs": "typedoc",
+    "lint": "eslint src tests --fix"
+  },
+  "dependencies": {
+    "@cmtx/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "ali-oss": "^6.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.9",
+    "ali-oss": "^6.23.0",
+    "eslint": "^9.39.2",
+    "typedoc": "^0.28.16",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.17"
+  }
+}

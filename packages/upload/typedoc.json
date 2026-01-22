@@ -1,0 +1,9 @@
+{
+  "entryPoints": ["src/index.ts"],
+  "out": "docs/api",
+  "exclude": ["**/*.test.ts", "**/*.spec.ts"],
+  "plugin": [],
+  "readme": "README.md",
+  "name": "@cmtx/upload",
+  "includeVersion": true
+}

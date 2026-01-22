@@ -1,0 +1,46 @@
+{
+  "name": "cmtx-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "cmtx monorepo: @cmtx/core + @cmtx/upload",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.8.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cc01cc/cmtx-project.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cc01cc/cmtx-project/issues"
+  },
+  "homepage": "https://github.com/cc01cc/cmtx-project",
+  "author": "cc01cc",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "docs": "pnpm -r docs",
+    "lint": "eslint \"packages/*/src/**/*.ts\" \"packages/*/tests/**/*.ts\" --fix"
+  },
+  "keywords": [
+    "markdown",
+    "images",
+    "extract",
+    "cmtx",
+    "monorepo"
+  ],
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@eslint/json": "^0.14.0",
+    "@eslint/markdown": "^7.5.1",
+    "@types/node": "^25.0.9",
+    "eslint": "^9.39.2",
+    "eslint-plugin-import": "^2.30.0",
+    "globals": "^17.0.0",
+    "jiti": "^2.6.1",
+    "prettier": "3.8.0",
+    "tsx": "^4.21.0",
+    "typedoc": "^0.28.16",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.53.1",
+    "vitest": "^4.0.17"
+  }
+}

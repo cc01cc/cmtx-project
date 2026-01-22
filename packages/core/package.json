@@ -1,0 +1,53 @@
+{
+  "name": "@cmtx/core",
+  "version": "0.1.0",
+  "description": "Core markdown image extraction/manipulation utilities",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cc01cc/cmtx-project.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/cc01cc/cmtx-project/issues"
+  },
+  "homepage": "https://github.com/cc01cc/cmtx-project",
+  "author": "cc01cc",
+  "keywords": [
+    "markdown",
+    "images",
+    "extract",
+    "replace",
+    "cmtx"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "docs": "typedoc",
+    "lint": "eslint src tests --fix"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^25.0.9",
+    "eslint": "^9.39.2",
+    "typedoc": "^0.28.16",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.17"
+  }
+}
