@@ -3,7 +3,7 @@
  */
 
 import { readFile, writeFile, unlink } from "node:fs/promises";
-import { dirname, relative, sep } from "node:path";
+import { relative, sep } from "node:path";
 
 import { parseMarkdownImages } from "./parser.js";
 import { getImageReferenceDetailsInternal, findFilesReferencingImageInternal } from "./query.js";
@@ -131,12 +131,14 @@ function determineReplaceType(
  * 在单个文件中替换图片引用
  * @param markdownAbsPath - Markdown 文件的绝对路径
  * @param imageAbsPath - 目标图片的绝对路径
+ * @param searchDirAbsPath - 搜索目录的绝对路径（用于计算相对路径）
  * @param options - 替换选项 { newSrc?, newAlt? }
  * @returns 替换结果
  */
 export async function replaceImageInFileInternal(
   markdownAbsPath: string,
   imageAbsPath: string,
+  searchDirAbsPath: string,
   options: { newSrc?: string; newAlt?: string } = {},
 ): Promise<CoreReplaceResult> {
   const markdown = await readFile(markdownAbsPath, "utf-8");
@@ -196,7 +198,7 @@ export async function replaceImageInFileInternal(
     await writeFile(markdownAbsPath, newMarkdown, "utf-8");
   }
   
-  const relPath = relative(dirname(markdownAbsPath), markdownAbsPath).split(sep).join('/');
+  const relPath = relative(searchDirAbsPath, markdownAbsPath).split(sep).join('/');
   
   return {
     relativePath: relPath,
@@ -230,6 +232,7 @@ export async function replaceImageInDirectoryInternal(
       const result = await replaceImageInFileInternal(
         file.absolutePath,
         imageAbsPath,
+        searchDirAbsPath,
         options
       );
       results.push(result);

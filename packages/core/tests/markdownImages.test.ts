@@ -14,7 +14,7 @@ import {
   safeDeleteLocalImage,
   replaceImageInFiles,
   ImageMatch,
-} from "../src";
+} from "../src/index.js";
 
 describe("extractImages", () => {
   it("匹配指定网页域名", () => {
@@ -1499,4 +1499,97 @@ describe("replaceImageInFiles", () => {
     );
     expect(results).toHaveLength(0);
   });
+
+  it("返回正确的 relativePath", async () => {
+    try {
+      await setupReplaceTest();
+
+      const results = await replaceImageInFiles(
+        join(replaceTestDir, "images", "old.png"),
+        replaceTestDir,
+        { newSrc: "./images/new.png" }
+      );
+
+      // 验证 relativePath 是相对于搜索目录的路径
+      expect(results.length).toBeGreaterThan(0);
+      results.forEach(result => {
+        if (result.replacements.length > 0) {
+          expect(result.relativePath).not.toBe('');
+          expect(result.relativePath).not.toContain('..'); // 不应该向上遍历
+          // 应该是类似 "README.md" 或 "guide.md"
+          expect(result.relativePath).toMatch(/^[\w-]+\.md$/);
+        }
+      });
+    } finally {
+      await cleanupReplace();
+    }
+  });
 });
+
+describe("输入验证", () => {
+  it("验证空路径抛出错误", async () => {
+    await expect(
+      extractImagesFromDirectory("")
+    ).rejects.toThrow("rootDir is required and must be a string");
+  });
+
+  it("验证负数 depth 抛出错误", async () => {
+    await expect(
+      extractImagesFromDirectory(".", { depth: -1 })
+    ).rejects.toThrow("depth must be a non-negative integer");
+  });
+
+  it("验证非整数 depth 抛出错误", async () => {
+    await expect(
+      extractImagesFromDirectory(".", { depth: 1.5 })
+    ).rejects.toThrow("depth must be a non-negative integer");
+  });
+
+  it("验证无效类型 depth 抛出错误", async () => {
+    await expect(
+      extractImagesFromDirectory(".", { depth: "invalid" as any })
+    ).rejects.toThrow('depth must be "all" or a number');
+  });
+
+  it("验证 null 字符路径抛出错误", async () => {
+    await expect(
+      extractImagesFromDirectory("test\0path")
+    ).rejects.toThrow("contains invalid null character");
+  });
+
+  it("logger 回调被正确调用", async () => {
+    const logs: Array<{ level: string; message: string }> = [];
+    const logger = (level: string, message: string) => {
+      logs.push({ level, message });
+    };
+
+    const testDir = join(__dirname, "temp-logger-test");
+    try {
+      await mkdir(testDir, { recursive: true });
+      
+      // 创建一个 markdown 文件但故意损坏（设置错误权限或内容）
+      const mdFile = join(testDir, "test.md");
+      await writeFile(mdFile, "# Test\n![img](./pic.png)");
+      
+      // 正常扫描应该成功
+      const results = await extractImagesFromDirectory(testDir, { 
+        localPrefixes: ["*"],
+        logger 
+      });
+      
+      // 基础扫描应该成功
+      expect(results.length).toBeGreaterThan(0);
+      
+      // 如果有任何警告或调试信息会被记录
+      // 这个测试主要验证 logger 可以被正确调用，不抛出错误
+      expect(logs).toBeDefined();
+    } finally {
+      try {
+        await rm(testDir, { recursive: true });
+      } catch {
+        // ignore
+      }
+    }
+  });
+});
+

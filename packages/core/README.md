@@ -158,7 +158,7 @@ pnpm test
 ### 生成文档
 
 ```bash
-pnpm docs
+pnpm run docs
 ```
 
 生成的 API 文档位于 `docs/api/` 目录。

@@ -3,6 +3,7 @@
  */
 
 import { resolve, isAbsolute } from "node:path";
+import { existsSync } from "node:fs";
 
 import * as core from "./core/index.js";
 
@@ -107,6 +108,23 @@ export interface ExtractOptions {
    * ```
    */
   projectRoot?: string;
+
+  /**
+   * 可选的日志回调函数
+   * 
+   * @remarks
+   * 提供此回调可以接收调试信息和警告，用于诊断问题。
+   * 不会强制输出日志到控制台。
+   * 
+   * @example
+   * ```typescript
+   * const logger = (level, message, meta) => {
+   *   console.log(`[${level}] ${message}`, meta);
+   * };
+   * extractImagesFromDirectory("docs", { logger });
+   * ```
+   */
+  logger?: core.LoggerCallback;
 }
 
 /**
@@ -296,6 +314,47 @@ export interface ReplaceImageOptions {
 
   /** 项目根目录（可选） */
   projectRoot?: string;
+
+  /** 可选的日志回调函数 */
+  logger?: core.LoggerCallback;
+}
+
+/**
+ * 验证路径参数
+ * @param path - 路径字符串
+ * @param paramName - 参数名称（用于错误消息）
+ * @throws {Error} 如果路径无效
+ */
+function validatePath(path: string, paramName: string): void {
+  if (!path || typeof path !== 'string') {
+    throw new Error(`${paramName} is required and must be a string`);
+  }
+  
+  const trimmed = path.trim();
+  if (trimmed.length === 0) {
+    throw new Error(`${paramName} cannot be empty`);
+  }
+  
+  // 检测可疑的空字符
+  if (trimmed.includes('\0')) {
+    throw new Error(`${paramName} contains invalid null character`);
+  }
+}
+
+/**
+ * 验证 depth 参数
+ * @param depth - 深度值
+ * @throws {TypeError} 如果 depth 无效
+ */
+function validateDepth(depth: "all" | number | undefined): void {
+  if (depth !== undefined && depth !== "all") {
+    if (typeof depth !== 'number') {
+      throw new TypeError('depth must be "all" or a number');
+    }
+    if (depth < 0 || !Number.isInteger(depth)) {
+      throw new RangeError('depth must be a non-negative integer');
+    }
+  }
 }
 
 /**
@@ -315,9 +374,7 @@ function resolveUserPath(userPath: string, projectRoot?: string): string {
   
   // 验证 baseDir 存在（同步检查，在启动时失败优于运行时失败）
   try {
-    // 使用同步方法验证路径存在
-    const fs = require('node:fs');
-    if (!fs.existsSync(baseDir)) {
+    if (!existsSync(baseDir)) {
       throw new Error(`Base directory not found: ${baseDir}`);
     }
   } catch (error) {
@@ -458,12 +515,15 @@ export async function extractImagesFromDirectory(
   rootDir: string,
   options: ScanDirectoryOptions = {},
 ): Promise<DirectoryScanResult[]> {
+  validatePath(rootDir, 'rootDir');
+  validateDepth(options.depth);
+  
   const rootAbsPath = resolveUserPath(rootDir, options.projectRoot);
-  const { depth, webHosts, localPrefixes } = options;
+  const { depth, webHosts, localPrefixes, logger } = options;
   
   const coreResults = await core.extractImagesFromDirectoryInternal(
     rootAbsPath,
-    { depth, webHosts, localPrefixes }
+    { depth, webHosts, localPrefixes, logger }
   );
   
   return coreResults.map((r: { relativePath: string; absolutePath: string; images: core.ImageMatch[] }) => ({
@@ -546,16 +606,21 @@ export async function isImageReferencedInFile(
 export async function findFilesReferencingImage(
   imagePath: string,
   searchDir: string,
-  options: Pick<ScanDirectoryOptions, "depth" | "projectRoot"> = {},
+  options: Pick<ScanDirectoryOptions, "depth" | "projectRoot" | "logger"> = {},
 ): Promise<DirectoryScanResult[]> {
+  validatePath(imagePath, 'imagePath');
+  validatePath(searchDir, 'searchDir');
+  validateDepth(options.depth);
+  
   const imageAbsPath = resolveUserPath(imagePath, options.projectRoot);
   const searchDirAbsPath = resolveUserPath(searchDir, options.projectRoot);
-  const { depth = "all" } = options;
+  const { depth = "all", logger } = options;
   
   const coreResults = await core.findFilesReferencingImageInternal(
     imageAbsPath,
     searchDirAbsPath,
-    depth
+    depth,
+    logger
   );
   
   return coreResults.map((r: { relativePath: string; absolutePath: string }) => ({
@@ -627,16 +692,21 @@ export async function findFilesReferencingImage(
 export async function getImageReferenceDetails(
   imagePath: string,
   searchDir: string,
-  options: Pick<ScanDirectoryOptions, "depth" | "projectRoot"> = {},
+  options: Pick<ScanDirectoryOptions, "depth" | "projectRoot" | "logger"> = {},
 ): Promise<ImageReferenceDetail[]> {
+  validatePath(imagePath, 'imagePath');
+  validatePath(searchDir, 'searchDir');
+  validateDepth(options.depth);
+  
   const imageAbsPath = resolveUserPath(imagePath, options.projectRoot);
   const searchDirAbsPath = resolveUserPath(searchDir, options.projectRoot);
-  const { depth = "all" } = options;
+  const { depth = "all", logger } = options;
   
   const coreResults = await core.getImageReferenceDetailsInternal(
     imageAbsPath,
     searchDirAbsPath,
-    depth
+    depth,
+    logger
   );
   
   return coreResults.map((r: core.ImageReferenceDetail) => ({
@@ -737,6 +807,9 @@ export async function deleteLocalImage(
   imagePath: string,
   options: DeleteImageOptions = {}
 ): Promise<void> {
+  validatePath(rootDir, 'rootDir');
+  validatePath(imagePath, 'imagePath');
+  
   const rootAbsPath = resolveUserPath(rootDir, options.projectRoot);
   const imageAbsPath = resolveUserPath(imagePath, options.projectRoot);
   
@@ -820,6 +893,10 @@ export async function safeDeleteLocalImage(
   imagePath: string,
   options: SafeDeleteOptions = {}
 ): Promise<SafeDeleteResult> {
+  validatePath(rootDir, 'rootDir');
+  validatePath(imagePath, 'imagePath');
+  validateDepth(options.depth);
+  
   const rootAbsPath = resolveUserPath(rootDir, options.projectRoot);
   const imageAbsPath = resolveUserPath(imagePath, options.projectRoot);
   const { depth = "all" } = options;
@@ -909,6 +986,10 @@ export async function replaceImageInFiles(
   searchDir: string,
   options: ReplaceImageOptions = {}
 ): Promise<ReplaceFileResult[]> {
+  validatePath(oldImagePath, 'oldImagePath');
+  validatePath(searchDir, 'searchDir');
+  validateDepth(options.depth);
+  
   const oldImageAbsPath = resolveUserPath(oldImagePath, options.projectRoot);
   const searchDirAbsPath = resolveUserPath(searchDir, options.projectRoot);
   const { depth = "all", newSrc, newAlt } = options;

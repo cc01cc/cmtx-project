@@ -44,7 +44,8 @@ export async function extractImagesFromDirectoryInternal(
     let entries;
     try {
       entries = await readdir(dirAbsPath, { withFileTypes: true });
-    } catch {
+    } catch (error) {
+      extractOptions.logger?.('warn', `Cannot access directory: ${dirAbsPath}`, { error });
       return;
     }
 
@@ -65,7 +66,8 @@ export async function extractImagesFromDirectoryInternal(
               absolutePath: fullPath,
               images,
             });
-          } catch {
+          } catch (error) {
+            extractOptions.logger?.('debug', `Failed to extract images from file: ${fullPath}`, { error });
             continue;
           }
         }

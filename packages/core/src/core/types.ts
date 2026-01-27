@@ -3,6 +3,33 @@
  */
 
 /**
+ * 日志级别
+ */
+export type LogLevel = "debug" | "info" | "warn" | "error";
+
+/**
+ * Logger 回调函数
+ * 
+ * @remarks
+ * 提供可选的日志输出机制，不会强制输出到控制台。
+ * 应用可以根据需要实现自己的日志处理逻辑。
+ * 
+ * @param level - 日志级别
+ * @param message - 日志消息
+ * @param meta - 可选的元数据对象
+ * 
+ * @example
+ * ```typescript
+ * const logger: LoggerCallback = (level, message, meta) => {
+ *   console.log(`[${level.toUpperCase()}] ${message}`, meta);
+ * };
+ * 
+ * await extractImagesFromDirectory("docs", { logger });
+ * ```
+ */
+export type LoggerCallback = (level: LogLevel, message: string, meta?: Record<string, unknown>) => void;
+
+/**
  * 图片来源类型
  */
 export type ImageSourceType = "web" | "local";
@@ -36,6 +63,7 @@ export interface ImageMatch {
 export interface ExtractOptionsInternal {
   webHosts?: string[];
   localPrefixes?: string[];
+  logger?: LoggerCallback;
 }
 
 /**

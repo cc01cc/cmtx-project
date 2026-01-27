@@ -479,6 +479,6 @@ details.forEach(detail => {
 
 ## 更多信息
 
-- **完整的 API 文档**：运行 `pnpm docs` 生成 TypeDoc（位于 `docs/api/`）
+- **完整的 API 文档**：运行 `pnpm run docs` 生成 TypeDoc（位于 `docs/api/`）
 - **源码注释**：参考 `src/markdownImages.ts` 中的详细实现
 - **测试用例**：`tests/markdownImages.test.ts` 包含全面的使用示例

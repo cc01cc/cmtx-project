@@ -1,0 +1,33 @@
+{
+  "name": "@cmtx/mcp-server",
+  "version": "0.0.1-dev",
+  "description": "MCP-style stdio server for CMTX tools",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "cmtx-mcp": "./dist/bin/cmtx-mcp.js"
+  },
+  "files": ["dist", "bin"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -w -p tsconfig.json"
+  },
+  "dependencies": {
+    "@cmtx/core": "workspace:*",
+    "@cmtx/upload": "workspace:*",
+    "ali-oss": "^6.23.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "Apache-2.0"
+}

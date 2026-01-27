@@ -6,7 +6,7 @@ import { readFile, readdir, stat } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
 
 import { parseMarkdownImages } from "./parser.js";
-import type { ImageReferenceLocation, ImageReferenceDetail } from "./types.js";
+import type { ImageReferenceLocation, ImageReferenceDetail, LoggerCallback } from "./types.js";
 import { normalizePath, isWebSource, resolveImagePath, getLineAndColumn } from "./utils.js";
 
 /**
@@ -85,11 +85,13 @@ export async function isImageReferencedInFileInternal(
  * @param imageAbsPath - 图片绝对路径
  * @param searchDirAbsPath - 搜索目录绝对路径
  * @param depth - 扫描深度
+ * @param logger - 可选的日志回调
  */
 export async function findFilesReferencingImageInternal(
   imageAbsPath: string,
   searchDirAbsPath: string,
   depth: "all" | number = "all",
+  logger?: LoggerCallback,
 ): Promise<Array<{ relativePath: string; absolutePath: string }>> {
   const results: Array<{ relativePath: string; absolutePath: string }> = [];
   const normalizedImagePath = normalizePath(imageAbsPath);
@@ -102,7 +104,8 @@ export async function findFilesReferencingImageInternal(
     let entries;
     try {
       entries = await readdir(dirAbsPath, { withFileTypes: true });
-    } catch {
+    } catch (error) {
+      logger?.('warn', `Cannot access directory: ${dirAbsPath}`, { error });
       return;
     }
 
@@ -140,7 +143,8 @@ export async function findFilesReferencingImageInternal(
                 absolutePath: fullPath,
               });
             }
-          } catch {
+          } catch (error) {
+            logger?.('debug', `Failed to read file: ${fullPath}`, { error });
             continue;
           }
         }
@@ -170,11 +174,13 @@ export async function findFilesReferencingImageInternal(
  * @param imageAbsPath - 图片绝对路径
  * @param searchDirAbsPath - 搜索目录绝对路径
  * @param depth - 扫描深度
+ * @param logger - 可选的日志回调
  */
 export async function getImageReferenceDetailsInternal(
   imageAbsPath: string,
   searchDirAbsPath: string,
   depth: "all" | number = "all",
+  logger?: LoggerCallback,
 ): Promise<ImageReferenceDetail[]> {
   const normalizedImagePath = normalizePath(imageAbsPath);
   const results: ImageReferenceDetail[] = [];
@@ -183,7 +189,8 @@ export async function getImageReferenceDetailsInternal(
   const referencingFiles = await findFilesReferencingImageInternal(
     imageAbsPath,
     searchDirAbsPath,
-    depth
+    depth,
+    logger
   );
 
   // 遍历每个文件，提取详细的引用位置
@@ -203,8 +210,9 @@ export async function getImageReferenceDetailsInternal(
           locations,
         });
       }
-    } catch {
+    } catch (error) {
       // 跳过无法读取的文件
+      logger?.('debug', `Failed to read file: ${file.absolutePath}`, { error });
       continue;
     }
   }
