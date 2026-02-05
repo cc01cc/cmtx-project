@@ -1,6 +1,6 @@
 {
   "name": "@cmtx/core",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Core markdown image extraction/manipulation utilities",
   "license": "Apache-2.0",
   "type": "module",
@@ -42,9 +42,13 @@
     "docs": "typedoc",
     "lint": "eslint src tests --fix"
   },
-  "dependencies": {},
+  "dependencies": {
+    "fast-glob": "^3.3.3",
+    "trash": "^10.0.1"
+  },
   "devDependencies": {
     "@types/node": "^25.0.9",
+    "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.39.2",
     "typedoc": "^0.28.16",
     "typescript": "^5.9.3",

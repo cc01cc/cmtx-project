@@ -2,10 +2,10 @@
 
 基于 pnpm workspace 的多包仓库，当前包含四个包：
 
-- @cmtx/core：Markdown 图片提取与引用分析（零依赖）
-- @cmtx/upload：对象存储上传助手（peer: ali-oss）
-- @cmtx/cli：命令行工具用于图片管理（基于 @cmtx/core 与 @cmtx/upload）
-- @cmtx/mcp-server：JSON-RPC 2.0 MCP 服务器（Model Context Protocol）
+- @cmtx/core：Markdown 图片提取、替换与删除（基于正则表达式的统一架构）
+- @cmtx/upload：对象存储上传助手，支持智能重命名和安全回收（peer: ali-oss）
+- @cmtx/cli：命令行工具用于 Markdown 图片管理
+- @cmtx/mcp-server：JSON-RPC 2.0 MCP 服务器，为 AI 代理提供图片管理工具接口
 
 ## 快速开始
 
@@ -16,21 +16,25 @@ pnpm install
 pnpm build
 pnpm test
 pnpm lint
-pnpm run docs
+pnpm run docs        # 生成 API 文档并创建索引页
+pnpm run docs:index  # 仅生成文档索引页
+pnpm run docs:upload # 上传文档到 OSS（需配置）
 ```
 
 ## 包简介
 
 ### @cmtx/core
 
-- 功能：从 Markdown 文本 / 文件 / 目录提取图片；检查与查询图片引用；支持递归扫描和位置详情
-- 特性：ESM、零依赖、NodeNext、严格类型
+- 功能：图片筛选（4 种模式）、图片替换、图片删除（3 种策略）
+- 架构：正则表达式统一架构，无需 AST 解析
+- 特性：ESM、NodeNext、严格类型、完整错误处理、高效正则匹配
 - 文档：[packages/core/README.md](packages/core/README.md)
 
 ### @cmtx/upload
 
-- 功能：对象存储上传助手，支持阿里云 OSS，可扩展其他存储适配器
-- 特性：智能重命名、安全回收、事件回调、日志支持
+- 功能：对象存储上传助手，支持智能重命名、安全回收、事件回调、进度跟踪
+- 架构：配置构建器模式 + 适配器模式（支持阿里云 OSS，可扩展）
+- 特性：全局和单文件去重、指数退避重试、降级策略、详细日志
 - 依赖：peer 依赖 ali-oss（可选）
 - 文档：[packages/upload/README.md](packages/upload/README.md)
 
@@ -53,13 +57,15 @@ pnpm run docs
 - `pnpm build`：递归构建各包（输出至 dist 目录）
 - `pnpm test`：递归运行 Vitest（core, upload, cli）
 - `pnpm lint`：统一 ESLint（ESM/TS/Markdown/JSON），带自动修复
-- `pnpm run docs`：递归生成 TypeDoc（core 和 upload 各生成 docs/api）
+- `pnpm run docs`：递归生成 TypeDoc 并创建文档索引页（输出至各包的 docs/api 和根目录的 docs-index.html）
+- `pnpm run docs:index`：仅生成文档索引页（docs-index.html）
+- `pnpm run docs:upload`：上传文档到 OSS（需要配置 aliyun ossutil）
 
 ## 版本与发布
 
-- 当前版本：统一 0.1.0（开发阶段）
+- @cmtx/core 当前版本：0.2.0（breaking changes）
+- 各包将独立版本号和更新周期（正式发布后）
 - 发布作用域：@cmtx/* （默认 public 发布）
-- 包目标：正式发布后各包将独立版本号和更新周期
 
 ## 许可证
 

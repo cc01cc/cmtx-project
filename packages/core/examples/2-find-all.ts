@@ -1,38 +1,62 @@
 /**
- * 示例 2: 查找所有引用特定图片的文件
+ * 示例 2: 从目录中批量筛选图片
  * 运行: pnpm exec tsx examples/2-find-all.ts
+ *
+ * 如未生成示例数据，请先运行：pnpm exec tsx examples/scripts/gen-demo-data.ts
  */
 
-import { findFilesReferencingImage } from "../src";
+import { filterImagesFromDirectory } from "../src";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
-  // 配置选项（完整参数）
-  const options = {
-    depth: "all" as const,           // 递归扫描所有子目录（可选值: "all" | 0 | 1 | 2...）
-    projectRoot: process.cwd()       // 项目根目录，用于统一处理相对路径
-  };
+  console.log("如未生成示例数据，请先运行：pnpm exec tsx examples/scripts/gen-demo-data.ts\n");
 
-  // 查找所有引用 logo.png 的文件
-  const result1 = await findFilesReferencingImage(
-    "examples/demo-data/images/logo.png",
-    "examples/demo-data/docs",
-    options  // 完整参数
-  );
+  const docsDir = resolve(__dirname, "demo-data/docs");
 
-  console.log("\n=== 引用 logo.png 的文件 ===");
-  console.log(`找到 ${result1.length} 个文件:`);
-  result1.forEach(r => console.log(`  - ${r.relativePath}`));
+  // 筛选所有本地图片
+  const localImages = await filterImagesFromDirectory(docsDir, {
+    mode: "sourceType",
+    value: "local",
+  });
 
-  // 查找所有引用 unused.png 的文件
-  const result2 = await findFilesReferencingImage(
-    "examples/demo-data/images/unused.png",
-    "examples/demo-data/docs",
-    options  // 完整参数
-  );
+  console.log(`找到 ${localImages.length} 个本地图片`);
 
-  console.log("\n=== 引用 unused.png 的文件 ===");
-  console.log(`找到 ${result2.length} 个文件`);
-  // 输出: 找到 0 个文件
+  // 筛选所有 Web 图片
+  const webImages = await filterImagesFromDirectory(docsDir, {
+    mode: "sourceType",
+    value: "web",
+  });
+
+  console.log(`找到 ${webImages.length} 个 Web 图片`);
+
+  // 统计各文件的图片数量（只统计有 relativePath 的）
+  const stats = new Map<string, { local: number; web: number }>();
+  for (const img of localImages) {
+    if (!("relativePath" in img)) continue;
+    const file = (img as { relativePath: string }).relativePath;
+    if (!stats.has(file)) stats.set(file, { local: 0, web: 0 });
+    stats.get(file)!.local++;
+  }
+  for (const img of webImages) {
+    if (!("relativePath" in img)) continue;
+    const file = (img as { relativePath: string }).relativePath;
+    if (!stats.has(file)) stats.set(file, { local: 0, web: 0 });
+    stats.get(file)!.web++;
+  }
+
+  console.log("\n" + JSON.stringify({
+    localImages,
+    webImages,
+    summary: {
+      localCount: localImages.length,
+      webCount: webImages.length,
+      totalCount: localImages.length + webImages.length,
+      fileStats: Object.fromEntries(stats),
+    }
+  }, null, 2));
 }
 
 main();

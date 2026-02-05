@@ -6,13 +6,26 @@
 
 import chalk from "chalk";
 import type { OutputFormat } from "../types/cli.js";
-import type { UploadAnalysis } from "@cmtx/upload";
+// 定义分析结果类型
+interface AnalysisResult {
+  images: Array<{
+    localPath: string;
+    fileSize: number;
+    referencedIn: string[];
+  }>;
+  skipped: Array<{
+    localPath: string;
+    reason: string;
+  }>;
+  totalSize: number;
+  totalCount: number;
+}
 
 /**
  * 格式化分析结果
  */
 export function formatAnalyzeResult(
-  analysis: UploadAnalysis,
+  analysis: AnalysisResult,
   format: OutputFormat = "table",
 ): string {
   switch (format) {
@@ -28,7 +41,7 @@ export function formatAnalyzeResult(
 /**
  * JSON 格式输出
  */
-function formatAnalyzeJSON(analysis: UploadAnalysis): string {
+function formatAnalyzeJSON(analysis: AnalysisResult): string {
   return JSON.stringify(
     {
       success: true,
@@ -52,7 +65,7 @@ function formatAnalyzeJSON(analysis: UploadAnalysis): string {
 /**
  * 表格格式输出
  */
-function formatAnalyzeTable(analysis: UploadAnalysis): string {
+function formatAnalyzeTable(analysis: AnalysisResult): string {
   let output = chalk.bold("\n✓ 分析结果\n");
 
   if (analysis.images.length > 0) {
@@ -85,7 +98,7 @@ function formatAnalyzeTable(analysis: UploadAnalysis): string {
 /**
  * 纯文本格式输出（日志风格）
  */
-function formatAnalyzePlain(analysis: UploadAnalysis): string {
+function formatAnalyzePlain(analysis: AnalysisResult): string {
   const lines: string[] = [
     `[分析完成] 有效图片: ${analysis.images.length}, 跳过: ${analysis.skipped.length}`,
     `[大小统计] ${(analysis.totalSize / 1024).toFixed(1)}KB`,

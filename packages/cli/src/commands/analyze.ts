@@ -5,7 +5,7 @@
  * 示例：cmtx analyze ./docs --depth 3 --output table
  */
 
-import { extractImagesFromDirectory } from "@cmtx/core";
+import { filterImagesFromDirectory } from "@cmtx/core";
 import type { Argv, CommandModule } from "yargs";
 import type { AnalyzeCommandOptions } from "../types/cli.js";
 import { createLogger, createLibraryLogger } from "../utils/logger.js";
@@ -51,17 +51,13 @@ export async function handler(argv: AnalyzeCommandOptions): Promise<void> {
 
     logger("info", `扫描目录: ${argv.searchDir}`);
 
-    const result = await extractImagesFromDirectory(argv.searchDir, {
-      projectRoot: argv.projectRoot,
-      depth: argv.depth,
-      logger: libLogger,
-    });
+    const result = await filterImagesFromDirectory(argv.searchDir, undefined, undefined, libLogger);
 
-    // 转换为 UploadAnalysis 格式
+    // 转换为分析格式
     const analysis = {
-      images: result.map((item) => ({
-        localPath: item.relativePath,
-        fileSize: 0, // extractImagesFromDirectory 不提供文件大小
+      images: result.map((item: any) => ({
+        localPath: item.src,
+        fileSize: 0,
         referencedIn: [],
       })),
       skipped: [],

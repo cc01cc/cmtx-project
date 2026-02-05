@@ -1,0 +1,103 @@
+/**
+ * 核心功能验证测试
+ */
+
+import { describe, it, expect } from 'vitest';
+import { renderTemplateSimple, createContext } from '../src/template-renderer.js';
+import { ConfigBuilder } from '../src/types.js';
+
+function checkCondition(value: string, condition: any): boolean {
+    if (!condition) return true;
+    
+    if (condition.includes && !value.includes(condition.includes)) {
+        return false;
+    }
+    
+    if (condition.match) {
+        const regex = condition.match instanceof RegExp ? condition.match : new RegExp(condition.match);
+        if (!regex.test(value)) {
+            return false;
+        }
+    }
+    
+    if (condition.equals && value !== condition.equals) {
+        return false;
+    }
+    
+    return true;
+}
+
+describe('核心功能测试', () => {
+    it('应该正确渲染模式', () => {
+        const context = createContext('/test/image.png', {
+            cloudUrl: 'https://cdn.example.com/test.png',
+            originalValue: '原始ALT文本'
+        });
+        
+        const result = renderTemplateSimple('{cloudSrc}', context);
+        expect(result).toBe('https://cdn.example.com/test.png');
+        
+        const result2 = renderTemplateSimple('{originalValue} - 已更新', context);
+        expect(result2).toBe('原始ALT文本 - 已更新');
+    });
+    
+    it('应该正确构建配置', () => {
+        const config = new ConfigBuilder()
+            .storage({
+                upload: async (localPath: string, remotePath: string) => {
+                    return `https://cdn.mock.com/${remotePath}`;
+                }
+            } as any, {
+                prefix: 'uploads/blog/',
+                namingPattern: '{date}_{md5_8}{ext}'
+            })
+            .fieldTemplates({
+                src: '{cloudSrc}?optimize=true',
+                alt: '{originalValue} [processed]'
+            })
+            .delete({
+                strategy: 'trash',
+                maxRetries: 3
+            })
+            .build();
+        
+        expect(config.storage.prefix).toBe('uploads/blog/');
+        expect(config.replace?.fields.src).toBe('{cloudSrc}?optimize=true');
+        expect(config.delete?.strategy).toBe('trash');
+    });
+    
+    it('应该正确处理条件替换', () => {
+        const testCases = [
+            { original: '待更新的图片', condition: { includes: '待更新' }, shouldReplace: true },
+            { original: '普通图片', condition: { includes: '待更新' }, shouldReplace: false },
+            { original: 'v1.0 版本', condition: { match: /v\d+\.\d+/ }, shouldReplace: true },
+            { original: '普通文本', condition: { match: /v\d+\.\d+/ }, shouldReplace: false }
+        ];
+        
+        testCases.forEach(({ original, condition, shouldReplace }) => {
+            const result = checkCondition(original, condition);
+            expect(result).toBe(shouldReplace);
+        });
+    });
+    
+    it('应该正确处理字段分离', () => {
+        const mockImageReferences = [
+            { src: './images/logo.png', alt: '公司Logo' },
+            { src: '../images/logo.png', alt: 'Brand Logo' },
+            { src: '../../images/logo.png', alt: '企业标识' }
+        ];
+        
+        mockImageReferences.forEach(ref => {
+            const ctx = createContext('/path/to/image.png', {
+                cloudUrl: 'https://cdn.example.com/logo.png',
+                originalValue: ref.alt
+            });
+            
+            const newSrc = renderTemplateSimple('{cloudSrc}', ctx);
+            const newAlt = renderTemplateSimple('{originalValue} [已处理]', ctx);
+            
+            expect(newSrc).toBe('https://cdn.example.com/logo.png');
+            expect(newAlt).toBe(`${ref.alt} [已处理]`);
+        });
+    });
+});

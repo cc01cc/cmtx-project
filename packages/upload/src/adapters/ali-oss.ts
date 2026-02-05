@@ -2,9 +2,37 @@
  * 阿里云 OSS 存储适配器
  *
  * @packageDocumentation
+ * @module adapters/ali-oss
+ *
+ * @description
+ * 实现 IStorageAdapter 接口，用于上传文件到阿里云 OSS。
  *
  * @remarks
- * 实现 IStorageAdapter 接口，用于上传文件到阿里云 OSS。
+ * ## 功能特性
+ *
+ * - 封装阿里云 OSS SDK
+ * - 实现标准存储适配器接口
+ * - 自动处理 URL 格式标准化
+ * - 提供完整的错误处理
+ *
+ * ## 使用要求
+ *
+ * 需要安装阿里云 OSS SDK：
+ * ```bash
+ * pnpm add ali-oss
+ * ```
+ *
+ * ## 配置参数
+ *
+ * - **region**: OSS 区域（如 oss-cn-hangzhou）
+ * - **accessKeyId**: 访问密钥 ID
+ * - **accessKeySecret**: 访问密钥密码
+ * - **bucket**: 存储桶名称
+ *
+ * ## 返回格式
+ *
+ * 上传成功后返回标准化的 HTTPS URL：
+ * `https://{bucket}.{region}.aliyuncs.com/{remotePath}`
  *
  * @example
  * ```typescript
@@ -20,35 +48,22 @@
  *
  * const adapter = new AliOSSAdapter(client);
  * ```
+ *
+ * @see {@link AliOSSAdapter} - 主要导出类
+ * @see {@link IStorageAdapter} - 适配器接口
+ * @see {@link AdapterUploadResult} - 上传结果类型
  */
 
-import type { IStorageAdapter } from "../types.js";
+import type { AdapterUploadResult, IStorageAdapter } from '../types.js';
+import type OSS from 'ali-oss';
 
 /**
- * 阿里云 OSS 客户端接口（最小化依赖）
+ * 阿里云 OSS 客户端类型
  *
  * @remarks
- * 不直接依赖 ali-oss 包，只定义需要的 API 方法。
- * 用户需自行安装和配置 ali-oss 客户端。
+ * 从 ali-oss 包导入的客户端类型
  */
-export interface AliOSSClient {
-  /**
-   * 上传文件到 OSS
-   *
-   * @param remotePath - OSS 中的文件路径（不含 bucket）
-   * @param localPath - 本地文件的绝对路径
-   * @returns 上传结果，包含 URL 和名称
-   */
-  put(
-    remotePath: string,
-    localPath: string,
-  ): Promise<{
-    /** 文件的完整 URL（可能是 HTTP 或 HTTPS） */
-    url: string;
-    /** 文件在 OSS 中的路径/名称 */
-    name: string;
-  }>;
-}
+export type AliOSSClient = OSS;
 
 /**
  * 阿里云 OSS 存储适配器
@@ -86,36 +101,30 @@ export interface AliOSSClient {
  * ```
  */
 export class AliOSSAdapter implements IStorageAdapter {
-  /**
-   * @param client - 阿里云 OSS 客户端实例
-   */
-  constructor(private readonly client: AliOSSClient) {}
+    /**
+     * @param client - 阿里云 OSS 客户端实例
+     */
+    constructor(private readonly client: AliOSSClient) {}
 
-  /**
-   * 上传文件到阿里云 OSS
-   *
-   * @param localPath - 本地文件的绝对路径
-   * @param remotePath - OSS 中的文件路径（不含 bucket）
-   * @returns 完整的 HTTPS URL
-   *
-   * @throws {Error} 当上传失败时抛出错误
-   */
-  async upload(localPath: string, remotePath: string): Promise<string> {
-    try {
-      const result = await this.client.put(remotePath, localPath);
+    /**
+     * 上传文件到阿里云 OSS
+     *
+     * @param localPath - 本地文件的绝对路径
+     * @param remotePath - OSS 中的文件路径（不含 bucket）
+     * @returns 完整的 HTTPS URL
+     *
+     * @throws {Error} 当上传失败时抛出错误
+     */
+    async upload(localPath: string, remotePath: string): Promise<AdapterUploadResult> {
+        try {
+            const result = await this.client.put(remotePath, localPath);
 
-      // 确保返回 HTTPS URL
-      let url = result.url;
-      if (url.startsWith("http://")) {
-        url = url.replace("http://", "https://");
-      }
-
-      return url;
-    } catch (error) {
-      // 包装错误信息
-      throw new Error(
-        `Failed to upload to OSS: ${error instanceof Error ? error.message : String(error)}`,
-      );
+            return {
+                name: result.name,
+                url: result.url,
+            } as AdapterUploadResult;
+        } catch (error) {
+            throw new Error(`Failed to upload to OSS: ${error instanceof Error ? error.message : String(error)}`);
+        }
     }
-  }
 }

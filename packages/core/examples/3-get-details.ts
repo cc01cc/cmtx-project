@@ -1,35 +1,43 @@
 /**
- * 示例 3: 获取详细的引用位置信息
+ * 示例 3: 解析 Markdown 文件中的图片
  * 运行: pnpm exec tsx examples/3-get-details.ts
+ *
+ * 如未生成示例数据，请先运行：pnpm exec tsx examples/scripts/gen-demo-data.ts
  */
 
-import { getImageReferenceDetails } from "../src";
+import { filterImagesInText } from "../src";
+import { readFile } from "node:fs/promises";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
-  // 配置选项（完整参数）
-  const options = {
-    depth: "all" as const,           // 递归扫描所有子目录
-    projectRoot: process.cwd()       // 项目根目录
-  };
+  console.log("如未生成示例数据，请先运行：pnpm exec tsx examples/scripts/gen-demo-data.ts\n");
 
-  // 获取 logo.png 的详细引用位置
-  const details = await getImageReferenceDetails(
-    "examples/demo-data/images/logo.png",
-    "examples/demo-data/docs",
-    options  // 完整参数
-  );
+  const readmePath = resolve(__dirname, "demo-data/docs/README.md");
+  const content = await readFile(readmePath, "utf-8");
 
-  console.log("\n=== logo.png 的详细引用位置 ===");
-  console.log(`共在 ${details.length} 个文件中被引用:\n`);
-  
-  details.forEach(detail => {
-    console.log(`文件: ${detail.relativePath}`);
-    detail.locations.forEach(loc => {
-      console.log(`  第 ${loc.line} 行, 第 ${loc.column} 列:`);
-      console.log(`    ${loc.lineText.trim()}`);
-    });
-    console.log();
-  });
+  // 解析 Markdown 中的所有图片
+  const images = filterImagesInText(content);
+
+  console.log(`找到 ${images.length} 个图片`);
+
+  // 按 syntax 分类
+  const mdImages = images.filter(img => img.syntax === "md");
+  const htmlImages = images.filter(img => img.syntax === "html");
+
+  console.log(`  - Markdown 语法: ${mdImages.length} 个`);
+  console.log(`  - HTML 标签: ${htmlImages.length} 个`);
+
+  console.log(JSON.stringify({
+    images,
+    summary: {
+      totalCount: images.length,
+      mdCount: mdImages.length,
+      htmlCount: htmlImages.length,
+    }
+  }, null, 2));
 }
 
 main();

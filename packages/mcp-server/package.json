@@ -16,7 +16,9 @@
   "files": ["dist", "bin"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "dev": "tsc -w -p tsconfig.json"
+    "dev": "tsc -w -p tsconfig.json",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "dependencies": {
     "@cmtx/core": "workspace:*",
@@ -24,7 +26,9 @@
     "ali-oss": "^6.23.0"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18",
+    "@types/node": "^25.2.0"
   },
   "engines": {
     "node": ">=18.0.0"

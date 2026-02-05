@@ -3,8 +3,9 @@
   "out": "docs/api",
   "exclude": ["**/*.test.ts", "**/*.spec.ts"],
   "plugin": [],
-  "readme": "docs/markdown-image-extractor.md",
+  "readme": "README.md",
   "name": "cmtx-core",
   "includeVersion": true,
-  "tsconfig": "tsconfig.typedoc.json"
+  "tsconfig": "tsconfig.typedoc.json",
+  "gitRemote": "https://github.com/cc01cc/cmtx-project.git"
 }

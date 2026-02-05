@@ -1,144 +1,101 @@
 /**
  * 示例 5: 替换图片引用
- * 运行: pnpm exec tsx examples/5-replace-image.ts
- * 
- * 这个示例会在操作前备份文件,操作后恢复,确保非幂等操作不会破坏演示环境
+ * 运行：pnpm exec tsx examples/5-replace-image.ts
+ *
+ * 如未生成示例数据，请先运行：pnpm exec tsx examples/scripts/gen-demo-data.ts
  */
 
-import { replaceImageInFiles } from "../src";
-import { readFile, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { replaceImagesInFile } from '../src';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-// 备份和恢复演示数据的工具函数
-async function backupMarkdownFiles(dir: string): Promise<Map<string, string>> {
-  const backup = new Map<string, string>();
-  const docDir = resolve(dir);
-  
-  if (existsSync(docDir)) {
-    const { readdirSync } = await import("node:fs");
-    const files = readdirSync(docDir);
-    
-    for (const file of files) {
-      if (file.endsWith(".md")) {
-        const path = resolve(docDir, file);
-        try {
-          const content = await readFile(path, "utf-8");
-          backup.set(path, content);
-        } catch {
-          // 忽略读取错误
-        }
-      }
-    }
-  }
-  
-  return backup;
-}
-
-async function restoreMarkdownFiles(backup: Map<string, string>): Promise<void> {
-  for (const [path, content] of backup.entries()) {
-    try {
-      await writeFile(path, content, "utf-8");
-    } catch {
-      // 忽略恢复错误
-    }
-  }
-}
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
-  const docsDir = "examples/demo-data/docs";
-  
-  // 备份演示文件
-  const backup = await backupMarkdownFiles(docsDir);
-  
-  try {
-    // 配置选项（完整参数）
-    const options = {
-      depth: "all" as const,           // 递归扫描所有子目录
-      projectRoot: process.cwd()       // 项目根目录
-    };
+    console.log('如未生成示例数据，请先运行：pnpm exec tsx examples/scripts/gen-demo-data.ts\n');
 
-    console.log("\n=== 场景1: 替换图片源 (src) ===");
-    // 将 banner.png 替换为 logo.png
-    const result1 = await replaceImageInFiles(
-      "examples/demo-data/images/banner.png",
-      docsDir,
-      {
-        newSrc: "examples/demo-data/images/logo.png",
-        ...options
-      }
+    const coreFeaturesPath = resolve(__dirname, 'demo-data/docs/core-features.md');
+    const readmePath = resolve(__dirname, 'demo-data/docs/README.md');
+
+    console.log('=== 场景 1: 替换图片源 (src) ===');
+    const result1 = await replaceImagesInFile(coreFeaturesPath, [
+        { field: 'src', pattern: '../images/logo.png', newSrc: 'https://cdn.example.com/new-logo.png' },
+    ]);
+
+    console.log(`状态：${result1.success ? '成功' : '失败'}`);
+    if (result1.result) {
+        console.log(`替换数量: ${result1.result.replacements.length}`);
+    }
+
+    console.log('\n=== 场景 2: 同时替换多个字段 ===');
+    const result2 = await replaceImagesInFile(coreFeaturesPath, [
+        { 
+            field: 'src', 
+            pattern: '../images/banner.png', 
+            newSrc: 'https://cdn.example.com/banner-v2.png',
+            newAlt: '更新的横幅',
+            newTitle: '新版横幅图片'
+        },
+    ]);
+
+    console.log(`状态：${result2.success ? '成功' : '失败'}`);
+    if (result2.result) {
+        console.log(`替换数量: ${result2.result.replacements.length}`);
+    }
+
+    console.log('\n=== 场景 3: 为缺失字段插入值 ===');
+    const result3 = await replaceImagesInFile(readmePath, [
+        { 
+            field: 'src', 
+            pattern: './inline.png', 
+            newAlt: '内联图片描述' 
+        },
+    ]);
+
+    console.log(`状态：${result3.success ? '成功' : '失败'}`);
+    if (result3.result) {
+        console.log(`替换数量: ${result3.result.replacements.length}`);
+    }
+
+    console.log('\n=== 场景 4: 使用 raw 模式精确匹配 ===');
+    const result4 = await replaceImagesInFile(readmePath, [
+        { 
+            field: 'raw', 
+            pattern: '![](./single-line.png)', 
+            newSrc: 'https://cdn.example.com/single-line.png',
+            newAlt: '单行HTML图片'
+        },
+    ]);
+
+    console.log(`状态：${result4.success ? '成功' : '失败'}`);
+    if (result4.result) {
+        console.log(`替换数量: ${result4.result.replacements.length}`);
+    }
+
+    console.log('\n=== 场景 5: 批量替换多个规则 ===');
+    const result5 = await replaceImagesInFile(coreFeaturesPath, [
+        { field: 'src', pattern: '../images/logo.png', newSrc: './updated-logo.png' },
+        { field: 'src', pattern: '../images/banner.png', newSrc: './updated-banner.png' },
+    ]);
+
+    console.log(`状态：${result5.success ? '成功' : '失败'}`);
+    if (result5.result) {
+        console.log(`替换数量: ${result5.result.replacements.length}`);
+    }
+
+    console.log(
+        JSON.stringify(
+            {
+                scenario1: result1,
+                scenario2: result2,
+                scenario3: result3,
+                scenario4: result4,
+                scenario5: result5,
+            },
+            null,
+            2
+        )
     );
-
-    console.log(`处理了 ${result1.length} 个文件`);
-    result1.forEach(file => {
-      if (file.replacements.length > 0) {
-        console.log(`\n文件: ${file.relativePath}`);
-        console.log(`  替换次数: ${file.replacements.length}`);
-        file.replacements.forEach((repl, idx) => {
-          console.log(`  第 ${idx + 1} 处: 行号 ${repl.line}, 列号 ${repl.column}`);
-          console.log(`    原: ${repl.oldText}`);
-          console.log(`    新: ${repl.newText}`);
-        });
-      }
-    });
-
-    console.log("\n=== 场景2: 替换 alt 文本 ===");
-    // 替换 alt 文本
-    const result2 = await replaceImageInFiles(
-      "examples/demo-data/images/banner.png",
-      docsDir,
-      {
-        newAlt: "页面横幅图",
-        ...options
-      }
-    );
-
-    console.log(`处理了 ${result2.length} 个文件`);
-    let totalReplacements = 0;
-    result2.forEach(file => {
-      if (file.replacements.length > 0) {
-        totalReplacements += file.replacements.length;
-        console.log(`\n文件: ${file.relativePath}`);
-        console.log(`  替换次数: ${file.replacements.length}`);
-        file.replacements.forEach(repl => {
-          console.log(`    原: ${repl.oldText}`);
-          console.log(`    新: ${repl.newText}`);
-        });
-      }
-    });
-    console.log(`\n总替换次数: ${totalReplacements}`);
-
-    console.log("\n=== 场景3: 同时替换 src 和 alt ===");
-    // 同时替换 src 和 alt
-    const result3 = await replaceImageInFiles(
-      "examples/demo-data/images/logo.png",
-      docsDir,
-      {
-        newSrc: "https://cdn.example.com/logo.png",
-        newAlt: "应用Logo",
-        ...options
-      }
-    );
-
-    console.log(`处理了 ${result3.length} 个文件`);
-    result3.forEach(file => {
-      if (file.replacements.length > 0) {
-        console.log(`\n文件: ${file.relativePath}`);
-        file.replacements.forEach(repl => {
-          console.log(`  替换类型: ${repl.type}`);
-          console.log(`    原: ${repl.oldText}`);
-          console.log(`    新: ${repl.newText}`);
-        });
-      }
-    });
-
-    console.log("\n✅ 所有演示完成！");
-  } finally {
-    // 恢复演示文件
-    console.log("\n⏮️ 恢复演示文件...");
-    await restoreMarkdownFiles(backup);
-    console.log("✓ 演示文件已恢复");
-  }
 }
 
-main();
+await main();

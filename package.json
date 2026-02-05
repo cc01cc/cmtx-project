@@ -2,6 +2,7 @@
   "name": "cmtx-workspace",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "cmtx monorepo: @cmtx/core + @cmtx/upload",
   "license": "Apache-2.0",
   "packageManager": "pnpm@10.8.0",
@@ -17,7 +18,9 @@
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "docs": "pnpm -r docs",
+    "docs": "pnpm -r docs && node scripts/generate-docs-index.js",
+    "docs:index": "node scripts/generate-docs-index.js",
+    "docs:upload": "node scripts/upload-docs.js",
     "lint": "eslint \"packages/*/src/**/*.ts\" \"packages/*/tests/**/*.ts\" --fix"
   },
   "keywords": [
@@ -29,11 +32,11 @@
   ],
   "devDependencies": {
     "@eslint/js": "^9.39.2",
-    "@eslint/json": "^0.14.0",
+    "@eslint/json": "^1.0.0",
     "@eslint/markdown": "^7.5.1",
     "@types/node": "^25.0.9",
     "eslint": "^9.39.2",
-    "eslint-plugin-import": "^2.30.0",
+    "eslint-plugin-import": "^2.32.0",
     "globals": "^17.0.0",
     "jiti": "^2.6.1",
     "prettier": "3.8.0",
@@ -41,6 +44,8 @@
     "typedoc": "^0.28.16",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.53.1",
-    "vitest": "^4.0.17"
+    "vitest": "^4.0.17",
+    "js-yaml": "4.1.1",
+    "@types/js-yaml": "4.0.5"
   }
 }

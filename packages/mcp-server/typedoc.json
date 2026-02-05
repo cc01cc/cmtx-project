@@ -1,0 +1,16 @@
+{
+  "entryPoints": ["src/server.ts"],
+  "out": "docs/api",
+  "exclude": ["**/*.test.ts", "**/*.spec.ts"],
+  "plugin": [],
+  "readme": "README.md",
+  "name": "cmtx-mcp-server",
+  "includeVersion": true,
+  "tsconfig": "tsconfig.json",
+  "gitRemote": "https://github.com/cc01cc/cmtx-project.git",
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeExternals": true,
+  "hideGenerator": true,
+  "theme": "default"
+}

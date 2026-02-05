@@ -1,452 +1,358 @@
 /**
- * @cmtx/upload - 类型定义
+ * 重构后的核心配置结构
  *
- * 提供 Markdown 图片上传到对象存储（如阿里云 OSS）的功能
+ * @module types
+ * @description
+ * 定义上传包所需的所有类型接口和配置结构。
+ *
+ * @remarks
+ * ## 核心类型
+ *
+ * ### 配置相关
+ * - {@link UploadConfig} - 主配置接口
+ * - {@link StorageOptions} - 存储配置
+ * - {@link ReplaceOptions} - 替换配置
+ * - {@link DeleteOptions} - 删除配置
+ * - {@link EventOptions} - 事件配置
+ *
+ * ### 结果相关
+ * - {@link UploadResult} - 上传结果
+ * - {@link DeduplicationInfo} - 去重信息
+ * - {@link FailedItem} - 失败项详情
+ *
+ * ### 工具类型
+ * - {@link IStorageAdapter} - 存储适配器接口
+ * - {@link ConfigBuilder} - 配置构建器
+ * - {@link UploadEvent} - 事件类型
+ *
+ * ## 设计原则
+ *
+ * - **模块化**：配置按功能分离
+ * - **可扩展**：接口设计支持未来扩展
+ * - **类型安全**：完整的 TypeScript 类型定义
+ * - **向后兼容**：保持 API 稳定性
+ *
+ * @see {@link UploadConfig} - 主配置结构
+ * @see {@link ConfigBuilder} - 配置构建器
+ * @see {@link IStorageAdapter} - 适配器接口
  */
 
-import type { ReplaceFileResult, LoggerCallback } from "@cmtx/core";
+import { DeleteFileOptions } from '@cmtx/core';
 
-/**
- * 上传事件类型
- */
-export type UploadEventType =
-  | "scan:start" // 开始扫描图片
-  | "scan:complete" // 扫描完成
-  | "upload:start" // 单个图片开始上传
-  | "upload:complete" // 单个图片上传完成
-  | "upload:error" // 单个图片上传失败
-  | "replace:start" // 开始替换 markdown 引用
-  | "replace:complete" // 替换完成
-  | "replace:error" // 替换失败
-  | "delete:start" // 开始删除/回收本地文件
-  | "delete:complete" // 删除/回收完成
-  | "delete:error" // 删除/回收失败
-  | "complete"; // 整个流程完成
-
-/**
- * 上传事件数据
- */
-export interface UploadEvent {
-  /** 事件类型 */
-  type: UploadEventType;
-
-  /** 事件时间戳（毫秒） */
-  timestamp: number;
-
-  /** 事件相关数据 */
-  data?: {
-    /** 本地图片路径 */
-    localPath?: string;
-
-    /** 远程路径（不含域名） */
-    remotePath?: string;
-
-    /** 原始文件名 */
-    originalName?: string;
-
-    /** 重命名后的文件名 */
-    renamedTo?: string;
-
-    /** 完整的 CDN URL */
-    ossUrl?: string;
-
-    /** 文件大小（字节） */
-    fileSize?: number;
-
-    /** 已扫描的图片数量 */
-    scannedCount?: number;
-
-    /** 已上传的图片数量 */
-    uploadedCount?: number;
-
-    /** 已替换的文件数量 */
-    replacedCount?: number;
-
-    /** 已删除/回收的图片数量 */
-    deletedCount?: number;
-
-    /** 删除/回收状态 */
-    deletionStatus?: "success" | "failed" | "skipped";
-
-    /** 删除/回收重试次数 */
-    deletionRetries?: number;
-
-    /** 错误信息 */
-    error?: Error;
-  };
+export interface AdapterUploadResult {
+    name: string;
+    url: string;
 }
 
 /**
- * 事件回调函数
+ * 云端图片映射信息
+ */
+export interface ImageCloudMapBody {
+    name: string;
+    remotePath: string;
+    url: string;
+    nameTemplateVariables: Record<string, string>;
+}
+
+// ==================== 存储配置 ====================
+export interface StorageOptions {
+    /** 云存储适配器 */
+    adapter: IStorageAdapter;
+
+    /** 上传前缀路径 */
+    prefix?: string;
+
+    /** 命名模式 */
+    namingTemplate?: string;
+}
+
+// ==================== 替换配置 ====================
+export interface ReplaceOptions {
+    /**
+     * 字段替换模板
+     * key: 字段名 ('src' | 'alt' | 'title')
+     * value: 替换模板字符串
+     * @example
+     * ```typescript
+     * {
+     *   src: '{cloudSrc}',
+     *   alt: '{originalAlt} - Updated',
+     *   title: 'New Title'
+     * }
+     * ```
+     */
+    fields: Record<string, string>;
+
+    /**
+     * 全局上下文变量
+     */
+    context?: Record<string, string>;
+}
+
+// ==================== 删除配置 ====================
+export interface DeleteOptions extends DeleteFileOptions {
+    /** 删除范围根目录绝对路径 */
+    rootPath?: string;
+}
+
+// ==================== 事件配置 ====================
+export interface EventOptions {
+    /** 进度回调 */
+    onProgress?: (event: UploadEvent) => void;
+
+    /** 日志回调 */
+    logger?: import('@cmtx/core').LoggerCallback;
+}
+
+// ==================== 主配置接口 ====================
+export interface UploadConfig {
+    /** 存储配置 */
+    storage: StorageOptions;
+
+    /** 替换配置 */
+    replace?: ReplaceOptions;
+
+    /** 删除配置 */
+    delete?: DeleteOptions;
+
+    /** 事件配置 */
+    events?: EventOptions;
+}
+
+// ==================== 默认配置 ====================
+/** 默认替换配置 */
+export const DEFAULT_REPLACE_OPTIONS: ReplaceOptions = {
+    fields: {
+        src: '{cloudSrc}',
+        alt: '{originalAlt}',
+    },
+};
+
+/** 默认删除配置 */
+export const DEFAULT_DELETE_OPTIONS: import('@cmtx/core').DeleteFileOptions = {
+    strategy: 'trash',
+    maxRetries: 3,
+};
+
+// ==================== 配置构建器 ====================
+export class ConfigBuilder {
+    private readonly config: Partial<UploadConfig> = {};
+
+    /**
+     * 设置存储配置
+     * @param adapter - 存储适配器
+     * @param options - 存储选项
+     * @returns this - 支持链式调用
+     */
+    storage(
+        adapter: IStorageAdapter,
+        options?: {
+            prefix?: string;
+            namingPattern?: string;
+        }
+    ): this {
+        this.config.storage = {
+            adapter,
+            prefix: options?.prefix,
+            namingTemplate: options?.namingPattern,
+        };
+        return this;
+    }
+
+    /**
+     * 设置完整的替换配置
+     * @param options - 替换选项
+     * @returns this - 支持链式调用
+     */
+    replace(options: ReplaceOptions): this {
+        this.config.replace = options;
+        return this;
+    }
+
+    /**
+     * 设置字段替换模板（快捷方法）
+     * @param patterns - 字段到模板的映射
+     * @returns this - 支持链式调用
+     * @example
+     * ```typescript
+     * builder.fieldTemplates({
+     *   src: '{cloudSrc}',
+     *   alt: '{originalAlt} - Updated'
+     * });
+     * ```
+     */
+    fieldTemplates(patterns: Record<string, string>): this {
+        this.config.replace = { fields: patterns };
+        return this;
+    }
+
+    /**
+     * 设置删除配置
+     * @param options - 删除选项（直接使用 core 的 DeleteFileOptions）
+     * @returns this - 支持链式调用
+     */
+    delete(options: DeleteOptions): this {
+        this.config.delete = options;
+        return this;
+    }
+
+    /**
+     * 设置事件回调
+     * @param onProgress - 进度回调函数
+     * @param logger - 日志回调函数
+     * @returns this - 支持链式调用
+     */
+    events(onProgress?: (event: UploadEvent) => void, logger?: import('@cmtx/core').LoggerCallback): this {
+        this.config.events = { onProgress, logger };
+        return this;
+    }
+
+    /**
+     * 构建最终配置
+     * @returns UploadConfig - 完整的上传配置
+     * @throws {Error} 当缺少必需的存储配置时
+     */
+    build(): UploadConfig {
+        if (!this.config.storage) {
+            throw new Error('Storage configuration is required');
+        }
+
+        // 提供合理的默认配置
+        const replaceConfig = this.config.replace ?? DEFAULT_REPLACE_OPTIONS;
+        const deleteConfig = this.config.delete ?? DEFAULT_DELETE_OPTIONS;
+
+        return {
+            storage: this.config.storage,
+            replace: replaceConfig,
+            delete: deleteConfig,
+            events: this.config.events,
+        };
+    }
+}
+
+// ==================== 上传结果类型 ====================
+
+/**
+ * 唯一图片结果
+ */
+export interface UniqueImageResult {
+    /** 图片绝对路径 */
+    absPath: string;
+
+    /** 云端 URL（如果上传成功） */
+    cloudUrl?: string;
+
+    /** 引用数量 */
+    referenceCount: number;
+
+    /** 引用此图片的文件列表（去重） */
+    files: string[];
+}
+
+export interface IStorageAdapter {
+    /**
+     * 上传文件到云存储
+     * @param localPath - 本地文件路径
+     * @param remotePath - 远程存储路径
+     * @returns Promise<string> 上传后的完整 URL
+     */
+    upload(localPath: string, remotePath: string): Promise<AdapterUploadResult>;
+}
+
+export type UploadEventType =
+    /** 上传完成事件 */
+    | 'upload:complete'
+    /** 上传错误事件 */
+    | 'upload:error'
+    /** 替换完成事件 */
+    | 'replace:complete'
+    /** 删除完成事件 */
+    | 'delete:complete';
+
+export interface UploadEvent {
+    /** 事件类型 */
+    type: UploadEventType;
+
+    /** 时间戳 */
+    timestamp: number;
+
+    /** 事件数据 */
+    data?: {
+        /** 本地文件路径 */
+        localPath?: string;
+
+        /** 云端 URL */
+        cloudUrl?: string;
+
+        /** 错误对象 */
+        error?: Error;
+
+        /** 是否来自缓存 */
+        cached?: boolean;
+    };
+}
+
+// ==================== 上传结果类型 ====================
+
+export interface FailedItem {
+    /** 本地图片的绝对路径 */
+    localPath: string;
+
+    /** 失败发生的阶段 */
+    stage: 'upload' | 'replace' | 'delete';
+
+    /** 失败原因 */
+    error: string;
+}
+
+export interface DeduplicationInfo {
+    /** 唯一的本地文件数（实际上传数） */
+    uniqueFiles: number;
+
+    /** 所有图片引用总数（包括重复引用） */
+    totalReferences: number;
+
+    /** 重复引用的数量（totalReferences - uniqueFiles） */
+    duplicateCount: number;
+
+    /** 全局去重节省的上传数量（来自其他 Markdown 文件的缓存） */
+    globalDedupSaved?: number;
+}
+
+export interface UploadResult {
+    /** 是否成功（至少上传了一张图片） */
+    success: boolean;
+
+    /** 成功上传的图片数 */
+    uploaded: number;
+
+    /** 成功替换的图片数 */
+    replaced: number;
+
+    /** 成功删除的本地图片数 */
+    deleted: number;
+
+    /** 去重信息（当存在重复引用时返回） */
+    deduplicationInfo?: DeduplicationInfo;
+
+    /** 失败的图片详情列表（仅在有失败时返回） */
+    failed?: FailedItem[];
+}
+
+/**
+ * @internal
+ * 事件回调类型
  */
 export type UploadEventCallback = (event: UploadEvent) => void;
 
 /**
- * 图片过滤选项
+ * @internal
+ * 验证错误信息
  */
-export interface ImageFilterOptions {
-  /** 文件大小限制（字节），默认 10MB */
-  maxFileSize?: number;
-
-  /** 允许的文件扩展名白名单，默认 ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp'] */
-  allowedExtensions?: string[];
-}
-
-/**
- * 工作区路径配置
- */
-export interface WorkspaceOptions {
-  /** 项目根目录（必填） */
-  projectRoot: string;
-
-  /** 扫描/查找 Markdown 的目录（必填） */
-  searchDir: string;
-}
-
-/**
- * 事件与日志回调配置
- */
-export interface HookOptions {
-  /** 上传流程事件回调 */
-  onEvent?: UploadEventCallback;
-
-  /** 透传给 @cmtx/core 的日志回调 */
-  logger?: LoggerCallback;
-}
-
-/**
- * 命名配置
- */
-export interface NamingConfig {
-  /** OSS 路径前缀，不以 / 结尾 */
-  uploadPrefix?: string;
-
-  /** 文件命名策略，默认 "original+timestamp+hash" */
-  namingStrategy?: NamingStrategy;
-}
-
-/**
- * 删除配置
- */
-export interface DeletionOptions {
-  /** 删除策略（默认 trash） */
-  strategy?: DeletionStrategy;
-
-  /** 当 strategy 为 move 时的目标目录，默认 .cmtx-trash/ */
-  trashDir?: string;
-
-  /** 删除失败时的最大重试次数，默认 3 */
-  maxRetries?: number;
-}
-
-/**
- * 命名模板上下文接口
- * 定义所有可用的模板令牌及其类型
- *
- * @remarks
- * 用于 `resolveNamingTemplate()` 函数生成文件名时的上下文数据
- */
-export interface NamingTemplateContext {
-  // 文件基础信息
-  original: string;           // 原始文件名（不含扩展名）
-  ext: string;                // 扩展名（含点，如 .png）
-  fullname: string;           // 完整原始文件名
-
-  // MD5 哈希 - 统一下划线
-  md5_8: string;              // MD5 前 8 位
-  md5_16: string;             // MD5 前 16 位
-  md5_32: string;             // 完整 MD5 (32位)
-  md5: string;                // MD5 完整版（别名，同 md5_32）
-
-  // SHA256 哈希 - 统一下划线
-  sha256_8: string;           // SHA256 前 8 位
-  sha256_16: string;          // SHA256 前 16 位
-  sha256_32: string;          // SHA256 前 32 位
-  sha256_64: string;          // 完整 SHA256 (64位)
-  sha256: string;             // SHA256 完整版（别名，同 sha256_64）
-
-  // 时间戳相关 - 保持一致
-  timestamp: number;          // 毫秒级时间戳数字
-  timestamp_sec: number;      // 秒级时间戳
-  date: string;               // YYYYMMDD
-  time: string;               // HHmmss
-  datetime: string;           // YYYYMMDDHHmmss
-  iso_date: string;           // ISO 8601 (2026-01-26)
-
-  // 文件属性 - 保持一致
-  size: number;               // 文件大小（字节）
-  size_kb: number;            // 文件大小（KB）
-  size_mb: number;            // 文件大小（MB）
-
-  // 随机值 - 保持一致
-  uuid: string;               // UUID v4
-  random: string;             // 8位随机十六进制字符串
-}
-
-/**
- * 命名策略类型
- *
- * @remarks
- * 支持三种方式：
- * 
- * 1. **预定义别名**（向后兼容）：
- *    - "original+timestamp+hash": 原名_{datetime}_{md5_8}.ext（默认）
- *    - "hash-only": {md5_8}.ext
- *    - "timestamp-only": {timestamp}.ext
- *    - "uuid": {uuid}.ext
- * 
- * 2. **模板字符串**（推荐）：
- *    - {original}: 原始文件名（不含扩展名）
- *    - {ext}: 扩展名（含点）
- *    - {md5_8}, {md5_16}, {md5_32}, {md5}: MD5 哈希
- *    - {sha256_8}, {sha256_16}, {sha256_32}, {sha256_64}, {sha256}: SHA256 哈希
- *    - {timestamp}, {timestamp_sec}, {date}, {time}, {datetime}, {iso_date}: 时间戳
- *    - {size}, {size_kb}, {size_mb}: 文件大小
- *    - {uuid}, {random}: 随机值
- * 
- * 3. **自定义函数**：
- *    (localPath: string) => string | Promise<string>，返回新的文件名（不含路径）
- *
- * @example
- * ```typescript
- * // 预定义别名
- * "original+timestamp+hash"
- * 
- * // 模板字符串
- * "{original}_{md5_8}_{datetime}{ext}"
- * "{date}/{time}_{md5_16}{ext}"
- * "{sha256_8}{ext}"
- * 
- * // 自定义函数
- * (path) => \`custom-\${Date.now()}\${extname(path)}\`
- * ```
- */
-export type NamingStrategy =
-  | "original+timestamp+hash"
-  | "hash-only"
-  | "timestamp-only"
-  | "uuid"
-  | ((localPath: string) => string | Promise<string>)
-  | (string & { readonly __brand?: never });
-
-/**
- * 命名策略选项
- *
- * @remarks
- * 用于配置图片文件的命名规则
- */
-export interface NamingOptions {
-  /** 本地文件路径 */
-  localPath: string;
-
-  /** 上传路径前缀（可选） */
-  uploadPrefix?: string;
-
-  /** 命名策略（可选），默认 "original+timestamp+hash" */
-  namingStrategy?: NamingStrategy;
-}
-
-/**
- * 删除策略类型
- *
- * @remarks
- * - "trash": 使用系统回收站（跨平台，推荐）（默认）
- * - "move": 移动到指定目录（由 trashDir 指定）
- * - "hard-delete": 永久删除（谨慎使用）
- */
-export type DeletionStrategy = "trash" | "move" | "hard-delete";
-
-/**
- * 核心上传配置（单图片和多图片上传的共享配置）
- */
-export interface CoreUploadConfig {
-  /** 工作区路径配置 */
-  workspace: WorkspaceOptions;
-
-  /** 存储适配器（必填） */
-  adapter: IStorageAdapter;
-
-  /** 命名配置 */
-  naming?: NamingConfig;
-
-  /** 删除配置 */
-  deletion?: DeletionOptions;
-
-  /** 是否替换 Markdown 文件中的图片引用（默认 false） */
-  replace?: boolean;
-
-  /** 事件与日志回调 */
-  hooks?: HookOptions;
-}
-
-
-/**
- * 存储适配器接口
- *
- * @remarks
- * 实现此接口以支持不同的云存储服务（阿里云 OSS、AWS S3、腾讯云 COS 等）
- *
- * @example
- * ```typescript
- * class AliOSSAdapter implements IStorageAdapter {
- *   constructor(private client: OSS) {}
- *
- *   async upload(localPath: string, remotePath: string): Promise<string> {
- *     const result = await this.client.put(remotePath, localPath);
- *     return result.url;
- *   }
- * }
- * ```
- */
-export interface IStorageAdapter {
-  /**
-   * 上传文件到远程存储
-   *
-   * @param localPath - 本地文件的绝对路径
-   * @param remotePath - 远程路径（不含域名），如 "images/2024/logo.png"
-   * @returns 完整的 CDN URL
-   * @throws {Error} 上传失败时抛出错误
-   */
-  upload(localPath: string, remotePath: string): Promise<string>;
-}
-
-/**
- * 分析选项配置（不需要 adapter）
- */
-export interface AnalyzeOptions {
-  /** 工作区路径配置 */
-  workspace: WorkspaceOptions;
-
-  /** 本地图片前缀匹配规则（默认 ["*"]） */
-  localPrefixes?: string[];
-
-  /** 命名配置（用于预览路径生成） */
-  naming?: NamingConfig;
-
-  /** 删除策略预览 */
-  deletion?: Pick<DeletionOptions, "strategy">;
-
-  /** 事件与日志回调 */
-  hooks?: HookOptions;
-
-  /** 文件大小限制（字节），默认 10MB */
-  maxFileSize?: number;
-
-  /** 允许的文件扩展名白名单，默认 ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp'] */
-  allowedExtensions?: string[];
-}
-
-/**
- * 单图片上传选项（不包含过滤选项）
- * 
- * @remarks
- * 用于 uploadSingleImage 函数，因为已经指定了具体文件，
- * 不需要 maxFileSize、allowedExtensions、localPrefixes 等过滤选项
- */
-export type UploadSingleImageOptions = CoreUploadConfig;
-
-/**
- * 多图片批量上传选项（包含过滤选项）
- */
-export interface UploadMultiImagesOptions extends CoreUploadConfig {
-  /** 本地图片前缀匹配规则（默认 ["*"]） */
-  localPrefixes?: string[];
-
-  /** 文件大小限制（字节），默认 10MB */
-  maxFileSize?: number;
-
-  /** 允许的文件扩展名白名单，默认 ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp'] */
-  allowedExtensions?: string[];
-}
-
-/**
- * 单个图片的上传结果
- */
-export interface UploadResult {
-  /** 本地图片的绝对路径 */
-  localPath: string;
-
-  /** 上传后的完整 CDN URL */
-  ossUrl: string;
-
-  /** 文件大小（字节） */
-  fileSize: number;
-
-  /** 上传耗时（毫秒） */
-  uploadTime: number;
-
-  /** 是否执行了 Markdown 引用替换 */
-  replaced: boolean;
-
-  /** Markdown 文件替换结果（当 replaced 为 true 时有效） */
-  replaceResults: ReplaceFileResult[];
-
-  /** 原始文件名 */
-  originalName: string;
-
-  /** 重命名后的远程路径（不含域名） */
-  remotePath: string;
-
-  /** 删除/回收状态 */
-  deletionStatus?: "success" | "failed" | "skipped";
-
-  /** 删除/回收重试次数 */
-  deletionRetries?: number;
-
-  /** 删除/回收失败原因 */
-  deletionError?: string;
-}
-
-/**
- * 图片信息（用于分析）
- */
-export interface ImageInfo {
-  /** 本地图片的绝对路径 */
-  localPath: string;
-
-  /** 文件大小（字节） */
-  fileSize: number;
-
-  /** 引用此图片的 Markdown 文件相对路径列表 */
-  referencedIn: string[];
-
-  /** 预览的远程路径（不含域名），仅当 AnalyzeOptions 提供 namingStrategy 时生成 */
-  previewRemotePath?: string;
-
-  /** 预览的删除策略，仅当 AnalyzeOptions 提供 deletionStrategy 时填充 */
-  previewDeletionStrategy?: DeletionStrategy;
-}
-
-/**
- * 被跳过的图片信息
- */
-export interface SkippedImageInfo {
-  /** 本地图片的绝对路径 */
-  localPath: string;
-
-  /** 跳过原因 */
-  reason: string;
-
-  /** 文件大小（字节），如果可获取 */
-  fileSize?: number;
-
-  /** 文件扩展名 */
-  extension?: string;
-}
-
-/**
- * 上传分析结果
- */
-export interface UploadAnalysis {
-  /** 待上传的图片列表 */
-  images: ImageInfo[];
-
-  /** 被跳过的图片列表 */
-  skipped: SkippedImageInfo[];
-
-  /** 总文件大小（字节） */
-  totalSize: number;
-
-  /** 图片总数 */
-  totalCount: number;
+export interface ValidationError {
+    /** 字段名 */
+    field: string;
+
+    /** 错误信息 */
+    message: string;
 }

@@ -1,0 +1,40 @@
+# https://prettier.io/docs/configuration
+printWidth: 120
+tabWidth: 4
+useTabs: false
+semi: true
+singleQuote: true
+quoteProps: as-needed
+trailingComma: es5
+bracketSpacing: true
+bracketSameLine: true
+arrowParens: always
+vueIndentScriptAndStyle: false
+overrides:
+  - files: '*.vue'
+    options:
+      parser: vue
+  - files:
+      - '*.ts'
+      - '*.tsx'
+    options:
+      parser: typescript
+  - files:
+      - '*.js'
+      - '*.jsx'
+    options:
+      parser: babel
+  - files: '*.json'
+    options:
+      parser: json
+  - files:
+      - '*.css'
+      - '*.scss'
+    options:
+      parser: css
+  - files: '*.html'
+    options:
+      parser: html
+  - files: '*.md'
+    options:
+      parser: markdown

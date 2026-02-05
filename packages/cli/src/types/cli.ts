@@ -32,13 +32,14 @@ export interface AnalyzeCommandOptions extends GlobalOptions {
  * Upload 命令选项
  */
 export interface UploadCommandOptions extends GlobalOptions {
-  searchDir: string;
+  filePath: string;
   adapter: string;
-  bucket?: string;
   prefix?: string;
-  naming?: import("@cmtx/upload").NamingStrategy;
-  deleteStrategy?: import("@cmtx/upload").DeletionStrategy;
-  dryRun?: boolean;
+  namingPattern?: string;
+  enableDelete?: boolean;
+  deleteStrategy?: string;
+  trashDir?: string;
+  rootPath?: string;
 }
 
 /**
@@ -63,9 +64,10 @@ export interface DeleteCommandOptions extends GlobalOptions {
  * Config 命令选项
  */
 export interface ConfigCommandOptions extends GlobalOptions {
-  action: "init" | "show" | "set" | "get";
-  key?: string;
-  value?: string;
+  action: "init" | "list" | "show";
+  preset?: string;
+  outputFile?: string;
+  force?: boolean;
 }
 
 /**

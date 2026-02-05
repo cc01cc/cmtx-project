@@ -6,5 +6,6 @@
   "readme": "README.md",
   "name": "@cmtx/upload",
   "includeVersion": true,
-  "tsconfig": "tsconfig.typedoc.json"
+  "tsconfig": "tsconfig.typedoc.json",
+  "gitRemote": "https://github.com/cc01cc/cmtx-project.git"
 }

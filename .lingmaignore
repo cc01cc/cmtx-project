@@ -1,0 +1,49 @@
+# Lingma 索引忽略配置文件
+# 相比 .gitignore，这里不禁用 references/ 和 examples/demo-data/ 目录
+
+# 构建产物和依赖
+node_modules/
+dist/
+build/
+coverage/
+.nyc_output
+
+# 缓存文件
+.cache
+.parcel-cache
+.next
+.nuxt
+.vuepress/dist
+.svelte-kit/
+.docusaurus
+
+# 日志文件
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# 环境变量文件
+.env
+.env.*
+!.env.example
+
+# IDE 和系统文件
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 临时文件和测试目录
+**/.test-*/
+**/.trash/
+**/demo-data/.test-*/
+**/demo-data/.trash/
+
+# 文档生成目录
+**/docs/api/
+
+docs-index.html
+replacer_old_part.txt
