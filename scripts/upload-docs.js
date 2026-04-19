@@ -3,7 +3,7 @@
 /**
  * OSS 文档上传脚本
  * 生成文档索引，然后上传所有文档到 OSS
- * 
+ *
  * 配置说明：参见 ./upload-docs.example.md
  * 环境变量：参见 ./.env.example
  */
@@ -30,19 +30,28 @@ if (!fs.existsSync('docs-index.html')) {
 
 console.log('');
 console.log('📤 上传索引页面到 OSS...');
-execSync(`aliyun ossutil --profile ${OSS_PROFILE} cp docs-index.html oss://${OSS_BUCKET}/cmtx/index.html`, { stdio: 'inherit' });
+execSync(
+    `aliyun ossutil --profile ${OSS_PROFILE} cp docs-index.html oss://${OSS_BUCKET}/cmtx/index.html`,
+    { stdio: 'inherit' }
+);
 
 console.log('');
 console.log('📤 上传 core 文档...');
-execSync(`aliyun ossutil --profile ${OSS_PROFILE} sync packages/core/docs/api oss://${OSS_BUCKET}/cmtx/core --force --delete`, {
-    stdio: 'inherit',
-});
+execSync(
+    `aliyun ossutil --profile ${OSS_PROFILE} sync packages/core/docs/api oss://${OSS_BUCKET}/cmtx/core --force --delete`,
+    {
+        stdio: 'inherit',
+    }
+);
 
 console.log('');
 console.log('📤 上传 upload 文档...');
-execSync(`aliyun ossutil --profile ${OSS_PROFILE} sync packages/upload/docs/api oss://${OSS_BUCKET}/cmtx/upload --force --delete`, {
-    stdio: 'inherit',
-});
+execSync(
+    `aliyun ossutil --profile ${OSS_PROFILE} sync packages/upload/docs/api oss://${OSS_BUCKET}/cmtx/upload --force --delete`,
+    {
+        stdio: 'inherit',
+    }
+);
 
 console.log('');
 console.log('✓ 所有文档上传完成！');

@@ -8,13 +8,13 @@
  * - 多行 HTML 图片
  */
 
-import { describe, it, expect } from 'vitest';
-import { parseImages, parseImagesMdSingleline, parseImagesHtmlSingleline } from '../src/parser.js';
+import { describe, expect, it } from 'vitest';
+import { parseImages, parseImagesHtmlSingleline, parseImagesMdSingleline } from '../src/parser.js';
 
 describe('parseImages', () => {
     describe('内联式图片', () => {
         it('应该解析基本的内联图片', () => {
-            const markdown = `![Logo](./logo.png)`;
+            const markdown = '![Logo](./logo.png)';
             const images = parseImages(markdown);
 
             expect(images).toHaveLength(1);
@@ -53,7 +53,7 @@ describe('parseImages', () => {
         });
 
         it('应该处理空 alt 文本', () => {
-            const markdown = `![](./image.png)`;
+            const markdown = '![](./image.png)';
             const images = parseImages(markdown);
 
             expect(images).toHaveLength(1);
@@ -62,7 +62,7 @@ describe('parseImages', () => {
         });
 
         it('应该处理包含特殊字符的 alt 文本', () => {
-            const markdown = `![Image with brackets](./image.png)`;
+            const markdown = '![Image with brackets](./image.png)';
             const images = parseImages(markdown);
 
             expect(images).toHaveLength(1);
@@ -178,7 +178,7 @@ describe('parseImages', () => {
 
     describe('边界情况', () => {
         it('应该返回空数组当没有图片', () => {
-            const markdown = `# Title\n\nSome text without images.`;
+            const markdown = '# Title\n\nSome text without images.';
             const images = parseImages(markdown);
 
             expect(images).toHaveLength(0);
@@ -224,7 +224,7 @@ describe('parseImages', () => {
         });
 
         it('应该处理 URL 编码的路径', () => {
-            const markdown = `![Image](./path%20with%20spaces/image.png)`;
+            const markdown = '![Image](./path%20with%20spaces/image.png)';
             const images = parseImages(markdown);
 
             expect(images).toHaveLength(1);
@@ -244,7 +244,7 @@ describe('parseImagesMdSingleline', () => {
     });
 
     it('应该正确解析带空格的 URL', () => {
-        const markdown = `![Image](./path with spaces/image.png)`;
+        const markdown = '![Image](./path with spaces/image.png)';
         const images = parseImagesMdSingleline(markdown);
 
         expect(images).toHaveLength(1);
@@ -277,5 +277,77 @@ describe('parseImagesHtmlSingleline', () => {
         expect(images[0].src).toBe('./image.png');
         expect(images[0].alt).toBe('Alt');
         expect(images[0].title).toBe('Title');
+    });
+
+    describe('width/height 属性解析', () => {
+        it('应该解析带 width 属性的 HTML img 标签', () => {
+            const markdown = `<img src="./image.png" alt="Description" width="100">`;
+            const images = parseImagesHtmlSingleline(markdown);
+
+            expect(images).toHaveLength(1);
+            expect(images[0].width).toBe('100');
+        });
+
+        it('应该解析带 height 属性的 HTML img 标签', () => {
+            const markdown = `<img src="./image.png" alt="Description" height="200">`;
+            const images = parseImagesHtmlSingleline(markdown);
+
+            expect(images).toHaveLength(1);
+            expect(images[0].height).toBe('200');
+        });
+
+        it('应该同时解析 width 和 height 属性', () => {
+            const markdown = `<img src="./image.png" alt="Description" width="100" height="200">`;
+            const images = parseImagesHtmlSingleline(markdown);
+
+            expect(images).toHaveLength(1);
+            expect(images[0].width).toBe('100');
+            expect(images[0].height).toBe('200');
+        });
+
+        it('应该支持单引号的 width 和 height 属性', () => {
+            const markdown = `<img src='./image.png' alt='Description' width='300' height='400'>`;
+            const images = parseImagesHtmlSingleline(markdown);
+
+            expect(images).toHaveLength(1);
+            expect(images[0].width).toBe('300');
+            expect(images[0].height).toBe('400');
+        });
+
+        it('应该支持无引号的 width 和 height 属性', () => {
+            const markdown = `<img src="./image.png" alt="Description" width=500 height=600>`;
+            const images = parseImagesHtmlSingleline(markdown);
+
+            expect(images).toHaveLength(1);
+            expect(images[0].width).toBe('500');
+            expect(images[0].height).toBe('600');
+        });
+
+        it('当 width 和 height 属性不存在时应返回 undefined', () => {
+            const markdown = `<img src="./image.png" alt="Description">`;
+            const images = parseImagesHtmlSingleline(markdown);
+
+            expect(images).toHaveLength(1);
+            expect(images[0].width).toBeUndefined();
+            expect(images[0].height).toBeUndefined();
+        });
+
+        it('应该处理不同属性顺序的 width 和 height', () => {
+            const markdown = `<img width="100" src="./image.png" height="200" alt="Description">`;
+            const images = parseImagesHtmlSingleline(markdown);
+
+            expect(images).toHaveLength(1);
+            expect(images[0].width).toBe('100');
+            expect(images[0].height).toBe('200');
+        });
+
+        it('应该解析自闭合标签中的 width 和 height', () => {
+            const markdown = `<img src="./image.png" alt="Description" width="100" height="200" />`;
+            const images = parseImagesHtmlSingleline(markdown);
+
+            expect(images).toHaveLength(1);
+            expect(images[0].width).toBe('100');
+            expect(images[0].height).toBe('200');
+        });
     });
 });

@@ -1,0 +1,15 @@
+# Secrets
+.env
+secrets/
+**/*.pem
+**/*.key
+
+# Build output
+dist/
+coverage/
+
+# Allow a specific file inside a blocked folder
+!secrets/README.md
+!reference/
+
+!ignore-git/

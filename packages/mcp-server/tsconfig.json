@@ -1,16 +1,9 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": ".",
-    "module": "esnext",
-    "target": "es2020",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "declaration": true,
-    "declarationMap": false,
-    "sourceMap": false
-  },
-  "include": ["src", "bin"],
-  "exclude": ["node_modules", "tests"]
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "noEmit": true,
+        "types": ["node"]
+    },
+    "include": ["src", "bin"],
+    "exclude": ["dist", "node_modules"]
 }

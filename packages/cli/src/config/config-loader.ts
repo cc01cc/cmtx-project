@@ -3,9 +3,9 @@
  * 增加详细的类型校验和错误处理
  */
 
-import { promises as fs } from 'fs';
+import { promises as fs } from 'node:fs';
+import { resolve } from 'node:path';
 import * as yaml from 'js-yaml';
-import { resolve } from 'path';
 
 export interface CLIConfig {
     version?: string;
@@ -17,7 +17,8 @@ export interface CLIConfig {
 }
 
 export interface StorageConfig {
-    adapter: 'aliyun-oss' | 'aws-s3' | 'custom';
+    provider?: 'aliyun-oss' | 'tencent-cos';
+    adapter?: 'aliyun-oss' | 'aws-s3' | 'custom';
     config: Record<string, any>;
     prefix?: string;
     namingPattern?: string;
@@ -70,9 +71,14 @@ export class ConfigLoader {
             return resolvedConfig as CLIConfig;
         } catch (error) {
             if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-                throw new Error(`配置文件未找到：${configPath}`);
+                throw new Error(`配置文件未找到：${configPath}`, {
+                    cause: error,
+                });
             }
-            throw new Error(`配置文件解析失败：${error instanceof Error ? error.message : String(error)}`);
+            throw new Error(
+                `配置文件解析失败：${error instanceof Error ? error.message : String(error)}`,
+                { cause: error }
+            );
         }
     }
 
@@ -87,7 +93,12 @@ export class ConfigLoader {
             const lineNumber = i + 1;
 
             // 检查模板变量未加引号的问题
-            if (line.includes(': {') && line.includes('}') && !line.includes(':"{') && !line.includes(":'{")) {
+            if (
+                line.includes(': {') &&
+                line.includes('}') &&
+                !line.includes(':"{') &&
+                !line.includes(":'{")
+            ) {
                 const fieldName = line.split(':')[0].trim();
                 throw new Error(
                     `配置文件第 ${lineNumber} 行格式错误: 字段 "${fieldName}" 的值 "${line.split(':')[1].trim()}" 应该用引号包围。\n` +
@@ -96,7 +107,12 @@ export class ConfigLoader {
             }
 
             // 检查其他常见 YAML 问题
-            if (line.includes('{') && line.includes('}') && !line.includes('"') && !line.includes("'")) {
+            if (
+                line.includes('{') &&
+                line.includes('}') &&
+                !line.includes('"') &&
+                !line.includes("'")
+            ) {
                 console.warn(`[WARN] 第 ${lineNumber} 行可能存在问题: ${line}`);
             }
         }
@@ -105,13 +121,15 @@ export class ConfigLoader {
     /**
      * 验证配置结构完整性
      */
+    // biome-ignore lint/suspicious/noExplicitAny: 内部验证函数，需要访问动态属性
     private validateStructure(config: any): void {
         if (!config.storage) {
             throw new Error('配置文件缺少必需的 storage 配置');
         }
 
-        if (!config.storage.adapter) {
-            throw new Error('storage 配置缺少 adapter 字段');
+        // 兼容旧配置格式（adapter）和新配置格式（provider）
+        if (!config.storage.provider && !config.storage.adapter) {
+            throw new Error('storage 配置缺少 provider 或 adapter 字段');
         }
 
         if (!config.storage.config) {
@@ -144,13 +162,16 @@ export class ConfigLoader {
     /**
      * 验证配置数据类型
      */
+    // biome-ignore lint/suspicious/noExplicitAny: 内部验证函数，需要访问动态属性
     private validateTypes(config: any): void {
         // 验证 storage 配置类型
         if (config.storage) {
             // 验证 adapter 类型
             const validAdapters = ['aliyun-oss', 'aws-s3', 'custom'];
             if (!validAdapters.includes(config.storage.adapter)) {
-                throw new Error(`无效的 adapter 值: ${config.storage.adapter}。有效值为: ${validAdapters.join(', ')}`);
+                throw new Error(
+                    `无效的 adapter 值: ${config.storage.adapter}。有效值为: ${validAdapters.join(', ')}`
+                );
             }
 
             // 验证 config 字段类型
@@ -173,7 +194,9 @@ export class ConfigLoader {
             // 验证 fields 中的值都是字符串
             for (const [field, value] of Object.entries(config.replace.fields)) {
                 if (typeof value !== 'string') {
-                    throw new Error(`replace.fields.${field} 必须是字符串类型，当前值为: ${JSON.stringify(value)}`);
+                    throw new Error(
+                        `replace.fields.${field} 必须是字符串类型，当前值为: ${JSON.stringify(value)}`
+                    );
                 }
 
                 // 检查是否可能是未加引号的模板变量
@@ -202,7 +225,12 @@ export class ConfigLoader {
      * 解析默认配置文件路径
      */
     async findDefaultConfig(): Promise<string | null> {
-        const possiblePaths = ['./cmtx.config.yaml', './cmtx.config.yml', './.cmtx.yaml', './.cmtx.yml'];
+        const possiblePaths = [
+            './cmtx.config.yaml',
+            './cmtx.config.yml',
+            './.cmtx.yaml',
+            './.cmtx.yml',
+        ];
 
         for (const path of possiblePaths) {
             try {
@@ -220,6 +248,7 @@ export class ConfigLoader {
     /**
      * 解析配置中的环境变量
      */
+    // biome-ignore lint/suspicious/noExplicitAny: 内部验证函数，需要访问动态属性
     private resolveEnvironmentVariables(config: any): any {
         if (typeof config === 'string') {
             return this.resolveStringVariables(config);

@@ -40,17 +40,18 @@
  */
 
 import { readFile } from 'node:fs/promises';
-import { basename, dirname, join } from 'node:path';
+import { basename, dirname, isAbsolute, resolve } from 'node:path';
 
-import fg, { Pattern } from 'fast-glob';
+import fg, { type Pattern } from 'fast-glob';
+import { URL_REGEX } from './constants/regex.js';
 import { parseImages } from './parser.js';
 import type {
     ImageFilterMode,
     ImageFilterOptions,
     ImageFilterValue,
     ImageMatch,
-    LocalImageMatchRelative,
     LocalImageMatchWithAbsPath,
+    LocalImageMatchWithRelativePath,
     LoggerCallback,
     ParsedImage,
     WebImageMatch,
@@ -58,13 +59,49 @@ import type {
 import { isWebSource } from './utils.js';
 
 /**
- * 判断图片是否符合过滤条件
+ * 检查图片来源类型是否匹配
+ */
+function matchesSourceType(imageSourceType: 'web' | 'local', filterValue: string): boolean {
+    return imageSourceType === filterValue;
+}
+
+/**
+ * 检查图片主机名是否匹配
+ */
+function matchesHostname(src: string, hostname: string): boolean {
+    try {
+        const url = new URL(src);
+        return url.hostname === hostname || url.hostname.endsWith(`.${hostname}`);
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * 检查本地图片路径是否匹配
+ */
+function matchesAbsolutePath(imagePath: string | undefined, filterPath: string): boolean {
+    if (!imagePath) {
+        return false;
+    }
+    return imagePath === filterPath || imagePath.includes(filterPath);
+}
+
+/**
+ * 检查图片 src 是否匹配正则表达式
+ */
+function matchesRegex(src: string, pattern: RegExp): boolean {
+    return pattern.test(src);
+}
+
+/**
+ * 判断图片是否应该被包含
  *
- * @param img - 解析后的图片对象
- * @param absLocalPath - 本地图片的绝对路径 (可选)
+ * @param img - 解析后的图片
+ * @param absLocalPath - 本地图片的绝对路径（可选）
  * @param mode - 过滤模式
  * @param value - 过滤值
- * @returns 如果图片符合条件返回 true
+ * @returns 是否包含
  *
  * @remarks
  * 支持的过滤模式：
@@ -81,7 +118,6 @@ function _shouldIncludeImage(
     mode?: ImageFilterMode,
     value?: ImageFilterValue
 ): boolean {
-    // 无过滤条件，返回 true
     if (!mode || value === undefined) {
         return true;
     }
@@ -89,41 +125,26 @@ function _shouldIncludeImage(
     const sourceType = isWebSource(img.src) ? 'web' : 'local';
 
     switch (mode) {
-        case 'sourceType': {
-            // value 应该是 "web" 或 "local"
-            return sourceType === value;
-        }
+        case 'sourceType':
+            return matchesSourceType(sourceType, value as string);
 
-        case 'hostname': {
-            // 仅对 Web 图片有效，value 是域名
+        case 'hostname':
             if (sourceType !== 'web') {
                 return false;
             }
-            const hostname = typeof value === 'string' ? value : '';
-            try {
-                const url = new URL(img.src);
-                return url.hostname === hostname || url.hostname.endsWith('.' + hostname);
-            } catch {
-                return false;
-            }
-        }
+            return matchesHostname(img.src, value as string);
 
-        case 'absolutePath': {
-            // 仅对本地图片有效，value 是绝对路径
+        case 'absolutePath':
             if (sourceType !== 'local' || !absLocalPath) {
                 return false;
             }
-            const pathToMatch = typeof value === 'string' ? value : '';
-            return absLocalPath === pathToMatch || absLocalPath.includes(pathToMatch);
-        }
+            return matchesAbsolutePath(absLocalPath, value as string);
 
-        case 'regex': {
-            // 通用正则匹配，对 src 字段进行匹配
+        case 'regex':
             if (!(value instanceof RegExp)) {
                 return false;
             }
-            return value.test(img.src);
-        }
+            return matchesRegex(img.src, value);
 
         default:
             return true;
@@ -142,7 +163,7 @@ function _shouldIncludeImage(
  *
  * @remarks
  * 根据数据来源返回不同类型的 ImageMatch：
- * - **文本层**: 返回 {@link LocalImageMatchRelative} (无绝对路径)
+ * - **文本层**: 返回 {@link LocalImageMatchWithRelativePath} (无绝对路径)
  * - **文件层**: 返回 {@link LocalImageMatchWithAbsPath} (带绝对路径)
  * - **Web 图片**: 返回 {@link WebImageMatch}
  *
@@ -159,7 +180,15 @@ function _parsedToImageMatches(
 
     for (const img of parsedImages) {
         const isWeb = isWebSource(img.src);
-        const absLocalPath = !isWeb && fileDir ? join(fileDir, img.src) : undefined;
+        // 使用 resolve 代替 join，并增加对各种平台绝对路径的识别
+        // 如果 img.src 是绝对路径，resolve 会直接返回它
+        // 增加 URL_REGEX.ABSOLUTE_PATH.test 作为辅助检查，以处理一些特殊的绝对路径场景
+        const absLocalPath =
+            !isWeb && fileDir
+                ? isAbsolute(img.src) || URL_REGEX.ABSOLUTE_PATH.test(img.src)
+                    ? img.src
+                    : resolve(fileDir, img.src)
+                : undefined;
 
         // 检查是否应该包含此图片
         if (!_shouldIncludeImage(img, absLocalPath, mode, value)) {
@@ -199,19 +228,50 @@ function _parsedToImageMatches(
                 raw: img.raw,
                 syntax: img.syntax,
                 source: 'text',
-            } as LocalImageMatchRelative);
+            } as LocalImageMatchWithRelativePath);
         }
     }
 
     return results;
 }
 /**
- * 快速检查内容是否可能包含匹配的图片，避免不必要的解析
+ * 检查内容是否可能包含 Web 图片
+ */
+function mayContainWebImages(content: string): boolean {
+    return content.toLowerCase().includes('http');
+}
+
+/**
+ * 检查内容是否可能包含本地图片
+ */
+function mayContainLocalImages(content: string): boolean {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp'];
+    const lowerContent = content.toLowerCase();
+    return imageExtensions.some((ext) => lowerContent.includes(ext));
+}
+
+/**
+ * 检查内容是否可能包含特定主机名
+ */
+function mayContainHostname(content: string, hostname: string): boolean {
+    return content.toLowerCase().includes(hostname.toLowerCase());
+}
+
+/**
+ * 检查内容是否可能包含文件
+ */
+function mayContainFile(content: string, filePath: string): boolean {
+    const fileName = basename(filePath);
+    return fileName ? content.includes(fileName) : false;
+}
+
+/**
+ * 快速内容检查
  *
- * @param content - Markdown 内容文本
+ * @param content - Markdown 内容
  * @param mode - 筛选模式
  * @param value - 筛选值
- * @returns 如果内容可能包含匹配项返回 true，否则返回 false
+ * @returns 是否继续解析
  *
  * @remarks
  * 通过快速字符串检查来决定是否需要进行完整的解析，提升性能。
@@ -224,52 +284,45 @@ function _parsedToImageMatches(
  *
  * @internal
  */
-function _quickContentCheck(content: string, mode?: ImageFilterMode, value?: ImageFilterValue): boolean {
+function _quickContentCheck(
+    content: string,
+    mode?: ImageFilterMode,
+    value?: ImageFilterValue
+): boolean {
     if (!mode || value === undefined) {
-        return true; // 无筛选条件时总是返回 true，继续解析
+        return true;
     }
 
     switch (mode) {
         case 'sourceType':
-            // 根据筛选类型判断是否可能有匹配项
             if (value === 'web') {
-                // 如果筛选 web 图片但内容中没有 http/https 链接，则无需解析
-                return content.toLowerCase().includes('http');
-            } else if (value === 'local') {
-                // 如果筛选本地图片但内容中没有常见图片扩展名，则可能无需解析
-                const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp'];
-                return imageExtensions.some((ext) => content.toLowerCase().includes(ext.toLowerCase()));
+                return mayContainWebImages(content);
+            }
+            if (value === 'local') {
+                return mayContainLocalImages(content);
             }
             return false;
+
         case 'hostname':
-            // 如果筛选特定主机名但内容中不包含该主机名，则无需解析
             if (typeof value === 'string') {
-                return content.toLowerCase().includes(value.toLowerCase());
+                return mayContainHostname(content, value);
             }
             return false;
+
         case 'absolutePath':
-            // 对于绝对路径筛选，提取文件名并检查内容中是否包含该文件名
             if (typeof value === 'string') {
-                // 使用 Node.js 内置的 basename 方法提取文件名
-                const fileName = basename(value);
-                if (fileName) {
-                    // 检查内容中是否包含文件名
-                    return content.includes(fileName);
-                }
+                return mayContainFile(content, value);
             }
             return false;
+
         case 'regex':
-            // 对于正则表达式筛选，总是返回 true
-            // 因为正则表达式可能包含复杂的转义字符和特殊模式
-            // 难以通过简单的字符串包含检查来判断，所以直接让解析逻辑处理
-            if (value instanceof RegExp) {
-                return true;
-            }
-            return false;
+            return value instanceof RegExp;
+
         default:
             return true;
     }
 }
+
 /**
  * 从纯文本 Markdown 内容筛选图片
  *
@@ -316,6 +369,8 @@ function _quickContentCheck(content: string, mode?: ImageFilterMode, value?: Ima
  *   value: /\.png$/i
  * });
  * ```
+ *
+ * @public
  */
 export function filterImagesInText(
     markdown: string,
@@ -381,6 +436,8 @@ export function filterImagesInText(
  *   value: '/docs/images/'
  * });
  * ```
+ *
+ * @public
  */
 export async function filterImagesFromFile(
     fileAbsPath: string,
@@ -478,6 +535,8 @@ export async function filterImagesFromFile(
  *   }
  * );
  * ```
+ *
+ * @public
  */
 export async function filterImagesFromDirectory(
     dirAbsPath: string,
@@ -487,7 +546,9 @@ export async function filterImagesFromDirectory(
 ): Promise<ImageMatch[]> {
     // 默认匹配所有 Markdown 文件
     const globPatterns: Pattern[] =
-        globOptions?.patterns && globOptions.patterns.length > 0 ? globOptions.patterns : ['**/*.md', '**/*.markdown'];
+        globOptions?.patterns && globOptions.patterns.length > 0
+            ? globOptions.patterns
+            : ['**/*.md', '**/*.markdown'];
 
     // 使用 fast-glob 查找目录下的所有 Markdown 文件
     const files = await fg(globPatterns, {

@@ -1,5 +1,23 @@
 {
-    "cSpell.words": [
-        "cmtx"
-    ]
+  "files.exclude": {
+    "packages/vscode-extension/dist": true
+  },
+  "search.exclude": {
+    "packages/vscode-extension/dist": true
+  },
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "files.watcherExclude": {
+    "**/dist/**": true
+  },
+  "typescript.tsc.autoDetect": "off",
+  "peacock.color": "#A7E063",
+  "cSpell.words": [
+    "cmtx"
+  ],
+  "biome.enabled": true,
+  "biome.requireConfiguration": true,
+  "biome.configurationPath": "./biome.json",
+  "biome.lsp.bin": "./node_modules/@biomejs/biome/bin/biome",
+  "biome.lsp.watcher.kind": "polling",
+  "biome.lsp.watcher.pollingInterval": 2000
 }

@@ -8,10 +8,14 @@
  * - 日志回调
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { filterImagesInText, filterImagesFromFile, filterImagesFromDirectory } from '../src/filter.js';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import {
+    filterImagesFromDirectory,
+    filterImagesFromFile,
+    filterImagesInText,
+} from '../src/filter.js';
 
 const TEST_DIR = resolve(process.cwd(), '.test-extractor');
 
@@ -35,7 +39,7 @@ Some text`;
         });
 
         it('应该筛选 Web 图片', () => {
-            const markdown = `![Web Image](https://example.com/image.png)`;
+            const markdown = '![Web Image](https://example.com/image.png)';
             const images = filterImagesInText(markdown);
 
             expect(images).toHaveLength(1);
@@ -61,7 +65,7 @@ Some text`;
         });
 
         it('应该返回空数组当没有图片', () => {
-            const markdown = `# Title\n\nNo images here.`;
+            const markdown = '# Title\n\nNo images here.';
             const images = filterImagesInText(markdown);
 
             expect(images).toHaveLength(0);
@@ -207,7 +211,7 @@ Some text`;
         });
 
         it('非正则值应该被忽略', () => {
-            const markdown = `![Image](./image.png)`;
+            const markdown = '![Image](./image.png)';
             const images = filterImagesInText(markdown, {
                 mode: 'regex',
                 value: 'not-a-regex' as unknown as RegExp,
@@ -219,7 +223,7 @@ Some text`;
 
     describe('返回类型', () => {
         it('本地图片应该没有 absLocalPath 字段（文本层）', () => {
-            const markdown = `![Local](./local.png)`;
+            const markdown = '![Local](./local.png)';
             const images = filterImagesInText(markdown);
 
             expect(images[0].type).toBe('local');
@@ -269,7 +273,7 @@ describe('filterImagesFromFile', () => {
         });
 
         it('本地图片应该包含 absLocalPath', async () => {
-            const content = `![Logo](./logo.png)`;
+            const content = '![Logo](./logo.png)';
             const filePath = join(TEST_DIR, 'test.md');
             await writeFile(filePath, content, 'utf-8');
 
@@ -283,8 +287,8 @@ describe('filterImagesFromFile', () => {
             }
         });
 
-        it('应该正确计算绝对路径', async () => {
-            const content = `![Relative](../images/logo.png)`;
+        it('应该正确计算相对路径的绝对路径', async () => {
+            const content = '![Relative](../images/logo.png)';
             const subDir = join(TEST_DIR, 'docs');
             await mkdir(subDir, { recursive: true });
             const filePath = join(subDir, 'test.md');
@@ -296,11 +300,40 @@ describe('filterImagesFromFile', () => {
             if ('absLocalPath' in images[0]) {
                 expect(images[0].absLocalPath).toContain('images');
                 expect(images[0].absLocalPath).toContain('logo.png');
+                expect(images[0].absLocalPath).not.toContain('docs');
+            }
+        });
+
+        it('应该正确处理已经是绝对路径的 src', async () => {
+            const absPath = '/absolute/path/to/image.png';
+            const content = `![Absolute](${absPath})`;
+            const filePath = join(TEST_DIR, 'test.md');
+            await writeFile(filePath, content, 'utf-8');
+
+            const images = await filterImagesFromFile(filePath);
+
+            expect(images).toHaveLength(1);
+            if ('absLocalPath' in images[0]) {
+                expect(images[0].absLocalPath).toBe(absPath);
+            }
+        });
+
+        it('应该正确处理 Windows 风格的绝对路径 src', async () => {
+            const absPath = 'C:\\path\\to\\image.png';
+            const content = `![Windows Absolute](${absPath})`;
+            const filePath = join(TEST_DIR, 'test.md');
+            await writeFile(filePath, content, 'utf-8');
+
+            const images = await filterImagesFromFile(filePath);
+
+            expect(images).toHaveLength(1);
+            if ('absLocalPath' in images[0]) {
+                expect(images[0].absLocalPath).toBe(absPath);
             }
         });
 
         it('应该设置 source 为 file', async () => {
-            const content = `![Image](./image.png)`;
+            const content = '![Image](./image.png)';
             const filePath = join(TEST_DIR, 'test.md');
             await writeFile(filePath, content, 'utf-8');
 

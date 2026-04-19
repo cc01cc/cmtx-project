@@ -1,0 +1,23 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "module": "CommonJS",
+        "moduleResolution": "node",
+        "outDir": "./dist/test",
+        "rootDir": "./",
+        "declaration": false,
+        "declarationMap": false,
+        "sourceMap": true,
+        "strict": false,
+        "noImplicitAny": false,
+        "types": ["vitest/globals"]
+    },
+    "include": [
+        "src/test/**/*",
+        "src/infra/**/*",
+        "src/utils/**/*",
+        "tests/unit/**/*",
+        "tests/fixtures/**/*"
+    ],
+    "exclude": ["node_modules", "dist"]
+}

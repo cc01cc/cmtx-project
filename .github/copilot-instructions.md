@@ -4,8 +4,8 @@ Comprehensive development guide for AI agents contributing to CMTX monorepo usin
 
 ## Prerequisites
 
-- Node.js >= 18.x
-- pnpm >= 10.8.0
+- Node.js >= 22.x
+- pnpm >= 10.29.3
 
 ## Quick Start
 

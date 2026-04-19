@@ -52,11 +52,16 @@
 
 /**
  * 图片相关正则表达式
+ * @public
  */
 export const IMAGE_REGEX = {
     /**
      * Markdown 内联图片语法
      * 匹配：![alt](url "title")
+     *
+     * @remarks
+     * 注意：`[^\]]*` 会匹配换行符，因此支持多行 alt 文本。
+     * 如果需要单行匹配，可修改为 `[^\]\n\r]*`
      */
     MARKDOWN: /!\[([^\]]*)\]\(([^)]+)\)/g,
 
@@ -93,11 +98,24 @@ export const IMAGE_REGEX = {
          * 支持：title="value" 或 title='value'
          */
         TITLE: /\btitle\s*=\s*["']([^"']*)["']/,
+
+        /**
+         * width 属性提取
+         * 支持：width="value" 或 width='value' 或 width=value
+         */
+        WIDTH: /\bwidth\s*=\s*["']?([^"'\s>]+)["']?/,
+
+        /**
+         * height 属性提取
+         * 支持：height="value" 或 height='value' 或 height=value
+         */
+        HEIGHT: /\bheight\s*=\s*["']?([^"'\s>]+)["']?/,
     },
 } as const;
 
 /**
  * 文件相关正则表达式
+ * @public
  */
 export const FILE_REGEX = {
     /**
@@ -113,6 +131,7 @@ export const FILE_REGEX = {
 
 /**
  * URL 相关正则表达式
+ * @public
  */
 export const URL_REGEX = {
     /**
@@ -138,7 +157,32 @@ export const URL_REGEX = {
 } as const;
 
 /**
+ * Frontmatter 和标题相关正则表达式
+ * @public
+ */
+export const METADATA_REGEX = {
+    /**
+     * Frontmatter 边界
+     * 匹配 --- 开始和结束
+     */
+    FRONTMATTER_BOUNDARY: /^---\s*$/m,
+
+    /**
+     * 一级标题
+     * 匹配 # 标题文本
+     */
+    HEADING_LEVEL_1: /^#\s+(.+)$/m,
+
+    /**
+     * 所有标题级别
+     * 匹配 #+ 标题文本
+     */
+    ALL_HEADINGS: /^(#{1,6})\s+(.+)$/gm,
+} as const;
+
+/**
  * 实用工具正则表达式
+ * @public
  */
 export const UTIL_REGEX = {
     /**
@@ -163,7 +207,14 @@ export const UTIL_REGEX = {
 } as const;
 
 // 导出所有正则表达式的联合类型
-export type RegexConstants = typeof IMAGE_REGEX & typeof FILE_REGEX & typeof URL_REGEX & typeof UTIL_REGEX;
+/**
+ * 正则表达式常量联合类型
+ * @public
+ */
+export type RegexConstants = typeof IMAGE_REGEX &
+    typeof FILE_REGEX &
+    typeof URL_REGEX &
+    typeof UTIL_REGEX;
 
 /**
  * 获取预编译的正则表达式实例
@@ -176,6 +227,7 @@ export type RegexConstants = typeof IMAGE_REGEX & typeof FILE_REGEX & typeof URL
  * const markdownRegex = getRegex(IMAGE_REGEX.MARKDOWN);
  * const matches = text.match(markdownRegex);
  * ```
+ * @public
  */
 export function getRegex(regex: RegExp): RegExp {
     return new RegExp(regex.source, regex.flags);
@@ -187,6 +239,7 @@ export function getRegex(regex: RegExp): RegExp {
  * @param text - 要检查的文本
  * @param regex - 正则表达式
  * @returns 是否匹配
+ * @public
  */
 export function testRegex(text: string, regex: RegExp): boolean {
     return regex.test(text);
@@ -198,6 +251,7 @@ export function testRegex(text: string, regex: RegExp): boolean {
  * @param text - 源文本
  * @param regex - 正则表达式
  * @returns 匹配结果数组或 null
+ * @public
  */
 export function matchRegex(text: string, regex: RegExp): RegExpMatchArray | null {
     return regex.exec(text);

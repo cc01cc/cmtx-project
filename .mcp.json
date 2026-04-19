@@ -1,0 +1,67 @@
+{
+    "mcpServers": {
+        "filesystem": {
+            "type": "stdio",
+            "command": "pnpm",
+            "args": ["dlx", "@modelcontextprotocol/server-filesystem", "."],
+            "alwaysAllow": [
+                "list_directory",
+                "read_text_file",
+                "get_file_info",
+                "read_multiple_files",
+                "search_files"
+            ]
+        },
+        "sequentialthinking": {
+            "type": "stdio",
+            "command": "pnpm",
+            "args": ["dlx", "@modelcontextprotocol/server-sequential-thinking"],
+            "alwaysAllow": ["sequentialthinking"]
+        },
+        "context7": {
+            "type": "stdio",
+            "command": "pnpm",
+            "args": ["dlx", "@upstash/context7-mcp"],
+            "env": {
+                "DEFAULT_MINIMUM_TOKENS": ""
+            },
+            "alwaysAllow": ["resolve-library-id", "get-library-docs"],
+            "timeout": 15
+        },
+        "time": {
+            "type": "stdio",
+            "command": "uvx",
+            "args": ["mcp-server-time"]
+        },
+        "memory": {
+            "type": "stdio",
+            "command": "pnpm",
+            "args": ["dlx", "@modelcontextprotocol/server-memory"]
+        },
+        "git": {
+            "type": "stdio",
+            "command": "uvx",
+            "args": ["mcp-server-git", "--repository", "."],
+            "alwaysAllow": [
+                "git_diff_staged",
+                "git_status",
+                "git_diff_unstaged",
+                "git_show",
+                "git_log"
+            ]
+        },
+        "puppeteer": {
+            "type": "stdio",
+            "command": "pnpm",
+            "args": ["dlx", "@modelcontextprotocol/server-puppeteer"],
+            "env": {
+                "PUPPETEER_LAUNCH_ARGS": "--no-sandbox,--disable-setuid-sandbox"
+            }
+        },
+        "playwright": {
+            "type": "stdio",
+            "command": "pnpm",
+            "args": ["dlx", "@executeautomation/mcp-playwright"]
+        }
+    }
+}

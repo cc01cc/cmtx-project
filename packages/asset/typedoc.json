@@ -1,0 +1,13 @@
+{
+    "extends": ["../../typedoc.base.json"],
+    "entryPoints": ["src/index.ts", "src/transfer/types.ts", "src/download/download-service.ts"],
+    "out": "docs/api",
+    "name": "@cmtx/upload",
+    "includeVersion": true,
+    "tsconfig": "tsconfig.typedoc.json",
+    "externalSymbolLinkMappings": {
+        "@cmtx/core": {
+            "DeleteFileOptions": "#"
+        }
+    }
+}

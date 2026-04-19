@@ -1,5 +1,43 @@
 # @cmtx/core Changelog
 
+## 0.3.1-alpha.0
+
+### Patch Changes
+
+- 7d85dec: changeset test
+
+## 0.3.0 - 2026-04-03
+
+### Added
+
+- **元数据处理模块** - 新增 9 个核心函数支持 Markdown 文档的元数据管理：
+
+  - `extractMetadata(filePath, options?)` - 从文件提取元数据（Frontmatter/标题/文件名优先级）
+  - `extractSectionHeadings(markdown, options?)` - 按等级范围提取标题
+  - `convertHeadingToFrontmatter(markdown, options?)` - 将标题转换为 YAML Frontmatter
+  - `upsertFrontmatterFields(markdown, fields, options?)` - 更新/添加 Frontmatter 字段，支持 `createIfMissing` 选项
+  - `removeFrontmatter(markdown)` - 移除 Frontmatter
+  - `deleteFrontmatterFields(markdown, fieldKeys)` - 删除指定 Frontmatter 字段
+  - `extractTitleFromMarkdown(markdown)` - 从 Markdown 提取标题
+  - `parseYamlFrontmatter(content)` - 轻量级 YAML Frontmatter 解析
+  - `generateFrontmatterYaml(obj)` - 生成 YAML Frontmatter 字符串
+
+- **类型定义增强** - 新增多个类型定义支持元数据操作：
+  - `SectionHeading` - 标题对象类型
+  - `UpsertFrontmatterOptions` - Frontmatter 更新选项
+  - `FrontmatterUpdateResult` - 更新结果追踪（added/updated/unchanged/markdown）
+
+### Technical Details
+
+- YAML Frontmatter 解析支持：
+  - 单行数组格式：`[item1, item2]`
+  - 多行数组格式：`- item`
+  - 所有基础类型：string/boolean/number/null
+- 文档元数据 Title 优先级：
+  1. Frontmatter YAML 字段
+  2. Heading（按 `headingLevel` 提取）
+  3. Filename（去扩展名）
+
 ## 0.2.0 - 2026-02-05
 
 ### ⚠️ BREAKING CHANGES
@@ -19,6 +57,7 @@
 ### Added
 
 - **模块化重构**：
+
   - 新增 `filter.ts` 模块，主要负责图片筛选功能
   - 新增 `replace.ts` 模块，主要负责图片替换功能
   - 新增 `delete.ts` 模块，主要负责图片删除功能
@@ -26,18 +65,21 @@
   - 新增 `constants/regex.ts` 模块，统一管理正则表达式
 
 - **增强的筛选功能**：
+
   - 重构并增强目录批量扫描功能 (`filterImagesFromDirectory`)
   - 支持四种筛选模式：`sourceType`、`hostname`、`absolutePath`、`regex`
   - 新增快速内容检查机制，提升性能
   - 新增 `DirFilterOptions` 类型，支持自定义 glob 模式匹配
 
 - **改进的替换功能**：
+
   - 支持多字段模式：通过 src 或 raw 识别图片，同时替换多个字段
   - 新增目录级别图片替换功能 (`replaceImagesInDirectory`)
   - 增强文件验证机制，避免处理过大或非文本文件
   - 支持文件模式匹配和忽略规则
 
 - **强化的删除功能**：
+
   - 新增 `deleteLocalImage` 函数，支持多种删除策略
   - 新增 `deleteLocalImageSafely` 函数，带使用检查的安全删除
   - 新增 `withRetry` 通用重试机制，支持指数退避和降级策略
@@ -52,16 +94,19 @@
 ### Changed
 
 - **API 重构**：
+
   - 重构图片筛选 API（参数格式改变，详见 BREAKING CHANGES 部分）
   - 简化导出结构，移除复杂的内部模块分离
   - 统一各函数的参数结构和命名规范
 
 - **依赖优化**：
+
   - 移除未使用的依赖项
   - 保留必要的运行时依赖：fast-glob, trash
   - 显著减少包体积和安装时间
 
 - **性能优化**：
+
   - 采用纯正则表达式匹配，避免 AST 解析开销
   - 实现快速内容检查机制，在完整解析前进行字符串匹配
   - 实现指数退避重试机制，提升操作可靠性
@@ -76,10 +121,12 @@
 ### Removed
 
 - **已重构的 API 函数**：
+
   - `extractImagesFromDirectory()` → 重构为 `filterImagesFromDirectory()`（参数和返回类型变化）
   - 位置查询相关函数 → 功能已移除，不再提供精确位置信息
 
 - **已删除的类型定义**：
+
   - `ExtractOptions`, `ScanDirectoryOptions` - 改用新参数格式（详见 BREAKING CHANGES）
   - `ImageReferenceLocation` - 不再提供位置信息
   - `DirectoryScanResult`, `DirectoryReplaceOptions` - 返回类型已简化
@@ -137,6 +184,7 @@
 #### 核心功能
 
 - **Markdown 图片解析器**：支持内联、引用式和 HTML 图片语法
+
   - 使用 remark AST 解析 Markdown
   - 使用 rehype AST 解析 HTML 片段
   - 支持多行 HTML img 标签
@@ -144,12 +192,14 @@
   - 内置 LRU 缓存提升性能
 
 - **图片筛选系统**：从文本、文件和目录中筛选图片
+
   - `filterImagesInText`：从纯文本筛选图片
   - `filterImagesFromFile`：从单个文件筛选图片
   - `filterImagesFromDirectory`：从目录批量筛选图片
   - 支持四种筛选模式：sourceType、hostname、absolutePath、regex
 
 - **图片替换系统**：两层 API（文本层、文件层）
+
   - `replaceImagesInText`：在纯文本中替换图片
   - `replaceImagesInFile`：在文件中替换图片
   - 支持 src 和 alt 替换
@@ -157,6 +207,7 @@
   - 使用 magic-string 进行高效字符串操作
 
 - **工具函数**：类型守卫和路径处理
+
   - `isWebImage`、`isLocalImage`：类型守卫函数
   - `isLocalImageWithAbsPath`、`isLocalImageRelative`：细粒度类型守卫
   - `hasAbsLocalPath`：检查图片是否有绝对路径
@@ -171,18 +222,21 @@
 #### 类型系统
 
 - **核心类型**：
+
   - `ParsedImage`：解析后的图片数据
   - `ImageMatch`：匹配到的图片（联合类型）
   - `WebImageMatch`、`LocalImageMatch`：具体图片类型
   - `LocalImageMatchRelative`、`LocalImageMatchWithAbsPath`：本地图片细分类型
 
 - **筛选类型**：
+
   - `ImageFilterOptions`：图片筛选选项
   - `ImageFilterMode`：筛选模式枚举
   - `ImageFilterValue`：筛选值类型
   - `DirFilterOptions`：目录筛选选项
 
 - **替换类型**：
+
   - `ReplaceParams`：替换参数
   - `ReplaceTextOptions`：文本层替换选项
   - `TextReplaceResult`：文本层替换结果

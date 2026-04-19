@@ -38,20 +38,27 @@
  * @see {@link IMAGE_REGEX} - 使用的正则表达式
  */
 
-import { readFile, writeFile, stat } from 'node:fs/promises';
+import { readFile, stat, writeFile } from 'node:fs/promises';
 import { extname } from 'node:path';
-import fg, { Pattern } from 'fast-glob';
+import fg, { type Pattern } from 'fast-glob';
 
-import type { FileReplaceResult, LoggerCallback, ReplaceOptions, ReplaceResult, ReplacementDetail, DirectoryReplaceResult } from './types.js';
 import { IMAGE_REGEX } from './constants/regex.js';
+import type {
+    DirectoryReplaceResult,
+    FileReplaceResult,
+    LoggerCallback,
+    ReplacementDetail,
+    ReplaceOptions,
+    ReplaceResult,
+} from './types.js';
 
 /**
  * 检查文件是否适合进行图片替换操作
- * 
+ *
  * @param filePath - 文件路径
  * @param logger - 可选的日志回调函数
  * @returns 检查结果对象
- * 
+ *
  * @remarks
  * 检查包括：
  * - 文件扩展名是否为支持的文本格式
@@ -59,56 +66,77 @@ import { IMAGE_REGEX } from './constants/regex.js';
  * - 文件是否存在且可读
  */
 async function _validateFileForReplacement(
-  filePath: string,
-  logger?: LoggerCallback
+    filePath: string,
+    logger?: LoggerCallback
 ): Promise<{ isValid: boolean; error?: string }> {
-  try {
-    // 检查文件是否存在
-    const stats = await stat(filePath);
-    
-    // 检查是否为文件
-    if (!stats.isFile()) {
-      return { 
-        isValid: false, 
-        error: `路径 '${filePath}' 不是一个文件` 
-      };
+    try {
+        // 检查文件是否存在
+        const stats = await stat(filePath);
+
+        // 检查是否为文件
+        if (!stats.isFile()) {
+            return {
+                isValid: false,
+                error: `路径 '${filePath}' 不是一个文件`,
+            };
+        }
+
+        // 检查文件大小（> 50MB 警告）
+        const maxSize = 50 * 1024 * 1024; // 50MB
+        if (stats.size > maxSize) {
+            const warningMsg = `文件 '${filePath}' 大小为 ${Math.round(stats.size / 1024 / 1024)}MB，可能影响性能`;
+            logger?.('warn', warningMsg);
+        }
+
+        // 检查文件扩展名
+        const ext = extname(filePath).toLowerCase();
+        const supportedExtensions = [
+            '.md',
+            '.markdown',
+            '.txt',
+            '.html',
+            '.htm',
+            '.js',
+            '.ts',
+            '.jsx',
+            '.tsx',
+            '.vue',
+            '.json',
+            '.yaml',
+            '.yml',
+            '.xml',
+            '.css',
+        ];
+
+        if (!supportedExtensions.includes(ext)) {
+            const warningMsg = `文件 '${filePath}' 扩展名 '${ext}' 可能不是文本文件，但仍会尝试处理`;
+            logger?.('warn', warningMsg);
+
+            // 对于明显的二进制文件扩展名给出更强警告
+            const binaryExtensions = [
+                '.png',
+                '.jpg',
+                '.jpeg',
+                '.gif',
+                '.bmp',
+                '.webp',
+                '.pdf',
+                '.exe',
+                '.dll',
+            ];
+            if (binaryExtensions.includes(ext)) {
+                logger?.('error', `强烈建议不要对二进制文件 '${filePath}' 执行图片替换操作`);
+            }
+        }
+
+        return { isValid: true };
+    } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        return {
+            isValid: false,
+            error: `无法访问文件 '${filePath}': ${errorMsg}`,
+        };
     }
-    
-    // 检查文件大小（> 50MB 警告）
-    const maxSize = 50 * 1024 * 1024; // 50MB
-    if (stats.size > maxSize) {
-      const warningMsg = `文件 '${filePath}' 大小为 ${Math.round(stats.size / 1024 / 1024)}MB，可能影响性能`;
-      logger?.('warn', warningMsg);
-    }
-    
-    // 检查文件扩展名
-    const ext = extname(filePath).toLowerCase();
-    const supportedExtensions = [
-      '.md', '.markdown', '.txt', '.html', '.htm', 
-      '.js', '.ts', '.jsx', '.tsx', '.vue',
-      '.json', '.yaml', '.yml', '.xml', '.css'
-    ];
-    
-    if (!supportedExtensions.includes(ext)) {
-      const warningMsg = `文件 '${filePath}' 扩展名 '${ext}' 可能不是文本文件，但仍会尝试处理`;
-      logger?.('warn', warningMsg);
-      
-      // 对于明显的二进制文件扩展名给出更强警告
-      const binaryExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.pdf', '.exe', '.dll'];
-      if (binaryExtensions.includes(ext)) {
-        logger?.('error', `强烈建议不要对二进制文件 '${filePath}' 执行图片替换操作`);
-      }
-    }
-    
-    return { isValid: true };
-    
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    return { 
-      isValid: false, 
-      error: `无法访问文件 '${filePath}': ${errorMsg}` 
-    };
-  }
 }
 
 const SRC_ATTR_REGEX = IMAGE_REGEX.ATTRIBUTES.SRC;
@@ -165,7 +193,11 @@ function _createPatternRegex(pattern: string | RegExp): RegExp {
 /**
  * 检查图片是否匹配替换选项
  */
-function _checkImageMatch(match: string, image: { alt: string; src: string; title: string }, option: ReplaceOptions): boolean {
+function _checkImageMatch(
+    match: string,
+    image: { alt: string; src: string; title: string },
+    option: ReplaceOptions
+): boolean {
     const pattern = _createPatternRegex(option.pattern);
 
     switch (option.field) {
@@ -182,7 +214,12 @@ function _checkImageMatch(match: string, image: { alt: string; src: string; titl
  * 判断是否为多字段模式
  */
 function _isMultiFieldMode(option: ReplaceOptions): boolean {
-    return (option.field === 'src' || option.field === 'raw') && (option.newSrc !== undefined || option.newAlt !== undefined || option.newTitle !== undefined);
+    return (
+        (option.field === 'src' || option.field === 'raw') &&
+        (option.newSrc !== undefined ||
+            option.newAlt !== undefined ||
+            option.newTitle !== undefined)
+    );
 }
 
 /**
@@ -256,42 +293,75 @@ function _processHtmlImage(
 /**
  * 检查 HTML 图片是否匹配替换选项
  */
-function _checkHtmlImageMatch(match: string, image: { alt: string; src: string; title: string }, option: ReplaceOptions): boolean {
+function _checkHtmlImageMatch(
+    match: string,
+    image: { alt: string; src: string; title: string },
+    option: ReplaceOptions
+): boolean {
     return _checkImageMatch(match, image, option);
 }
 
 /**
  * 应用 HTML 多字段替换
+ * 保留原始标签中的所有属性，只替换指定的属性值
  */
 function _applyHtmlMultiFieldReplacement(
     match: string,
-    image: { alt: string; src: string; title: string },
+    _image: { alt: string; src: string; title: string },
     option: ReplaceOptions,
     replacements: ReplacementDetail[]
 ): string {
-    let newAlt = image.alt;
-    let newSrc = image.src;
-    let newTitle = image.title;
+    // 提取原始标签中的所有属性
+    const allAttributes = _extractAllHtmlAttributes(match);
 
-    // 替换提供的字段
+    // 更新指定的属性
     if (option.newSrc !== undefined) {
-        newSrc = option.newSrc;
+        allAttributes.src = option.newSrc;
     }
     if (option.newAlt !== undefined) {
-        newAlt = option.newAlt;
+        allAttributes.alt = option.newAlt;
     }
     if (option.newTitle !== undefined) {
-        newTitle = option.newTitle;
+        allAttributes.title = option.newTitle;
     }
 
+    // 重建标签，保留所有属性
+    // 检测原始标签的结束方式：` />` 或 `>`
+    const isSelfClosing = match.trimEnd().endsWith('/>');
+
     let newTag = '<img';
-    if (newSrc) newTag += ` src="${newSrc}"`;
-    if (newAlt) newTag += ` alt="${newAlt}"`;
-    if (newTitle) newTag += ` title="${newTitle}"`;
-    newTag += ' />';
+    for (const [name, value] of Object.entries(allAttributes)) {
+        if (value !== undefined && value !== '') {
+            newTag += ` ${name}="${value}"`;
+        }
+    }
+    newTag += isSelfClosing ? ' />' : '>';
 
     replacements.push({ before: match, after: newTag });
     return newTag;
+}
+
+/**
+ * 从 HTML img 标签中提取所有属性
+ */
+function _extractAllHtmlAttributes(imgTag: string): Record<string, string> {
+    const attributes: Record<string, string> = {};
+
+    // 匹配所有属性：name="value" 或 name='value' 或 name=value
+    // 属性名后跟等号和值，或者单独的布尔属性
+    const attrRegex = /(\w+)(?:=(?:"([^"]*)"|'([^']*)'|([^\s"'>]*)))?/g;
+    let match;
+
+    while ((match = attrRegex.exec(imgTag)) !== null) {
+        const name = match[1];
+        // 值可能是三种引号之一，或者没有值
+        const value = match[2] ?? match[3] ?? match[4] ?? '';
+        if (name && name !== 'img') {
+            attributes[name] = value;
+        }
+    }
+
+    return attributes;
 }
 
 /**
@@ -318,6 +388,8 @@ function _applyHtmlMultiFieldReplacement(
  * console.log(result.newText);
  * console.log(result.replacements);
  * ```
+ *
+ * @public
  */
 export function replaceImagesInText(text: string, options: ReplaceOptions[]): ReplaceResult {
     const replacements: ReplacementDetail[] = [];
@@ -325,13 +397,17 @@ export function replaceImagesInText(text: string, options: ReplaceOptions[]): Re
 
     for (const option of options) {
         // 处理 Markdown 图片
-        currentText = currentText.replaceAll(IMAGE_REGEX.MARKDOWN, (match: string, alt: string, urlPart: string) =>
-            _processMarkdownImage(match, alt, urlPart, option, replacements)
+        currentText = currentText.replaceAll(
+            IMAGE_REGEX.MARKDOWN,
+            (match: string, alt: string, urlPart: string) =>
+                _processMarkdownImage(match, alt, urlPart, option, replacements)
         );
 
         // 处理 HTML 图片
-        currentText = currentText.replaceAll(IMAGE_REGEX.HTML_TAG, (match: string, attributes: string) =>
-            _processHtmlImage(match, attributes, option, replacements)
+        currentText = currentText.replaceAll(
+            IMAGE_REGEX.HTML_TAG,
+            (match: string, attributes: string) =>
+                _processHtmlImage(match, attributes, option, replacements)
         );
     }
 
@@ -369,16 +445,19 @@ export async function replaceImagesInFile(
                 relativePath,
                 absolutePath,
                 success: false,
-                error: validation.error
+                error: validation.error,
             };
         }
-        
+
         const content = await readFile(fileAbsPath, 'utf-8');
         const result = replaceImagesInText(content, options);
 
         if (result.replacements.length > 0) {
             await writeFile(fileAbsPath, result.newText, 'utf-8');
-            logger?.('info', `Replaced ${result.replacements.length} images in file: ${fileAbsPath}`);
+            logger?.(
+                'info',
+                `Replaced ${result.replacements.length} images in file: ${fileAbsPath}`
+            );
         }
 
         return {
@@ -404,102 +483,151 @@ export async function replaceImagesInFile(
 
 /**
  * 在目录中批量替换图片
- * 
+ *
  * @param dirAbsPath - 目录绝对路径
  * @param replaceOptions - 替换选项数组
  * @param globOptions - glob 配置选项
  * @param logger - 日志回调函数
  * @returns 处理结果统计
- * 
+ *
  * @remarks
  * 支持文件模式匹配和忽略规则，参考 filterImagesFromDirectory 的设计。
  * 默认处理所有 Markdown 文件。
- * 
+ *
  * @example
  * ```typescript
  * // 基本使用
  * const result = await replaceImagesInDirectory('/docs', [
  *   { field: 'src', pattern: './old.png', newValue: './new.png' }
  * ]);
- * 
+ *
  * // 指定文件模式和忽略规则
  * const result = await replaceImagesInDirectory('/docs', replaceOptions, {
  *   patterns: ['**\/*.md', '**\/*.markdown'],
  *   ignore: ['**\/node_modules/**', '**\/.git/**']
  * });
  * ```
- * 
+ *
  * @public
  */
 export async function replaceImagesInDirectory(
-  dirAbsPath: string,
-  replaceOptions: ReplaceOptions[],
-  globOptions?: { 
-    patterns?: Pattern[]; 
-    ignore?: Pattern[] 
-  },
-  logger?: LoggerCallback
+    dirAbsPath: string,
+    replaceOptions: ReplaceOptions[],
+    globOptions?: {
+        patterns?: Pattern[];
+        ignore?: Pattern[];
+    },
+    logger?: LoggerCallback
 ): Promise<DirectoryReplaceResult> {
-  // 默认匹配所有 Markdown 文件
-  const globPatterns: Pattern[] =
-    globOptions?.patterns && globOptions.patterns.length > 0 
-      ? globOptions.patterns 
-      : ['**/*.md', '**/*.markdown'];
+    // 默认匹配所有 Markdown 文件
+    const globPatterns: Pattern[] =
+        globOptions?.patterns && globOptions.patterns.length > 0
+            ? globOptions.patterns
+            : ['**/*.md', '**/*.markdown'];
 
-  try {
-    // 使用 fast-glob 查找目录下的所有匹配文件
-    const files = await fg(globPatterns, {
-      cwd: dirAbsPath,
-      absolute: true,
-      onlyFiles: true,
-      caseSensitiveMatch: false,
-      dot: true, // 包括隐藏文件
-      ignore: globOptions?.ignore,
-    });
-
-    logger?.('info', `找到 ${files.length} 个文件进行处理`);
-
-    // 批量处理文件
-    const results: FileReplaceResult[] = [];
-
-    for (const filePath of files) {
-      try {
-        const result = await replaceImagesInFile(filePath, replaceOptions, logger);
-        results.push(result);
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        logger?.('error', `处理文件失败: ${filePath}`, { error });
-        
-        // 创建失败结果
-        const relativePath = filePath.replace(dirAbsPath, '').substring(1);
-        results.push({
-          relativePath,
-          absolutePath: filePath,
-          success: false,
-          error: errorMsg
+    try {
+        // 使用 fast-glob 查找目录下的所有匹配文件
+        const files = await fg(globPatterns, {
+            cwd: dirAbsPath,
+            absolute: true,
+            onlyFiles: true,
+            caseSensitiveMatch: false,
+            dot: true, // 包括隐藏文件
+            ignore: globOptions?.ignore,
         });
-      }
+
+        logger?.('info', `找到 ${files.length} 个文件进行处理`);
+
+        // 批量处理文件
+        const results: FileReplaceResult[] = [];
+
+        for (const filePath of files) {
+            try {
+                const result = await replaceImagesInFile(filePath, replaceOptions, logger);
+                results.push(result);
+            } catch (error) {
+                const errorMsg = error instanceof Error ? error.message : String(error);
+                logger?.('error', `处理文件失败: ${filePath}`, { error });
+
+                // 创建失败结果
+                const relativePath = filePath.replace(dirAbsPath, '').substring(1);
+                results.push({
+                    relativePath,
+                    absolutePath: filePath,
+                    success: false,
+                    error: errorMsg,
+                });
+            }
+        }
+
+        // 统计结果
+        const successfulFiles = results.filter((r) => r.success).length;
+        const failedFiles = results.filter((r) => !r.success).length;
+        const totalReplacements = results
+            .filter((r) => r.success && r.result?.replacements)
+            .reduce((sum, r) => sum + (r.result?.replacements?.length || 0), 0);
+
+        return {
+            totalFiles: files.length,
+            successfulFiles,
+            failedFiles,
+            totalReplacements,
+            results,
+        };
+    } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        logger?.('error', `目录处理失败: ${dirAbsPath}`, { error });
+
+        throw new Error(`目录处理失败: ${errorMsg}`, { cause: error });
+    }
+}
+
+// ==================== 图片属性更新功能 ====================
+
+/**
+ * 更新 HTML img 标签的指定属性
+ *
+ * @param html - HTML img 标签字符串
+ * @param attribute - 要更新的属性名（src, alt, title, width, height）
+ * @param value - 新的属性值
+ * @returns 更新后的 HTML 字符串
+ *
+ * @remarks
+ * 如果属性已存在则更新值，不存在则添加。
+ * 支持更新 src、alt、title、width、height 属性。
+ * 保持原有标签格式不变，仅修改指定属性。
+ *
+ * @example
+ * ```typescript
+ * // 更新已存在的属性
+ * const newHtml = updateImageAttribute('<img src="a.png" width="100" />', 'width', '200');
+ * // 返回: '<img src="a.png" width="200" />'
+ *
+ * // 添加新属性
+ * const newHtml = updateImageAttribute('<img src="a.png" />', 'width', '100');
+ * // 返回: '<img src="a.png" width="100" />'
+ * ```
+ *
+ * @public
+ */
+export function updateImageAttribute(html: string, attribute: string, value: string): string {
+    // 属性名必须是支持的属性
+    const supportedAttributes = ['src', 'alt', 'title', 'width', 'height'];
+    if (!supportedAttributes.includes(attribute)) {
+        return html;
     }
 
-    // 统计结果
-    const successfulFiles = results.filter(r => r.success).length;
-    const failedFiles = results.filter(r => !r.success).length;
-    const totalReplacements = results
-      .filter(r => r.success && r.result?.replacements)
-      .reduce((sum, r) => sum + (r.result?.replacements?.length || 0), 0);
+    // 构建属性匹配正则表达式
+    // 支持: attr="value" 或 attr='value' 或 attr=value
+    // 对于 alt 和 title，值可以包含空格，所以使用不同的匹配模式
+    const attrRegex = new RegExp(`\\b${attribute}\\s*=\\s*["']?([^"'>]*)["']?`, 'i');
 
-    return {
-      totalFiles: files.length,
-      successfulFiles,
-      failedFiles,
-      totalReplacements,
-      results
-    };
-
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    logger?.('error', `目录处理失败: ${dirAbsPath}`, { error });
-    
-    throw new Error(`目录处理失败: ${errorMsg}`);
-  }
+    if (attrRegex.test(html)) {
+        // 属性存在，更新值
+        return html.replace(attrRegex, `${attribute}="${value}"`);
+    }
+    // 属性不存在，在 <img 后添加
+    return html.replace(/<img\s/i, `<img ${attribute}="${value}" `);
 }
+
+// ==================== 多组正则表达式集成功能 ====================

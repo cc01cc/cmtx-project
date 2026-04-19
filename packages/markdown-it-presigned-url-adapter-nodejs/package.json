@@ -1,0 +1,57 @@
+{
+    "name": "@cmtx/markdown-it-presigned-url-adapter-nodejs",
+    "version": "0.1.1-alpha.0",
+    "description": "Node.js adapter for markdown-it presigned URL plugin",
+    "license": "Apache-2.0",
+    "type": "module",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.cjs"
+        }
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "CHANGELOG.md"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cc01cc/cmtx-project.git",
+        "directory": "packages/markdown-it-presigned-url-adapter-nodejs"
+    },
+    "scripts": {
+        "prepare": "pnpm build",
+        "build": "tsdown",
+        "build:watch": "tsdown --watch",
+        "typecheck": "tsc --noEmit -p tsconfig.json",
+        "test": "vitest run --passWithNoTests",
+        "docs": "typedoc",
+        "lint": "biome check --write src",
+        "clean": "rimraf dist"
+    },
+    "dependencies": {
+        "@cmtx/storage": "workspace:*",
+        "@cmtx/core": "workspace:*",
+        "ali-oss": "catalog:"
+    },
+    "devDependencies": {
+        "@types/ali-oss": "catalog:",
+        "@types/node": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:"
+    },
+    "peerDependencies": {
+        "@cmtx/markdown-it-presigned-url": "workspace:*"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "engines": {
+        "node": ">=22.0.0"
+    }
+}

@@ -1,0 +1,61 @@
+{
+    "name": "@cmtx/fpe-wasm",
+    "version": "0.1.1-alpha.0",
+    "description": "NIST SP 800-38G FF1 format-preserving encryption (WASM)",
+    "license": "Apache-2.0",
+    "type": "module",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.cjs"
+        }
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "CHANGELOG.md"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cc01cc/cmtx-project.git",
+        "directory": "packages/fpe-wasm"
+    },
+    "scripts": {
+        "build:wasm": "wasm-pack build --target web --out-dir pkg",
+        "build": "pnpm run build:wasm && tsdown",
+        "build:watch": "tsdown --watch",
+        "build:release": "wasm-pack build --target web --out-dir pkg --release && tsdown",
+        "test:wasm": "wasm-pack test --node",
+        "test:ts": "vitest run",
+        "test": "pnpm run test:wasm && pnpm run test:ts",
+        "docs": "typedoc",
+        "docs:rust": "cargo doc --no-deps",
+        "clean": "rm -rf dist",
+        "typecheck": "tsc --noEmit -p tsconfig.json",
+        "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
+        "lint": "biome check --write src tests"
+    },
+    "devDependencies": {
+        "@types/node": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:"
+    },
+    "engines": {
+        "node": ">=22.0.0"
+    },
+    "keywords": [
+        "ff1",
+        "fpe",
+        "encryption",
+        "nist",
+        "wasm",
+        "format-preserving"
+    ],
+    "publishConfig": {
+        "access": "public"
+    }
+}

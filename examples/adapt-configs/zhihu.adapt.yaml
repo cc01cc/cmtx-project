@@ -1,0 +1,59 @@
+# Platform adapt config: Zhihu (zh.zhihu.com)
+#
+# Usage (single file):
+#   cmtx adapt ./article.md --rule-file ./zhihu.adapt.yaml --out ./output/zhihu/article.md
+#
+# Usage (directory, all .md files):
+#   cmtx adapt ./docs/ --rule-file ./zhihu.adapt.yaml --out-dir ./output/zhihu
+#
+# Rule format:
+#   match   - JavaScript regex pattern (string)
+#   replace - replacement string; use $1 $2 ... for capture groups
+#   flags   - regex flags (default: "gm")
+#             g = global (replace all matches)
+#             m = multiline (^ and $ match each line)
+#             s = dotAll  (. matches newlines)
+
+version: v1
+
+rules:
+  # ----------------------------------------------------------------
+  # Frontmatter
+  # ----------------------------------------------------------------
+
+  # Remove YAML frontmatter block at the top of the file.
+  # flags "g" without "m" so ^ is anchored to the start of the file,
+  # not the start of each line.
+  - name: strip frontmatter
+    match: "^---[\\s\\S]*?---\\n+"
+    replace: ""
+    flags: "g"
+
+  # ----------------------------------------------------------------
+  # Headings  (promotion: shift all levels up by one)
+  #
+  # Zhihu body headings: h1 and h2.
+  # Source convention: body starts at h2, h1 is rarely used in body.
+  # Result: h2 -> h1, h3 -> h2, h4/h5/h6 -> h2 (capped at h2).
+  #
+  # Rule order matters for PROMOTION: process lower heading numbers
+  # first.  After "h2 -> h1" fires, those lines become "# ...", which
+  # no longer match "^### " or "^#{4,} ", so they are not touched
+  # again by later rules.
+  # ----------------------------------------------------------------
+
+  - name: h2 to h1
+    match: "^## (.+)$"
+    replace: "# $1"
+    flags: "gm"
+
+  - name: h3 to h2
+    match: "^### (.+)$"
+    replace: "## $1"
+    flags: "gm"
+
+  # Collapse h4, h5, h6 all into h2
+  - name: h4 and deeper to h2
+    match: "^#{4,} (.+)$"
+    replace: "## $1"
+    flags: "gm"

@@ -1,0 +1,65 @@
+{
+    "name": "@cmtx/template",
+    "version": "0.1.1-alpha.0",
+    "description": "轻量级模板渲染引擎，提供灵活的模板变量管理和 Builder 模式 API",
+    "author": "cmtx",
+    "license": "Apache-2.0",
+    "type": "module",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.cjs"
+        }
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "CHANGELOG.md"
+    ],
+    "scripts": {
+        "build": "tsdown",
+        "build:watch": "tsdown --watch",
+        "dev": "tsdown --watch",
+        "typecheck": "tsc --noEmit -p tsconfig.json",
+        "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage",
+        "clean": "rimraf dist",
+        "docs": "typedoc",
+        "lint": "biome check --write src tests"
+    },
+    "devDependencies": {
+        "@types/node": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+        "typedoc": "catalog:",
+        "rimraf": "catalog:dev"
+    },
+    "engines": {
+        "node": ">=22.0.0"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "keywords": [
+        "template",
+        "builder",
+        "markdown",
+        "rendering",
+        "cmtx"
+    ],
+    "homepage": "https://github.com/cc01cc/cmtx-project/tree/main/packages/template",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cc01cc/cmtx-project.git",
+        "directory": "packages/template"
+    },
+    "bugs": {
+        "url": "https://github.com/cc01cc/cmtx-project/issues"
+    }
+}

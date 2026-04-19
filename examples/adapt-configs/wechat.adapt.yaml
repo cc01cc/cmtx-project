@@ -1,0 +1,75 @@
+# Platform adapt config: WeChat Public Account (mp.weixin.qq.com)
+#
+# Paste the result into mdnice (mdnice.com) or similar tools for
+# final styling and publishing.
+#
+# Usage (single file):
+#   cmtx adapt ./article.md --rule-file ./wechat.adapt.yaml --out ./output/wechat/article.md
+#
+# Usage (directory, all .md files):
+#   cmtx adapt ./docs/ --rule-file ./wechat.adapt.yaml --out-dir ./output/wechat
+#
+# Rule format:
+#   match   - JavaScript regex pattern (string)
+#   replace - replacement string; use $1 $2 ... for capture groups
+#   flags   - regex flags (default: "gm")
+#             g = global (replace all matches)
+#             m = multiline (^ and $ match each line)
+#             s = dotAll  (. matches newlines)
+
+version: v1
+
+rules:
+  # ----------------------------------------------------------------
+  # Frontmatter
+  # ----------------------------------------------------------------
+
+  # Remove YAML frontmatter block at the top of the file.
+  # flags "g" without "m" so ^ is anchored to the start of the file,
+  # not the start of each line.
+  - name: strip frontmatter
+    match: "^---[\\s\\S]*?---\\n+"
+    replace: ""
+    flags: "g"
+
+  # ----------------------------------------------------------------
+  # Headings  (demotion: shift all levels down by one)
+  #
+  # WeChat body convention: article title is set in the WeChat editor
+  # separately; body content starts at h2.  So h1 in source -> h2,
+  # h2 -> h3, h3 -> h4.
+  #
+  # Rule order matters for DEMOTION: process higher heading numbers
+  # first.  After "h3 -> h4" fires, those lines become "#### ...",
+  # which no longer match "^## " or "^# ", so they are not touched
+  # again by later rules.
+  # ----------------------------------------------------------------
+
+  - name: h3 to h4
+    match: "^### (.+)$"
+    replace: "#### $1"
+    flags: "gm"
+
+  - name: h2 to h3
+    match: "^## (.+)$"
+    replace: "### $1"
+    flags: "gm"
+
+  - name: h1 to h2
+    match: "^# (.+)$"
+    replace: "## $1"
+    flags: "gm"
+
+  # ----------------------------------------------------------------
+  # Links
+  # ----------------------------------------------------------------
+
+  # WeChat does not render clickable external links in published
+  # articles.  This rule strips the URL and keeps only the display
+  # text so readers see the label rather than a dead link.
+  # The negative lookbehind (?<!!) ensures image links (![...])
+  # are not affected.
+  - name: remove external links
+    match: "(?<!!)\\[([^\\]]+)\\]\\(https?://[^)\\s]+\\)"
+    replace: "$1"
+    flags: "g"

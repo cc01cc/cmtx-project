@@ -1,0 +1,27 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build-vscode-extension",
+      "type": "shell",
+      "command": "pnpm -F @cmtx/vscode-extension build",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "isBackground": false,
+      "problemMatcher": []
+    },
+    {
+      "label": "watch-vscode-extension",
+      "type": "shell",
+      "command": "pnpm -F @cmtx/vscode-extension watch",
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+    "name": "@cmtx/publish",
+    "version": "0.1.1-alpha.0",
+    "description": "Markdown document processing and publishing - metadata management, platform adaptation, and publishing workflow",
+    "license": "Apache-2.0",
+    "type": "module",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.cjs"
+        },
+        "./node": {
+            "types": "./dist/node.d.ts",
+            "import": "./dist/node.mjs",
+            "require": "./dist/node.cjs"
+        }
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "CHANGELOG.md"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cc01cc/cmtx-project.git",
+        "directory": "packages/publish"
+    },
+    "bugs": {
+        "url": "https://github.com/cc01cc/cmtx-project/issues"
+    },
+    "homepage": "https://github.com/cc01cc/cmtx-project/tree/main/packages/publish",
+    "publishConfig": {
+        "access": "public"
+    },
+    "scripts": {
+        "build": "tsdown",
+        "build:watch": "tsdown --watch",
+        "clean": "rm -rf dist",
+        "typecheck": "tsc --noEmit -p tsconfig.json",
+        "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
+        "test": "vitest run",
+        "docs": "typedoc",
+        "lint": "biome check --write src tests"
+    },
+    "dependencies": {
+        "@cmtx/core": "workspace:*",
+        "@cmtx/asset": "workspace:*",
+        "@cmtx/template": "workspace:*",
+        "@cmtx/fpe-wasm": "workspace:*",
+        "@huacnlee/autocorrect": "^2.16.2",
+        "fast-glob": "catalog:",
+        "js-yaml": "catalog:cli",
+        "rehype-raw": "^7.0.0",
+        "rehype-stringify": "^10.0.1",
+        "remark-gfm": "^4.0.1",
+        "remark-parse": "^11.0.0",
+        "remark-rehype": "^11.1.2",
+        "unified": "^11.0.5"
+    },
+    "optionalDependencies": {
+        "@cmtx/fpe-wasm": "workspace:*"
+    },
+    "devDependencies": {
+        "@types/js-yaml": "catalog:cli",
+        "@types/node": "catalog:",
+        "typedoc": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:"
+    },
+    "engines": {
+        "node": ">=22.0.0"
+    },
+    "keywords": [
+        "markdown",
+        "metadata",
+        "publish",
+        "wechat",
+        "zhihu",
+        "csdn",
+        "platform"
+    ]
+}

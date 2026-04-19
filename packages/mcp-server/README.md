@@ -46,10 +46,10 @@ node packages/mcp-server/dist/bin/cmtx-mcp.js < input.jsonl > output.jsonl
       "command": "node",
       "args": ["packages/mcp-server/dist/bin/cmtx-mcp.js"],
       "env": {
-        "OSS_REGION": "oss-cn-hangzhou",
-        "OSS_BUCKET": "your-bucket",
-        "OSS_ACCESS_KEY_ID": "your-key-id",
-        "OSS_ACCESS_KEY_SECRET": "your-secret"
+        "ALIYUN_OSS_REGION": "oss-cn-hangzhou",
+        "ALIYUN_OSS_BUCKET": "your-bucket",
+        "ALIYUN_OSS_ACCESS_KEY_ID": "your-key-id",
+        "ALIYUN_OSS_ACCESS_KEY_SECRET": "your-secret"
       }
     }
   }
@@ -293,10 +293,10 @@ node packages/mcp-server/dist/bin/cmtx-mcp.js < input.jsonl > output.jsonl
 OSS 凭证可通过环境变量配置：
 
 ```bash
-export OSS_REGION=oss-cn-hangzhou
-export OSS_BUCKET=my-bucket
-export OSS_ACCESS_KEY_ID=your_access_key
-export OSS_ACCESS_KEY_SECRET=your_secret
+export ALIYUN_OSS_REGION=oss-cn-hangzhou
+export ALIYUN_OSS_BUCKET=my-bucket
+export ALIYUN_OSS_ACCESS_KEY_ID=your_access_key
+export ALIYUN_OSS_ACCESS_KEY_SECRET=your_secret
 ```
 
 或在工具调用时作为参数传递。
@@ -345,10 +345,10 @@ export OSS_ACCESS_KEY_SECRET=your_secret
       "command": "node",
       "args": ["packages/mcp-server/dist/bin/cmtx-mcp.js"],
       "env": {
-        "OSS_REGION": "oss-cn-hangzhou",
-        "OSS_BUCKET": "your-bucket",
-        "OSS_ACCESS_KEY_ID": "your-key-id",
-        "OSS_ACCESS_KEY_SECRET": "your-secret"
+        "ALIYUN_OSS_REGION": "oss-cn-hangzhou",
+        "ALIYUN_OSS_BUCKET": "your-bucket",
+        "ALIYUN_OSS_ACCESS_KEY_ID": "your-key-id",
+        "ALIYUN_OSS_ACCESS_KEY_SECRET": "your-secret"
       }
     }
   }
@@ -492,7 +492,7 @@ Apache-2.0
 
 ## 参见
 
-- [@cmtx/core](../core/README.md) - 图片提取和引用分析
+- [@cmtx/core](../core/README.md) - 图片处理与元数据操作
 - [@cmtx/upload](../upload/README.md) - 对象存储上传
 - [@cmtx/cli](../cli/README.md) - 命令行工具
 - [Model Context Protocol](https://modelcontextprotocol.io/)

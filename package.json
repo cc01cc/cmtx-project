@@ -1,51 +1,69 @@
 {
-  "name": "cmtx-workspace",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "description": "cmtx monorepo: @cmtx/core + @cmtx/upload",
-  "license": "Apache-2.0",
-  "packageManager": "pnpm@10.8.0",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/cc01cc/cmtx-project.git"
-  },
-  "bugs": {
-    "url": "https://github.com/cc01cc/cmtx-project/issues"
-  },
-  "homepage": "https://github.com/cc01cc/cmtx-project",
-  "author": "cc01cc",
-  "scripts": {
-    "build": "pnpm -r build",
-    "test": "pnpm -r test",
-    "docs": "pnpm -r docs && node scripts/generate-docs-index.js",
-    "docs:index": "node scripts/generate-docs-index.js",
-    "docs:upload": "node scripts/upload-docs.js",
-    "lint": "eslint \"packages/*/src/**/*.ts\" \"packages/*/tests/**/*.ts\" --fix"
-  },
-  "keywords": [
-    "markdown",
-    "images",
-    "extract",
-    "cmtx",
-    "monorepo"
-  ],
-  "devDependencies": {
-    "@eslint/js": "^9.39.2",
-    "@eslint/json": "^1.0.0",
-    "@eslint/markdown": "^7.5.1",
-    "@types/node": "^25.0.9",
-    "eslint": "^9.39.2",
-    "eslint-plugin-import": "^2.32.0",
-    "globals": "^17.0.0",
-    "jiti": "^2.6.1",
-    "prettier": "3.8.0",
-    "tsx": "^4.21.0",
-    "typedoc": "^0.28.16",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.53.1",
-    "vitest": "^4.0.17",
-    "js-yaml": "4.1.1",
-    "@types/js-yaml": "4.0.5"
-  }
+    "name": "cmtx-workspace",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "description": "CMTX monorepo: Markdown 文档处理和图片管理工具链",
+    "license": "Apache-2.0",
+    "packageManager": "pnpm@10.29.3",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cc01cc/cmtx-project.git"
+    },
+    "bugs": {
+        "url": "https://github.com/cc01cc/cmtx-project/issues"
+    },
+    "homepage": "https://github.com/cc01cc/cmtx-project",
+    "author": "cc01cc",
+    "scripts": {
+        "build": "pnpm -r build",
+        "test": "pnpm -r test",
+        "docs": "pnpm -r docs && node scripts/generate-docs-index.js",
+        "docs:index": "node scripts/generate-docs-index.js",
+        "docs:upload": "node scripts/upload-docs.js",
+        "lint": "sh -c 'pnpm run lint:format:write; f=$?; pnpm run typecheck; t=$?; [ $f -eq 0 ] && [ $t -eq 0 ]'",
+        "lint:check": "sh -c 'pnpm run lint:format; f=$?; pnpm run typecheck; t=$?; [ $f -eq 0 ] && [ $t -eq 0 ]'",
+        "lint:format": "biome check .",
+        "lint:format:write": "biome check --write .",
+        "typecheck": "pnpm run typecheck:packages",
+        "typecheck:packages": "pnpm -r --if-present typecheck",
+        "quality:check": "./scripts/quality-check.sh",
+        "restic:backup": "node scripts/restic-backup.js",
+        "restic:restore": "node scripts/restic-restore.js",
+        "changeset": "changeset",
+        "changeset:add": "changeset add",
+        "changeset:version": "changeset version",
+        "changeset:publish": "changeset publish",
+        "release:alpha:start": "changeset pre enter alpha && changeset version",
+        "release:alpha:continue": "changeset version",
+        "release:alpha:publish": "changeset publish && git push --follow-tags",
+        "release:beta:start": "changeset pre exit && changeset pre enter beta && changeset version",
+        "release:beta:continue": "changeset version",
+        "release:beta:publish": "changeset publish && git push --follow-tags",
+        "release:latest": "changeset pre exit && changeset version && changeset publish && git push --follow-tags",
+        "prepublish:validate": "pnpm run validate:build && pnpm run validate:tests && pnpm run validate:typecheck",
+        "validate:build": "pnpm -r build",
+        "validate:tests": "pnpm -r test",
+        "validate:typecheck": "pnpm -r typecheck"
+    },
+    "keywords": [
+        "markdown",
+        "images",
+        "extract",
+        "cmtx",
+        "monorepo"
+    ],
+    "devDependencies": {
+        "@biomejs/biome": "^2.4.10",
+        "@changesets/cli": "2.31.0",
+        "@types/js-yaml": "4.0.9",
+        "@types/node": "^25.2.1",
+        "jiti": "^2.6.1",
+        "js-yaml": "4.1.1",
+        "tsdown": "0.21.7",
+        "tsx": "^4.21.0",
+        "typedoc": "^0.28.16",
+        "typescript": "^6.0.2",
+        "vitest": "^4.0.18"
+    }
 }

@@ -1,57 +1,72 @@
 {
-  "name": "@cmtx/core",
-  "version": "0.2.0",
-  "description": "Core markdown image extraction/manipulation utilities",
-  "license": "Apache-2.0",
-  "type": "module",
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+    "name": "@cmtx/core",
+    "version": "0.3.1-alpha.0",
+    "description": "Core markdown document processing library - image extraction/manipulation and metadata handling",
+    "license": "Apache-2.0",
+    "type": "module",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.cjs"
+        }
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "CHANGELOG.md"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cc01cc/cmtx-project.git",
+        "directory": "packages/core"
+    },
+    "bugs": {
+        "url": "https://github.com/cc01cc/cmtx-project/issues"
+    },
+    "homepage": "https://github.com/cc01cc/cmtx-project",
+    "author": "cc01cc",
+    "keywords": [
+        "markdown",
+        "images",
+        "metadata",
+        "frontmatter",
+        "extract",
+        "replace",
+        "cmtx"
+    ],
+    "publishConfig": {
+        "access": "public"
+    },
+    "scripts": {
+        "build": "tsdown",
+        "build:watch": "tsdown --watch",
+        "clean": "rm -rf dist",
+        "typecheck": "tsc --noEmit -p tsconfig.json",
+        "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
+        "test": "vitest run",
+        "docs": "typedoc",
+        "lint": "biome check --write src tests"
+    },
+    "dependencies": {
+        "fast-glob": "catalog:",
+        "js-yaml": "catalog:cli",
+        "trash": "catalog:",
+        "winston": "^3.18.3",
+        "winston-daily-rotate-file": "^5.0.0"
+    },
+    "devDependencies": {
+        "@types/js-yaml": "catalog:cli",
+        "@types/node": "catalog:",
+        "@vitest/coverage-v8": "catalog:",
+        "typedoc": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:"
+    },
+    "engines": {
+        "node": ">=22.0.0"
     }
-  },
-  "files": [
-    "dist"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/cc01cc/cmtx-project.git",
-    "directory": "packages/core"
-  },
-  "bugs": {
-    "url": "https://github.com/cc01cc/cmtx-project/issues"
-  },
-  "homepage": "https://github.com/cc01cc/cmtx-project",
-  "author": "cc01cc",
-  "keywords": [
-    "markdown",
-    "images",
-    "extract",
-    "replace",
-    "cmtx"
-  ],
-  "publishConfig": {
-    "access": "public"
-  },
-  "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "test": "vitest run",
-    "docs": "typedoc",
-    "lint": "eslint src tests --fix"
-  },
-  "dependencies": {
-    "fast-glob": "^3.3.3",
-    "trash": "^10.0.1"
-  },
-  "devDependencies": {
-    "@types/node": "^25.0.9",
-    "@vitest/coverage-v8": "^4.0.18",
-    "eslint": "^9.39.2",
-    "typedoc": "^0.28.16",
-    "typescript": "^5.9.3",
-    "vitest": "^4.0.17"
-  }
 }

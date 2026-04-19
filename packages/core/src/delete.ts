@@ -41,17 +41,13 @@
  * @see {@link DeletionStrategy} - 删除策略枚举
  */
 
-import { mkdir, readFile, writeFile, unlink } from "node:fs/promises";
-import { join, basename } from "node:path";
-import trash from "trash";
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
+import { basename, join } from 'node:path';
+import trash from 'trash';
 
-import { normalizePath } from "./utils.js";
-import { filterImagesFromDirectory } from "./filter.js";
-import type {
-  DeleteFileOptions,
-  DeleteFileResult,
-  LoggerCallback,
-} from "./types.js";
+import { filterImagesFromDirectory } from './filter.js';
+import type { DeleteFileOptions, DeleteFileResult, LoggerCallback } from './types.js';
+import { normalizePath } from './utils.js';
 
 const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_BASE_DELAY_MS = 100;
@@ -104,23 +100,51 @@ interface RetryResult<T> {
  * validatePathWithinRoot('/etc/passwd', '/project');
  * // 抛出错误：Security violation: Path "/etc/passwd" is outside root directory "/project"
  * ```
+ *
+ * @public
  */
-export function validatePathWithinRoot(
-  fileAbsPath: string,
-  rootAbsPath: string,
-): void {
-  const normalizedFile = normalizePath(fileAbsPath);
-  const normalizedRoot = normalizePath(rootAbsPath);
+export function validatePathWithinRoot(fileAbsPath: string, rootAbsPath: string): void {
+    const normalizedFile = normalizePath(fileAbsPath);
+    const normalizedRoot = normalizePath(rootAbsPath);
 
-  const isWithinRoot =
-    normalizedFile === normalizedRoot ||
-    normalizedFile.startsWith(normalizedRoot + "/");
+    const isWithinRoot =
+        normalizedFile === normalizedRoot || normalizedFile.startsWith(`${normalizedRoot}/`);
 
-  if (!isWithinRoot) {
-    throw new Error(
-      `Security violation: Path "${fileAbsPath}" is outside root directory "${rootAbsPath}"`,
-    );
-  }
+    if (!isWithinRoot) {
+        throw new Error(
+            `Security violation: Path "${fileAbsPath}" is outside root directory "${rootAbsPath}"`
+        );
+    }
+}
+
+/**
+ * 计算重试延迟时间（指数退避）
+ *
+ * @param attempt - 当前尝试次数
+ * @param baseDelayMs - 基础延迟毫秒数
+ * @returns 延迟时间（毫秒）
+ */
+function calculateRetryDelay(attempt: number, baseDelayMs: number): number {
+    return baseDelayMs * 2 ** attempt;
+}
+
+/**
+ * 执行降级操作
+ *
+ * @param fallback - 降级函数
+ * @returns 执行结果
+ */
+async function executeWithFallback<T>(
+    fallback: () => Promise<T>
+): Promise<{ success: boolean; result?: T; error?: Error }> {
+    try {
+        const result = await fallback();
+        return { success: true, result };
+    } catch (fallbackError) {
+        const error =
+            fallbackError instanceof Error ? fallbackError : new Error(String(fallbackError));
+        return { success: false, error };
+    }
 }
 
 /**
@@ -142,45 +166,40 @@ export function validatePathWithinRoot(
  * @internal
  */
 async function withRetry<T>(
-  operation: () => Promise<T>,
-  fallback?: () => Promise<T>,
-  options?: RetryOptions,
+    operation: () => Promise<T>,
+    fallback?: () => Promise<T>,
+    options?: RetryOptions
 ): Promise<RetryResult<T>> {
-  const {
-    maxRetries = DEFAULT_MAX_RETRIES,
-    baseDelayMs = DEFAULT_BASE_DELAY_MS,
-  } = options || {};
-  let lastError: Error | undefined;
+    const { maxRetries = DEFAULT_MAX_RETRIES, baseDelayMs = DEFAULT_BASE_DELAY_MS } = options || {};
+    let lastError: Error | undefined;
 
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      const result = await operation();
-      return { result, retries: attempt, success: true };
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-
-      if (attempt < maxRetries) {
-        const delay = baseDelayMs * Math.pow(2, attempt);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      } else if (fallback) {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
-          const result = await fallback();
-          return { result, retries: attempt, success: true };
-        } catch (fallbackError) {
-          lastError =
-            fallbackError instanceof Error
-              ? fallbackError
-              : new Error(String(fallbackError));
-        }
-      }
-    }
-  }
+            const result = await operation();
+            return { result, retries: attempt, success: true };
+        } catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error));
 
-  return {
-    retries: maxRetries,
-    error: lastError || new Error("Unknown error"),
-    success: false,
-  };
+            if (attempt < maxRetries) {
+                const delay = calculateRetryDelay(attempt, baseDelayMs);
+                await new Promise((resolve) => setTimeout(resolve, delay));
+            } else if (fallback) {
+                const fallbackResult = await executeWithFallback(fallback);
+                if (fallbackResult.success && fallbackResult.result !== undefined) {
+                    return { result: fallbackResult.result, retries: attempt, success: true };
+                }
+                if (fallbackResult.error) {
+                    lastError = fallbackResult.error;
+                }
+            }
+        }
+    }
+
+    return {
+        retries: maxRetries,
+        error: lastError || new Error('Unknown error'),
+        success: false,
+    };
 }
 
 /**
@@ -203,39 +222,38 @@ async function withRetry<T>(
  * @internal
  */
 async function deleteWithTrash(
-  filePath: string,
-  trashDirAbs: string | undefined,
-  maxRetries: number,
-  baseDelayMs: number,
+    filePath: string,
+    trashDirAbs: string | undefined,
+    maxRetries: number,
+    baseDelayMs: number
 ): Promise<DeleteFileResult> {
-  const result = await withRetry(
-    async () => {
-      await trash([filePath]);
-    },
-    // 降级策略：如果 trash 失败且有 trashDir，则移动到该目录
-    trashDirAbs
-      ? async () => {
-          await deleteByMove(filePath, trashDirAbs, 0, baseDelayMs);
-        }
-      : undefined,
-    { maxRetries, baseDelayMs },
-  );
+    const result = await withRetry(
+        async () => {
+            await trash([filePath]);
+        },
+        // 降级策略：如果 trash 失败且有 trashDir，则移动到该目录
+        trashDirAbs
+            ? async () => {
+                  await deleteByMove(filePath, trashDirAbs, 0, baseDelayMs);
+              }
+            : undefined,
+        { maxRetries, baseDelayMs }
+    );
 
-  if (result.success) {
+    if (result.success) {
+        return {
+            status: 'success',
+            retries: result.retries,
+            actualStrategy: 'trash',
+        };
+    }
+
     return {
-      status: "success",
-      retries: result.retries,
-      actualStrategy: "trash",
+        status: 'failed',
+        retries: result.retries,
+        error: result.error?.message || 'Failed to delete file using trash strategy',
+        actualStrategy: 'trash',
     };
-  }
-
-  return {
-    status: "failed",
-    retries: result.retries,
-    error:
-      result.error?.message || "Failed to delete file using trash strategy",
-    actualStrategy: "trash",
-  };
 }
 
 /**
@@ -260,38 +278,38 @@ async function deleteWithTrash(
  * @internal
  */
 async function deleteByMove(
-  filePath: string,
-  trashDirAbs: string,
-  maxRetries: number,
-  baseDelayMs: number,
+    filePath: string,
+    trashDirAbs: string,
+    maxRetries: number,
+    baseDelayMs: number
 ): Promise<DeleteFileResult> {
-  const result = await withRetry(
-    async () => {
-      await mkdir(trashDirAbs, { recursive: true });
-      const filename = basename(filePath);
-      const targetPath = join(trashDirAbs, filename);
-      const content = await readFile(filePath);
-      await writeFile(targetPath, content);
-      await unlink(filePath);
-    },
-    undefined,
-    { maxRetries, baseDelayMs },
-  );
+    const result = await withRetry(
+        async () => {
+            await mkdir(trashDirAbs, { recursive: true });
+            const filename = basename(filePath);
+            const targetPath = join(trashDirAbs, filename);
+            const content = await readFile(filePath);
+            await writeFile(targetPath, content);
+            await unlink(filePath);
+        },
+        undefined,
+        { maxRetries, baseDelayMs }
+    );
 
-  if (result.success) {
+    if (result.success) {
+        return {
+            status: 'success',
+            retries: result.retries,
+            actualStrategy: 'move',
+        };
+    }
+
     return {
-      status: "success",
-      retries: result.retries,
-      actualStrategy: "move",
+        status: 'failed',
+        retries: result.retries,
+        error: result.error?.message,
+        actualStrategy: 'move',
     };
-  }
-
-  return {
-    status: "failed",
-    retries: result.retries,
-    error: result.error?.message,
-    actualStrategy: "move",
-  };
 }
 
 /**
@@ -311,32 +329,32 @@ async function deleteByMove(
  * @internal
  */
 async function deleteHardDelete(
-  filePath: string,
-  maxRetries: number,
-  baseDelayMs: number,
+    filePath: string,
+    maxRetries: number,
+    baseDelayMs: number
 ): Promise<DeleteFileResult> {
-  const result = await withRetry(
-    async () => {
-      await unlink(filePath);
-    },
-    undefined,
-    { maxRetries, baseDelayMs },
-  );
+    const result = await withRetry(
+        async () => {
+            await unlink(filePath);
+        },
+        undefined,
+        { maxRetries, baseDelayMs }
+    );
 
-  if (result.success) {
+    if (result.success) {
+        return {
+            status: 'success',
+            retries: result.retries,
+            actualStrategy: 'hard-delete',
+        };
+    }
+
     return {
-      status: "success",
-      retries: result.retries,
-      actualStrategy: "hard-delete",
+        status: 'failed',
+        retries: result.retries,
+        error: result.error?.message,
+        actualStrategy: 'hard-delete',
     };
-  }
-
-  return {
-    status: "failed",
-    retries: result.retries,
-    error: result.error?.message,
-    actualStrategy: "hard-delete",
-  };
 }
 
 /**
@@ -382,45 +400,49 @@ async function deleteHardDelete(
  *   strategy: "hard-delete"
  * });
  * ```
+ *
+ * @public
  */
 export async function deleteLocalImage(
-  filePath: string,
-  options: DeleteFileOptions,
+    filePath: string,
+    options: DeleteFileOptions
 ): Promise<DeleteFileResult> {
-  const { strategy, trashDir, maxRetries, baseDelayMs } = options;
+    const { strategy, trashDir, maxRetries, baseDelayMs } = options;
 
-  if (strategy === "trash") {
-    // trash 策略不需要强制 trashDir，trashDir 仅用作降级策略
-    return deleteWithTrash(
-      filePath,
-      trashDir,
-      maxRetries || DEFAULT_MAX_RETRIES,
-      baseDelayMs || DEFAULT_BASE_DELAY_MS,
-    );
-  } else if (strategy === "move") {
-    // move 策略需要 trashDir
-    if (!trashDir) {
-      return {
-        status: "skipped",
-        retries: 0,
-        error: "trashDir is required for move strategy",
-      };
+    if (strategy === 'trash') {
+        // trash 策略不需要强制 trashDir，trashDir 仅用作降级策略
+        return deleteWithTrash(
+            filePath,
+            trashDir,
+            maxRetries || DEFAULT_MAX_RETRIES,
+            baseDelayMs || DEFAULT_BASE_DELAY_MS
+        );
     }
-    return deleteByMove(
-      filePath,
-      trashDir,
-      maxRetries || DEFAULT_MAX_RETRIES,
-      baseDelayMs || DEFAULT_BASE_DELAY_MS,
-    );
-  } else if (strategy === "hard-delete") {
-    return deleteHardDelete(
-      filePath,
-      maxRetries || DEFAULT_MAX_RETRIES,
-      baseDelayMs || DEFAULT_BASE_DELAY_MS,
-    );
-  }
+    if (strategy === 'move') {
+        // move 策略需要 trashDir
+        if (!trashDir) {
+            return {
+                status: 'skipped',
+                retries: 0,
+                error: 'trashDir is required for move strategy',
+            };
+        }
+        return deleteByMove(
+            filePath,
+            trashDir,
+            maxRetries || DEFAULT_MAX_RETRIES,
+            baseDelayMs || DEFAULT_BASE_DELAY_MS
+        );
+    }
+    if (strategy === 'hard-delete') {
+        return deleteHardDelete(
+            filePath,
+            maxRetries || DEFAULT_MAX_RETRIES,
+            baseDelayMs || DEFAULT_BASE_DELAY_MS
+        );
+    }
 
-  return { status: "skipped", retries: 0 };
+    return { status: 'skipped', retries: 0 };
 }
 
 /**
@@ -443,40 +465,39 @@ export async function deleteLocalImage(
  *   { strategy: "trash" }
  * );
  * ```
+ *
+ * @public
  */
 export async function deleteLocalImageSafely(
-  imgAbsPath: string,
-  rootAbsPath: string,
-  options: DeleteFileOptions,
-  logger?: LoggerCallback,
+    imgAbsPath: string,
+    rootAbsPath: string,
+    options: DeleteFileOptions,
+    logger?: LoggerCallback
 ): Promise<DeleteFileResult> {
-  try {
-    validatePathWithinRoot(imgAbsPath, rootAbsPath);
-  } catch (error) {
-    logger?.("error", `Path validation failed: ${imgAbsPath}`, { error });
-    return {
-      status: "failed",
-      retries: 0,
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
+    try {
+        validatePathWithinRoot(imgAbsPath, rootAbsPath);
+    } catch (error) {
+        logger?.('error', `Path validation failed: ${imgAbsPath}`, { error });
+        return {
+            status: 'failed',
+            retries: 0,
+            error: error instanceof Error ? error.message : String(error),
+        };
+    }
 
-  const imgs = await filterImagesFromDirectory(rootAbsPath, {
-    mode: "absolutePath",
-    value: imgAbsPath,
-  });
+    const imgs = await filterImagesFromDirectory(rootAbsPath, {
+        mode: 'absolutePath',
+        value: imgAbsPath,
+    });
 
-  if (imgs && imgs.length > 0) {
-    logger?.(
-      "warn",
-      `Cannot delete image "${imgAbsPath}": image is still in use`,
-    );
-    return {
-      status: "failed",
-      retries: 0,
-      error: `Cannot delete image "${imgAbsPath}": image is still in use`,
-    };
-  }
+    if (imgs && imgs.length > 0) {
+        logger?.('warn', `Cannot delete image "${imgAbsPath}": image is still in use`);
+        return {
+            status: 'failed',
+            retries: 0,
+            error: `Cannot delete image "${imgAbsPath}": image is still in use`,
+        };
+    }
 
-  return deleteLocalImage(imgAbsPath, options);
+    return deleteLocalImage(imgAbsPath, options);
 }

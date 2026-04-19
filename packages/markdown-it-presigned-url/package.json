@@ -1,0 +1,71 @@
+{
+    "name": "@cmtx/markdown-it-presigned-url",
+    "version": "0.1.1-alpha.0",
+    "description": "Markdown-it plugin for presigned URL image rendering",
+    "license": "Apache-2.0",
+    "type": "module",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.cjs"
+        }
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "README.en.md",
+        "CHANGELOG.md"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cc01cc/cmtx-project.git",
+        "directory": "packages/markdown-it-presigned-url"
+    },
+    "bugs": {
+        "url": "https://github.com/cc01cc/cmtx-project/issues"
+    },
+    "homepage": "https://github.com/cc01cc/cmtx-project",
+    "author": "cc01cc",
+    "keywords": [
+        "markdown-it",
+        "plugin",
+        "presigned-url",
+        "image",
+        "oss",
+        "s3"
+    ],
+    "publishConfig": {
+        "access": "public"
+    },
+    "scripts": {
+        "prepare": "pnpm build",
+        "build": "tsdown",
+        "build:watch": "tsdown --watch",
+        "typecheck": "tsc --noEmit -p tsconfig.json",
+        "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
+        "test": "vitest run",
+        "docs": "typedoc",
+        "lint": "biome check --write src tests",
+        "clean": "rimraf dist"
+    },
+    "peerDependencies": {
+        "markdown-it": "^14.0.0"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "@types/markdown-it": "^14.1.2",
+        "@types/node": "catalog:",
+        "@vitest/coverage-v8": "catalog:",
+        "markdown-it": "^14.1.0",
+        "typedoc": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:"
+    },
+    "engines": {
+        "node": ">=22.0.0"
+    }
+}

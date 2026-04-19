@@ -1,0 +1,7 @@
+{
+  "recommendations": [
+    "biomejs.biome",
+    "dbaeumer.vscode-eslint",
+    "ms-vscode.extension-test-runner"
+  ]
+}

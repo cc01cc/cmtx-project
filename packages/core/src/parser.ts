@@ -44,8 +44,8 @@
  * @see {@link IMAGE_REGEX} - 使用的正则表达式常量
  */
 
-import type { ParsedImage } from './types.js';
 import { IMAGE_REGEX } from './constants/regex.js';
+import type { ParsedImage } from './types.js';
 
 /**
  * 解析 Markdown 文本中的所有图片
@@ -55,6 +55,8 @@ import { IMAGE_REGEX } from './constants/regex.js';
  *
  * @remarks
  * 同时解析 Markdown 内联图片和 HTML img 标签。
+ *
+ * @public
  */
 export function parseImages(text: string): ParsedImage[] {
     const mdImages = parseImagesMdSingleline(text);
@@ -73,6 +75,8 @@ export function parseImages(text: string): ParsedImage[] {
  * 支持：
  * - 带标题：`![alt](url "title")` 或 `![alt](url 'title')`
  * - 不带标题：`![alt](url)`
+ *
+ * @public
  */
 export function parseImagesMdSingleline(text: string): ParsedImage[] {
     const results: ParsedImage[] = [];
@@ -117,6 +121,8 @@ export function parseImagesMdSingleline(text: string): ParsedImage[] {
  * - 只处理单行 HTML img 标签（不含换行符）
  * - 属性顺序、个数无关紧要
  * - src 是必需属性，缺少 src 的标签会被忽略
+ *
+ * @public
  */
 export function parseImagesHtmlSingleline(text: string): ParsedImage[] {
     const results: ParsedImage[] = [];
@@ -140,14 +146,20 @@ export function parseImagesHtmlSingleline(text: string): ParsedImage[] {
         const src = srcMatch[1];
         const altMatch = IMAGE_REGEX.ATTRIBUTES.ALT.exec(tagContent);
         const titleMatch = IMAGE_REGEX.ATTRIBUTES.TITLE.exec(tagContent);
+        const widthMatch = IMAGE_REGEX.ATTRIBUTES.WIDTH.exec(tagContent);
+        const heightMatch = IMAGE_REGEX.ATTRIBUTES.HEIGHT.exec(tagContent);
 
         const alt = altMatch?.[1] ?? '';
         const title = titleMatch?.[1];
+        const width = widthMatch?.[1];
+        const height = heightMatch?.[1];
 
         results.push({
             src,
             alt,
             title,
+            width,
+            height,
             raw: fullTag,
             syntax: 'html',
         });

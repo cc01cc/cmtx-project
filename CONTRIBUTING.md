@@ -60,34 +60,55 @@ pnpm run docs       # 递归生成 TypeDoc（core、upload 输出至各自 docs/
 - Issue 列表：<https://github.com/cc01cc/cmtx-project/issues>
 - 欢迎提供复现步骤、日志或最小复现示例
 
+## 核验清单
+
+- [ ] 代码必须通过 eslint 等 lint 检测
+- [ ] API 签名设计合理、一致，仅暴露必要的接口与类型（含子类型）
+- [ ] TypeDoc 注释完整（含功能说明和参数描述）
+- [ ] 相关文档同步更新（包内文档、根目录文档）
+- [ ] 测试用例完善，删除过时用例
+- [ ] 代码示例完善，删除过时示例
+- [ ] CHANGELOG.md 仅在版本发布前统一更新
+
 ## 包结构简介
 
 ### @cmtx/core
 
-- 核心库：Markdown 图片筛选、替换、删除
+- 核心库：Markdown 图片处理与元数据操作
 - 架构：正则表达式统一架构，专注于基础原子操作
 - 特性：多种筛选模式（sourceType/hostname/absolutePath/regex）、多种删除策略（trash/move/hard-delete）、全面的错误处理
 - 输出：dist 目录、docs/api 文档
 
-### @cmtx/upload
+### @cmtx/asset
 
-- 上传工具：对象存储集成、批量操作、事件回调
+- 资产管理：本地图片上传和远程图片转移
 - 架构：配置构建器模式 + 适配器模式
 - 特性：全局和单文件去重、智能重命名、安全回收、指数退避重试、降级策略
-- 依赖：ali-oss peer
+- 依赖：@cmtx/core、@cmtx/storage、@cmtx/template
 - 输出：dist 目录、docs/api 文档
 
 ### @cmtx/cli
 
 - 命令行工具：Markdown 图片管理工具
-- 架构：基于 @cmtx/core 和 @cmtx/upload
+- 架构：基于 @cmtx/core 和 @cmtx/asset
 - 特性：友好 UI（ora 动画、chalk 着色）、参数验证、环境变量支持
-- 依赖：@cmtx/core、@cmtx/upload、yargs、chalk、ora、ali-oss
+- 依赖：@cmtx/core、@cmtx/asset、@cmtx/publish、yargs、chalk、ora
 - 输出：dist 目录、bin/cmtx 可执行文件
 
 ### @cmtx/mcp-server
 
 - JSON-RPC 2.0 MCP 服务器：为 AI 代理提供工具接口
 - 特性：stdio 通信、完整工具集、error handling
-- 依赖：@cmtx/core、@cmtx/upload、ali-oss
+- 依赖：@cmtx/core、@cmtx/asset
 - 输出：dist 目录、bin/cmtx-mcp 可执行文件
+
+### @cmtx/fpe-wasm
+
+- NIST SP 800-38G FF1 格式保留加密（WASM）
+- 实现：Rust + wasm-pack，符合 NIST 标准，AES-256
+- 难点：WASM 多目标构建（web/bundler）、TypeScript 类型适配
+- 详见：[开发指南 - WASM 打包说明](./docs/DEV-005-development_guide.md#wasm-打包说明)
+
+## 相关文档
+
+- [开发指南](./docs/DEV-005-development_guide.md) - 开发环境、常用命令、WASM 打包说明

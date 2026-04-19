@@ -1,7 +1,7 @@
 # CMTX CLI 配置文件 - blog-simple 预设
 # 生成时间: 2026-02-04T17:56:43.549Z
 
-version: 1.0
+version: v1
 storage:
   adapter: aliyun-oss
   config:

@@ -1,0 +1,59 @@
+# Semgrep 配置文件
+# 用于代码质量和安全检查
+
+rules:
+  # TypeScript 最佳实践
+  - id: no-console-log-in-production
+    patterns:
+      - pattern: console.log(...)
+    message: "Remove console.log before committing"
+    languages:
+      - typescript
+      - javascript
+    severity: WARNING
+
+  - id: no-debugger-statement
+    patterns:
+      - pattern: debugger
+    message: "Remove debugger statements before committing"
+    languages:
+      - typescript
+      - javascript
+    severity: ERROR
+
+  - id: no-var-use-let-const
+    patterns:
+      - pattern: var $X = ...
+    message: "Use let or const instead of var"
+    languages:
+      - typescript
+      - javascript
+    severity: WARNING
+
+  # 安全规则
+  - id: no-eval
+    patterns:
+      - pattern: eval(...)
+    message: "Avoid using eval() - security risk"
+    languages:
+      - typescript
+      - javascript
+    severity: ERROR
+
+  - id: no-global-eval
+    patterns:
+      - pattern: globalEval(...)
+    message: "Avoid using globalEval() - security risk"
+    languages:
+      - typescript
+    severity: ERROR
+
+  # 代码质量
+  - id: too-many-parameters
+    patterns:
+      - pattern: function $F($A, $B, $C, $D, $E, ...) { ... }
+    message: "Function has too many parameters (>5). Consider refactoring."
+    languages:
+      - typescript
+      - javascript
+    severity: WARNING

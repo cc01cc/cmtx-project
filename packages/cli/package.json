@@ -1,55 +1,58 @@
 {
-  "name": "@cmtx/cli",
-  "version": "0.0.1-dev",
-  "description": "Command line interface for Markdown image management",
-  "private": true,
-  "type": "module",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "bin": {
-    "cmtx": "./dist/bin/cmtx.js"
-  },
-  "files": [
-    "dist",
-    "bin"
-  ],
-  "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "dev": "tsc -p tsconfig.json --watch",
-    "test": "vitest",
-    "clean": "rm -rf dist",
-    "prepublishOnly": "pnpm run build"
-  },
-  "dependencies": {
-    "@cmtx/core": "workspace:*",
-    "@cmtx/upload": "workspace:*",
-    "ali-oss": "^6.23.0",
-    "chalk": "^5.6.2",
-    "js-yaml": "4.1.1",
-    "ora": "^9.2.0",
-    "yargs": "^18.0.0"
-  },
-  "devDependencies": {
-    "@types/js-yaml": "4.0.9",
-    "@types/node": "^25.2.0",
-    "@types/yargs": "^17.0.35",
-    "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "keywords": [
-    "markdown",
-    "image",
-    "upload",
-    "cli"
-  ],
-  "license": "Apache-2.0"
+    "name": "@cmtx/cli",
+    "version": "0.1.0",
+    "description": "Command line interface for Markdown image management",
+    "type": "module",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.cjs"
+        }
+    },
+    "main": "./dist/index.cjs",
+    "types": "./dist/index.d.ts",
+    "bin": {
+        "cmtx": "./dist/cli.mjs"
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsdown",
+        "dev": "tsdown --watch",
+        "typecheck": "tsc --noEmit -p tsconfig.json",
+        "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "lint": "biome check --write src tests",
+        "clean": "rimraf dist"
+    },
+    "dependencies": {
+        "@cmtx/publish": "workspace:*",
+        "@cmtx/core": "workspace:*",
+        "@cmtx/asset": "workspace:*",
+        "ali-oss": "catalog:",
+        "chalk": "catalog:cli",
+        "ora": "catalog:cli",
+        "yargs": "catalog:cli"
+    },
+    "devDependencies": {
+        "@types/ali-oss": "catalog:",
+        "rimraf": "catalog:dev",
+        "@types/node": "catalog:",
+        "@types/yargs": "catalog:cli",
+        "typescript": "catalog:",
+        "vitest": "catalog:"
+    },
+    "engines": {
+        "node": ">=22.0.0"
+    },
+    "keywords": [
+        "markdown",
+        "image",
+        "upload",
+        "cli"
+    ],
+    "license": "Apache-2.0"
 }

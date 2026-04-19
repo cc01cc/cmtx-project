@@ -1,37 +1,47 @@
 {
-  "name": "@cmtx/mcp-server",
-  "version": "0.0.1-dev",
-  "description": "MCP-style stdio server for CMTX tools",
-  "private": true,
-  "type": "module",
-  "main": "dist/index.js",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js"
-    }
-  },
-  "bin": {
-    "cmtx-mcp": "./dist/bin/cmtx-mcp.js"
-  },
-  "files": ["dist", "bin"],
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "dev": "tsc -w -p tsconfig.json",
-    "test": "vitest",
-    "test:run": "vitest run"
-  },
-  "dependencies": {
-    "@cmtx/core": "workspace:*",
-    "@cmtx/upload": "workspace:*",
-    "ali-oss": "^6.23.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.9.3",
-    "vitest": "^4.0.18",
-    "@types/node": "^25.2.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "license": "Apache-2.0"
+    "name": "@cmtx/mcp-server",
+    "version": "0.1.0",
+    "description": "MCP-style stdio server for CMTX tools",
+    "type": "module",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.cjs"
+        }
+    },
+    "bin": {
+        "cmtx-mcp": "./dist/server.mjs"
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsdown",
+        "dev": "tsdown --watch",
+        "typecheck": "tsc --noEmit -p tsconfig.json",
+        "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "lint": "biome check --write src tests",
+        "clean": "rimraf dist"
+    },
+    "dependencies": {
+        "@cmtx/core": "workspace:*",
+        "@cmtx/asset": "workspace:*",
+        "ali-oss": "catalog:"
+    },
+    "devDependencies": {
+        "@types/ali-oss": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+        "@types/node": "catalog:"
+    },
+    "engines": {
+        "node": ">=22.0.0"
+    },
+    "license": "Apache-2.0"
 }

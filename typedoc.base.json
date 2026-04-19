@@ -1,0 +1,36 @@
+{
+    "entryPoints": ["src/index.ts"],
+    "out": "docs/api",
+    "exclude": ["**/*.test.ts", "**/*.spec.ts"],
+    "plugin": [],
+    "readme": "README.md",
+    "includeVersion": true,
+    "excludeReferences": true,
+    "excludeInternal": true,
+    "excludeExternals": true,
+    "categorizeByGroup": true,
+    "sort": ["alphabetical", "visibility"],
+    "blockTags": [
+        "@note",
+        "@param",
+        "@returns",
+        "@remarks",
+        "@example",
+        "@see",
+        "@throws",
+        "@module",
+        "@description",
+        "@deprecated",
+        "@default",
+        "@public",
+        "@internal",
+        "@private",
+        "@category",
+        "@packageDocumentation"
+    ],
+    "externalSymbolLinkMappings": {
+        "@types/node": {
+            "__global.module": "#"
+        }
+    }
+}

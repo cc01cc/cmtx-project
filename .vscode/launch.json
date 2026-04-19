@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run CMTX Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode-extension",
+        "--profile=pure"
+      ],
+      "outFiles": ["${workspaceFolder}/packages/vscode-extension/dist/**/*.js"],
+      "preLaunchTask": "build-vscode-extension",
+      "env": {
+        "NODE_ENV": "development",
+        "LOG_LEVEL": "debug"
+      }
+    }
+  ]
+}

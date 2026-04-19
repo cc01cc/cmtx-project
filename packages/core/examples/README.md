@@ -1,18 +1,15 @@
 # 示例脚本
 
-演示如何使用 @cmtx/core 的核心 API。
+演示如何使用 @cmtx/core 的核心 API，所有示例均基于真实的文件内容。
 
 ## 演示数据
 
-`demo-data/` 目录包含测试用的 Markdown 文件和图片：
+所有示例都会在首次运行时自动初始化演示数据。数据存储在 `demo-data/` 目录中：
 
 ```
 demo-data/
 ├── docs/
-│   ├── README.md           # 基础功能测试
-│   ├── core-features.md    # 核心特性测试
-│   ├── path-formats.md     # 路径格式测试
-│   ├── comprehensive-paths.md # 综合路径测试
+│   ├── README.md           # 综合功能测试
 │   └── multilingual.md     # 多语言路径测试
 └── images/
    ├── logo.png             # 被引用
@@ -23,39 +20,58 @@ demo-data/
 ## 运行示例
 
 ```bash
-# 示例 1: 综合图片分析和路径测试
-pnpm exec tsx examples/1-comprehensive-analysis.ts
-
-# 示例 2: 从目录中批量筛选图片
-pnpm exec tsx examples/2-find-all.ts
-
-# 示例 3: 解析 Markdown 文件中的图片
-pnpm exec tsx examples/3-get-details.ts
-
-# 示例 4: 图片删除功能综合演示
-pnpm exec tsx examples/4-delete-images.ts
-
-# 示例 5: 替换图片引用
-pnpm exec tsx examples/5-replace-image.ts
-
-# 示例 6: 目录级别图片替换（推荐API）
-pnpm exec tsx examples/6-directory-replace.ts
-
-# 示例 7: 多语言路径测试
-pnpm exec tsx examples/7-multilingual-test.ts
+# 所有示例都会自动初始化所需数据
+pnpm exec tsx examples/multi-regex-basic.ts     # 多组正则替换
+pnpm exec tsx examples/multi-regex-find.ts      # 多组正则查询
+pnpm exec tsx examples/comprehensive-analysis.ts
+pnpm exec tsx examples/delete-images.ts
+pnpm exec tsx examples/directory-replace.ts
+pnpm exec tsx examples/multilingual-test.ts
 ```
 
 ## 示例说明
 
-### 1-comprehensive-analysis.ts
+### 核心示例（推荐优先学习）
 
-综合图片分析和路径测试，整合了原来example 1和example 7的功能。
+#### multi-regex-basic.ts
 
-**API**: 
+多组正则表达式替换功能演示，基于真实文件场景。
+
+**API**: `replaceWithMultipleRegex(text, options)`
+
+**核心场景**:
+
+- 文档现代化改造
+- 批量配置文件更新
+- 代码重构助手
+- 内容标准化处理
+
+#### multi-regex-find.ts
+
+多组正则表达式查询功能演示，专注于内容分析。
+
+**API**: `findAllMatches(text, options)`
+
+**核心场景**:
+
+- 智能内容分析与质量检查
+- 生产环境部署预检
+- 安全内容扫描
+- 变更影响评估
+
+### 其他功能示例
+
+#### comprehensive-analysis.ts
+
+综合图片分析和路径测试，整合了多种分析维度。
+
+**API**:
+
 - `filterImagesFromFile(filePath, options)`
 - `filterImagesInText(content)`
 
 **功能**:
+
 - 从多个文件中筛选和分析图片
 - 按语法类型（Markdown/HTML）分类统计
 - 按路径类型（相对/绝对/Web）分析
@@ -82,7 +98,8 @@ pnpm exec tsx examples/7-multilingual-test.ts
 
 综合演示图片删除功能，包括安全删除和直接删除。
 
-**API**: 
+**API**:
+
 - `deleteLocalImageSafely(imagePath, rootPath, options)`
 - `deleteLocalImage(imagePath, options)`
 
@@ -103,6 +120,7 @@ pnpm exec tsx examples/7-multilingual-test.ts
 **API**: `replaceImagesInDirectory(dirPath, replaceOptions[], globOptions?, logger?)`
 
 **功能**:
+
 - 批量处理目录中的多个文件
 - 支持文件模式匹配和忽略规则
 - 提供详细的处理结果统计
@@ -120,6 +138,7 @@ pnpm exec tsx examples/7-multilingual-test.ts
 **API**: `filterImagesFromFile()`, `filterImagesInText()`
 
 **功能**:
+
 - 测试中文、日文、韩文等多语言路径支持
 - Unicode字符路径识别和处理
 - 多语言混合路径场景测试
