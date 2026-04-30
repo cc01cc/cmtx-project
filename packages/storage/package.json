@@ -1,8 +1,31 @@
 {
     "name": "@cmtx/storage",
-    "version": "0.1.1-alpha.0",
+    "version": "0.1.1-alpha.1",
     "description": "Object storage adapters for cmtx",
+    "keywords": [
+        "cloud-storage",
+        "cmtx",
+        "cos",
+        "oss",
+        "s3",
+        "storage"
+    ],
+    "homepage": "https://github.com/cc01cc/cmtx-project",
+    "bugs": {
+        "url": "https://github.com/cc01cc/cmtx-project/issues"
+    },
     "license": "Apache-2.0",
+    "author": "cc01cc",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cc01cc/cmtx-project.git",
+        "directory": "packages/storage"
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "CHANGELOG.md"
+    ],
     "type": "module",
     "main": "./dist/index.cjs",
     "module": "./dist/index.mjs",
@@ -29,32 +52,9 @@
             "require": "./dist/adapters/factory.cjs"
         }
     },
-    "files": [
-        "dist",
-        "README.md",
-        "CHANGELOG.md"
-    ],
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/cc01cc/cmtx-project.git",
-        "directory": "packages/storage"
-    },
-    "bugs": {
-        "url": "https://github.com/cc01cc/cmtx-project/issues"
-    },
-    "homepage": "https://github.com/cc01cc/cmtx-project",
-    "author": "cc01cc",
     "publishConfig": {
         "access": "public"
     },
-    "keywords": [
-        "storage",
-        "oss",
-        "cos",
-        "s3",
-        "cloud-storage",
-        "cmtx"
-    ],
     "scripts": {
         "build": "tsdown",
         "build:watch": "tsdown --watch",
@@ -65,8 +65,16 @@
         "test:integration": "vitest run --config vitest.integration.config.ts",
         "test:integration:oss": "vitest run --config vitest.integration.config.ts tests/integration/ali-oss.integration.test.ts",
         "test:integration:cos": "vitest run --config vitest.integration.config.ts tests/integration/tencent-cos.integration.test.ts",
-        "docs": "typedoc",
-        "lint": "biome check --write src tests"
+        "docs": "typedoc"
+    },
+    "devDependencies": {
+        "@types/ali-oss": "catalog:",
+        "@types/node": "catalog:",
+        "ali-oss": "catalog:",
+        "cos-nodejs-sdk-v5": "catalog:",
+        "typedoc": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:"
     },
     "peerDependencies": {
         "ali-oss": "catalog:",
@@ -79,15 +87,6 @@
         "cos-nodejs-sdk-v5": {
             "optional": true
         }
-    },
-    "devDependencies": {
-        "@types/ali-oss": "catalog:",
-        "@types/node": "catalog:",
-        "ali-oss": "catalog:",
-        "cos-nodejs-sdk-v5": "catalog:",
-        "typedoc": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:"
     },
     "engines": {
         "node": ">=22.0.0"

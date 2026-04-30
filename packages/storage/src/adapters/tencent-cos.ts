@@ -60,25 +60,14 @@
  * - [腾讯云 COS 官方文档](https://cloud.tencent.com/document/product/436/8629)
  */
 
-import { createWriteStream } from 'node:fs';
+import { createWriteStream } from "node:fs";
 import type {
     AdapterUploadResult,
     IStorageAdapter,
     ObjectMeta,
     UploadBufferOptions,
-} from '../types.js';
-import type { CosClient } from './cos-types.js';
-
-/**
- * 腾讯云 COS 客户端类型
- *
- * @remarks
- * cos-nodejs-sdk-v5 没有完整的类型定义，使用 any 类型
- *
- * @public
- */
-// Re-export from cos-types.ts for backward compatibility
-export type { CosClient } from './cos-types.js';
+} from "../types.js";
+import type { CosClient } from "./cos-types.js";
 
 /**
  * 腾讯云 COS 适配器配置
@@ -132,7 +121,7 @@ export class TencentCOSAdapter implements IStorageAdapter {
      */
     constructor(
         private readonly client: CosClient,
-        private readonly config: CosAdapterConfig
+        private readonly config: CosAdapterConfig,
     ) {}
 
     /**
@@ -162,7 +151,7 @@ export class TencentCOSAdapter implements IStorageAdapter {
                         reject(
                             new Error(`Failed to upload to COS: ${err.message || String(err)}`, {
                                 cause: err,
-                            })
+                            }),
                         );
                     } else {
                         resolve({
@@ -170,7 +159,7 @@ export class TencentCOSAdapter implements IStorageAdapter {
                             url: this.buildUrl(remotePath),
                         });
                     }
-                }
+                },
             );
         });
     }
@@ -202,7 +191,7 @@ export class TencentCOSAdapter implements IStorageAdapter {
     async getSignedUrl(
         remotePath: string,
         expires: number,
-        options?: import('../types.js').GetSignedUrlOptions
+        options?: import("../types.js").GetSignedUrlOptions,
     ): Promise<string> {
         const params: Record<string, unknown> = {
             Bucket: this.config.Bucket,
@@ -210,14 +199,14 @@ export class TencentCOSAdapter implements IStorageAdapter {
             Key: remotePath,
             Sign: true,
             Expires: expires,
-            Protocol: 'https:',
+            Protocol: "https:",
         };
 
         // 处理 content-disposition 参数
-        if (options?.disposition === 'inline') {
-            params.Query = { 'response-content-disposition': 'inline' };
-        } else if (options?.disposition === 'attachment') {
-            params.Query = { 'response-content-disposition': 'attachment' };
+        if (options?.disposition === "inline") {
+            params.Query = { "response-content-disposition": "inline" };
+        } else if (options?.disposition === "attachment") {
+            params.Query = { "response-content-disposition": "attachment" };
         }
 
         return new Promise((resolve, reject) => {
@@ -226,12 +215,12 @@ export class TencentCOSAdapter implements IStorageAdapter {
                     reject(
                         new Error(`Failed to generate signed URL: ${err.message || String(err)}`, {
                             cause: err,
-                        })
+                        }),
                     );
                 } else if (data?.Url) {
                     resolve(data.Url);
                 } else {
-                    reject(new Error('Failed to generate signed URL: no URL returned'));
+                    reject(new Error("Failed to generate signed URL: no URL returned"));
                 }
             });
         });
@@ -255,7 +244,7 @@ export class TencentCOSAdapter implements IStorageAdapter {
     async uploadBuffer(
         key: string,
         body: Buffer,
-        options?: UploadBufferOptions
+        options?: UploadBufferOptions,
     ): Promise<AdapterUploadResult> {
         return new Promise((resolve, reject) => {
             const params: {
@@ -272,7 +261,7 @@ export class TencentCOSAdapter implements IStorageAdapter {
             };
 
             if (options?.contentType) {
-                params.Headers = { 'Content-Type': options.contentType };
+                params.Headers = { "Content-Type": options.contentType };
             }
 
             this.client.putObject(params, (err: Error | null) => {
@@ -280,7 +269,7 @@ export class TencentCOSAdapter implements IStorageAdapter {
                     reject(
                         new Error(`Failed to upload buffer to COS: ${err.message || String(err)}`, {
                             cause: err,
-                        })
+                        }),
                     );
                 } else {
                     resolve({
@@ -321,13 +310,13 @@ export class TencentCOSAdapter implements IStorageAdapter {
                         reject(
                             new Error(
                                 `Failed to download from COS: ${err.message || String(err)}`,
-                                { cause: err }
-                            )
+                                { cause: err },
+                            ),
                         );
                     } else {
                         resolve();
                     }
-                }
+                },
             );
         });
     }
@@ -361,19 +350,19 @@ export class TencentCOSAdapter implements IStorageAdapter {
                         reject(
                             new Error(
                                 `Failed to get object meta from COS: ${err.message || String(err)}`,
-                                { cause: err }
-                            )
+                                { cause: err },
+                            ),
                         );
                     } else {
                         const headers = data?.Headers || {};
                         resolve({
-                            size: Number(headers['content-length'] || 0),
-                            lastModified: new Date(headers['last-modified'] || Date.now()),
-                            contentType: headers['content-type'],
+                            size: Number(headers["content-length"] || 0),
+                            lastModified: new Date(headers["last-modified"] || Date.now()),
+                            contentType: headers["content-type"],
                             etag: headers.etag,
                         });
                     }
-                }
+                },
             );
         });
     }
@@ -409,7 +398,7 @@ export class TencentCOSAdapter implements IStorageAdapter {
                     } else {
                         resolve(true);
                     }
-                }
+                },
             );
         });
     }
@@ -441,13 +430,13 @@ export class TencentCOSAdapter implements IStorageAdapter {
                         reject(
                             new Error(
                                 `Failed to delete object from COS: ${err.message || String(err)}`,
-                                { cause: err }
-                            )
+                                { cause: err },
+                            ),
                         );
                     } else {
                         resolve();
                     }
-                }
+                },
             );
         });
     }

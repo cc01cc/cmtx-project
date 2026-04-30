@@ -24,11 +24,11 @@
  * ```
  */
 
-import { readFile, unlink, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
-import { uploadLocalImageInMarkdown } from '@cmtx/asset/upload';
-import { formatHtmlImage, parseImages, updateImageAttribute } from '@cmtx/core';
-import type { ProcessImagesOptions, ProcessImagesResult } from './types.js';
+import { readFile, unlink, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { uploadLocalImageInMarkdown } from "@cmtx/asset/upload";
+import { formatHtmlImage, parseImages, updateImageAttribute } from "@cmtx/core";
+import type { ProcessImagesOptions, ProcessImagesResult } from "./types.js";
 
 /**
  * 处理 Markdown 文件中的图片以准备发布
@@ -41,10 +41,10 @@ import type { ProcessImagesOptions, ProcessImagesResult } from './types.js';
  */
 export async function processImagesForPublish(
     filePath: string,
-    options: ProcessImagesOptions = {}
+    options: ProcessImagesOptions = {},
 ): Promise<ProcessImagesResult> {
     const absolutePath = resolve(filePath);
-    const content = await readFile(absolutePath, 'utf-8');
+    const content = await readFile(absolutePath, "utf-8");
 
     let currentContent = content;
     const stats = { converted: 0, resized: 0, uploaded: 0 };
@@ -84,10 +84,10 @@ export async function processImagesForPublish(
  */
 function convertMarkdownImagesToHtml(
     content: string,
-    options: { width?: string; height?: string }
+    options: { width?: string; height?: string },
 ): { content: string; count: number } {
     const images = parseImages(content);
-    const mdImages = images.filter((img) => img.syntax === 'md');
+    const mdImages = images.filter((img) => img.syntax === "md");
 
     let newContent = content;
     let count = 0;
@@ -95,7 +95,7 @@ function convertMarkdownImagesToHtml(
     for (const img of mdImages) {
         const htmlImg = formatHtmlImage({
             src: img.src,
-            alt: img.alt || '',
+            alt: img.alt || "",
             attributes: {
                 width: options.width,
                 height: options.height,
@@ -114,10 +114,10 @@ function convertMarkdownImagesToHtml(
  */
 function resizeHtmlImages(
     content: string,
-    options: { width?: string; height?: string }
+    options: { width?: string; height?: string },
 ): { content: string; count: number } {
     const images = parseImages(content);
-    const htmlImages = images.filter((img) => img.syntax === 'html');
+    const htmlImages = images.filter((img) => img.syntax === "html");
 
     let newContent = content;
     let count = 0;
@@ -126,10 +126,10 @@ function resizeHtmlImages(
         let newImg = img.raw;
 
         if (options.width) {
-            newImg = updateImageAttribute(newImg, 'width', options.width);
+            newImg = updateImageAttribute(newImg, "width", options.width);
         }
         if (options.height) {
-            newImg = updateImageAttribute(newImg, 'height', options.height);
+            newImg = updateImageAttribute(newImg, "height", options.height);
         }
 
         if (newImg !== img.raw) {
@@ -149,7 +149,7 @@ function resizeHtmlImages(
 async function uploadImages(
     originalPath: string,
     content: string,
-    uploadConfig: ProcessImagesOptions['upload']
+    uploadConfig: ProcessImagesOptions["upload"],
 ): Promise<{ content: string; count: number }> {
     if (!uploadConfig) {
         return { content, count: 0 };
@@ -157,7 +157,7 @@ async function uploadImages(
 
     // 写入临时文件
     const tempPath = `${originalPath}.tmp-upload`;
-    await writeFile(tempPath, content, 'utf-8');
+    await writeFile(tempPath, content, "utf-8");
 
     try {
         // 调用 asset.upload（不写入文件，只返回内容）

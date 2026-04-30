@@ -1,8 +1,30 @@
 {
     "name": "@cmtx/markdown-it-presigned-url-adapter-nodejs",
-    "version": "0.1.1-alpha.0",
+    "version": "0.1.1-alpha.1",
     "description": "Node.js adapter for markdown-it presigned URL plugin",
+    "keywords": [
+        "adapter",
+        "cmtx",
+        "image",
+        "markdown-it",
+        "presigned-url"
+    ],
+    "homepage": "https://github.com/cc01cc/cmtx-project/tree/main/packages/markdown-it-presigned-url-adapter-nodejs",
+    "bugs": {
+        "url": "https://github.com/cc01cc/cmtx-project/issues"
+    },
     "license": "Apache-2.0",
+    "author": "cc01cc",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cc01cc/cmtx-project.git",
+        "directory": "packages/markdown-it-presigned-url-adapter-nodejs"
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "CHANGELOG.md"
+    ],
     "type": "module",
     "main": "./dist/index.cjs",
     "module": "./dist/index.mjs",
@@ -14,15 +36,8 @@
             "require": "./dist/index.cjs"
         }
     },
-    "files": [
-        "dist",
-        "README.md",
-        "CHANGELOG.md"
-    ],
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/cc01cc/cmtx-project.git",
-        "directory": "packages/markdown-it-presigned-url-adapter-nodejs"
+    "publishConfig": {
+        "access": "public"
     },
     "scripts": {
         "prepare": "pnpm build",
@@ -31,12 +46,11 @@
         "typecheck": "tsc --noEmit -p tsconfig.json",
         "test": "vitest run --passWithNoTests",
         "docs": "typedoc",
-        "lint": "biome check --write src",
         "clean": "rimraf dist"
     },
     "dependencies": {
-        "@cmtx/storage": "workspace:*",
         "@cmtx/core": "workspace:*",
+        "@cmtx/storage": "workspace:*",
         "ali-oss": "catalog:"
     },
     "devDependencies": {
@@ -47,9 +61,6 @@
     },
     "peerDependencies": {
         "@cmtx/markdown-it-presigned-url": "workspace:*"
-    },
-    "publishConfig": {
-        "access": "public"
     },
     "engines": {
         "node": ">=22.0.0"

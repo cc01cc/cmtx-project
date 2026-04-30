@@ -37,8 +37,8 @@
  * @see {@link SectionNumbersResult} - 章节编号结果
  */
 
-import { extractSectionHeadings } from './metadata.js';
-import type { SectionNumbersOptions, SectionNumbersResult } from './types.js';
+import { extractSectionHeadings } from "./metadata.js";
+import type { SectionNumbersOptions, SectionNumbersResult } from "./types.js";
 
 /**
  * 为 Markdown 文档添加章节编号
@@ -66,13 +66,16 @@ import type { SectionNumbersOptions, SectionNumbersResult } from './types.js';
  */
 export function addSectionNumbers(
     markdown: string,
-    options: SectionNumbersOptions = {}
+    options: SectionNumbersOptions = {},
 ): SectionNumbersResult {
-    const { minLevel = 1, maxLevel = 6, startLevel = 1, separator = '.' } = options;
+    const { minLevel = 1, maxLevel = 6, startLevel = 1, separator = "." } = options;
 
     const lines = markdown.split(/\r?\n/g);
     // 使用传入的 minLevel/maxLevel 提取标题，避免提取不需要的标题
-    const filteredHeadings = extractSectionHeadings(markdown, { minLevel, maxLevel });
+    const filteredHeadings = extractSectionHeadings(markdown, {
+        minLevel,
+        maxLevel,
+    });
 
     if (filteredHeadings.length === 0) {
         return {
@@ -85,7 +88,7 @@ export function addSectionNumbers(
     // 计算实际的起始层级
     const actualStartLevel = Math.max(
         startLevel,
-        Math.min(...filteredHeadings.map((h) => h.level))
+        Math.min(...filteredHeadings.map((h) => h.level)),
     );
 
     // 计数器数组，用于跟踪每个层级的编号
@@ -116,13 +119,13 @@ export function addSectionNumbers(
         // 匹配标题行，移除已有的编号（如果存在）
         const newLine = line.replace(
             /^(#{1,6}\s+)(?:(?:\d+\.)+\s+)?(.*)$/,
-            `$1${sectionNumber} $2`
+            `$1${sectionNumber} $2`,
         );
         lines[lineIndex] = newLine;
     }
 
     return {
-        content: lines.join('\n'),
+        content: lines.join("\n"),
         modified: true,
         headingsCount: filteredHeadings.length,
     };
@@ -152,12 +155,15 @@ export function addSectionNumbers(
  */
 export function removeSectionNumbers(
     markdown: string,
-    options: SectionNumbersOptions = {}
+    options: SectionNumbersOptions = {},
 ): SectionNumbersResult {
     const { minLevel = 1, maxLevel = 6 } = options;
 
     const lines = markdown.split(/\r?\n/g);
-    const headings = extractSectionHeadings(markdown, { minLevel: 1, maxLevel: 6 });
+    const headings = extractSectionHeadings(markdown, {
+        minLevel: 1,
+        maxLevel: 6,
+    });
 
     // 过滤指定范围的标题
     const filteredHeadings = headings.filter((h) => h.level >= minLevel && h.level <= maxLevel);
@@ -179,7 +185,7 @@ export function removeSectionNumbers(
         const line = lines[lineIndex];
 
         // 移除章节编号
-        const newLine = line.replace(/^(#{1,6}\s+)(?:(?:\d+\.)+\s+)?(.*)$/, '$1$2');
+        const newLine = line.replace(/^(#{1,6}\s+)(?:(?:\d+\.)+\s+)?(.*)$/, "$1$2");
 
         if (newLine !== line) {
             modifiedCount++;
@@ -188,7 +194,7 @@ export function removeSectionNumbers(
     }
 
     return {
-        content: lines.join('\n'),
+        content: lines.join("\n"),
         modified: modifiedCount > 0,
         headingsCount: filteredHeadings.length,
     };

@@ -2,7 +2,8 @@
  * Upload 配置适配器
  */
 
-import type { UploadConfig } from './types.js';
+import { getCurrentStorageConfig } from "./config.js";
+import type { UploadConfig } from "./types.js";
 
 export class ConfigAdapter {
     private constructor() {
@@ -10,21 +11,15 @@ export class ConfigAdapter {
     }
 
     static getStorageAdapter(config: UploadConfig) {
-        return config.storage.adapter;
+        return getCurrentStorageConfig(config).adapter;
     }
 
     static getStoragePrefix(config: UploadConfig) {
-        return config.storage.prefix || '';
+        return config.prefix || "";
     }
 
     static getNamingPattern(config: UploadConfig) {
-        return config.storage.namingTemplate || '{name}{ext}';
-    }
-
-    // deduplicate 已移除 - 现在统一采用去重上传
-    // 保留此方法为向后兼容，始终返回 true
-    static getDeduplicateEnabled(_config: UploadConfig) {
-        return true;
+        return getCurrentStorageConfig(config).namingTemplate || "{name}{ext}";
     }
 
     static getOnProgress(config: UploadConfig) {
@@ -35,11 +30,7 @@ export class ConfigAdapter {
         return config.events?.logger;
     }
 
-    static getDeleteRootPath(config: UploadConfig) {
-        return config.delete?.rootPath || '';
-    }
-
     static getDeleteOptions(config: UploadConfig) {
-        return config.delete || { strategy: 'trash' };
+        return config.delete || { strategy: "trash" };
     }
 }

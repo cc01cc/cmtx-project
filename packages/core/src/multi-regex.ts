@@ -50,7 +50,7 @@ import type {
     MultiRegexResult,
     MultiRegexRule,
     RuleApplyDetail,
-} from './types.js';
+} from "./types.js";
 
 /**
  * 多组正则表达式替换主函数 (MVP版本)
@@ -98,7 +98,7 @@ import type {
  */
 export function replaceWithMultipleRegex(
     text: string,
-    options: MultiRegexOptions
+    options: MultiRegexOptions,
 ): MultiRegexResult {
     let currentText = text;
     let totalReplacements = 0;
@@ -167,12 +167,12 @@ export function replaceWithMultipleRegex(
  */
 function applySingleRule(
     text: string,
-    rule: MultiRegexRule
+    rule: MultiRegexRule,
 ): { newText: string; replacementCount: number } {
     // 确保正则表达式具有全局标志
     const regex =
-        typeof rule.pattern === 'string'
-            ? new RegExp(rule.pattern, 'g') // 字符串模式默认全局
+        typeof rule.pattern === "string"
+            ? new RegExp(rule.pattern, "g") // 字符串模式默认全局
             : rule.pattern; // 直接使用传入的RegExp对象
     let count = 0;
     const newText = text.replace(regex, (...args) => {
@@ -238,7 +238,7 @@ export function findAllMatches(text: string, options: MultiRegexFindOptions): Fi
     sortedRules.forEach((rule, ruleIndex) => {
         const ruleId = rule.id || `rule-${ruleIndex}`;
         const regex =
-            typeof rule.pattern === 'string' ? new RegExp(rule.pattern, 'g') : rule.pattern;
+            typeof rule.pattern === "string" ? new RegExp(rule.pattern, "g") : rule.pattern;
 
         // 初始化统计信息
         statistics[ruleId] = {

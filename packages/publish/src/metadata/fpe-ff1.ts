@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+
 /**
  * NIST SP 800-38G FF1 Format-Preserving Encryption
  *
@@ -24,7 +26,7 @@ import {
     FF1Cipher as FF1CipherWASM,
     isWasmLoaded,
     loadWASM,
-} from '@cmtx/fpe-wasm';
+} from "@cmtx/fpe-wasm";
 
 /**
  * FF1 加密器类 (从 @cmtx/fpe-wasm 重新导出)
@@ -45,8 +47,10 @@ export async function ensureWasmLoaded(): Promise<void> {
         return;
     }
 
+    console.log("[DEBUG] ensureWasmLoaded: loading WASM...");
     await loadWASM();
     wasmInitialized = true;
+    console.log("[DEBUG] ensureWasmLoaded: WASM loaded successfully");
 }
 
 /**
@@ -62,13 +66,13 @@ export function isEncryptionAvailable(): boolean {
 export function prepareFPEKey(key: string | Buffer): Uint8Array {
     if (!key) {
         throw new Error(
-            'FPE encryption key is required. Please provide it via the encryptionKey parameter.'
+            "FPE encryption key is required. Please provide it via the encryptionKey parameter.",
         );
     }
 
     if (Buffer.isBuffer(key)) {
         if (![16, 24, 32].includes(key.length)) {
-            throw new Error('Key must be 16, 24, or 32 bytes');
+            throw new Error("Key must be 16, 24, or 32 bytes");
         }
         if (key.length < 32) {
             const padded = Buffer.alloc(32, 0);
@@ -78,8 +82,8 @@ export function prepareFPEKey(key: string | Buffer): Uint8Array {
         return new Uint8Array(key);
     }
 
-    const padded = key.padEnd(32, '0').slice(0, 32);
-    return new Uint8Array(Buffer.from(padded, 'utf-8'));
+    const padded = key.padEnd(32, "0").slice(0, 32);
+    return new Uint8Array(Buffer.from(padded, "utf-8"));
 }
 
 /**
@@ -91,7 +95,7 @@ export function prepareFPEKey(key: string | Buffer): Uint8Array {
  */
 export function createFF1Cipher(key: Uint8Array, radix = 36): FF1CipherWASM {
     if (!isEncryptionAvailable()) {
-        throw new Error('WASM not loaded. Call ensureWasmLoaded() first.');
+        throw new Error("WASM not loaded. Call ensureWasmLoaded() first.");
     }
     return new FF1CipherWASM(key, radix);
 }
@@ -105,7 +109,7 @@ export function createFF1Cipher(key: Uint8Array, radix = 36): FF1CipherWASM {
  */
 export function encryptString(cipher: FF1CipherWASM, plaintext: string): string {
     if (!isEncryptionAvailable()) {
-        throw new Error('WASM not loaded. Call ensureWasmLoaded() first.');
+        throw new Error("WASM not loaded. Call ensureWasmLoaded() first.");
     }
     return encrypt_string(cipher, plaintext);
 }
@@ -119,18 +123,10 @@ export function encryptString(cipher: FF1CipherWASM, plaintext: string): string 
  */
 export function decryptString(cipher: FF1CipherWASM, ciphertext: string): string {
     if (!isEncryptionAvailable()) {
-        throw new Error('WASM not loaded. Call ensureWasmLoaded() first.');
+        throw new Error("WASM not loaded. Call ensureWasmLoaded() first.");
     }
     return decrypt_string(cipher, ciphertext);
 }
 
-// 重新导出 WASM 类，保持向后兼容
-/**
- * FF1 加密器类 (FF1CipherWASM 的别名)
- *
- * @public
- */
-export const FF1Cipher = FF1CipherWASM;
-
 // 重新导出 loadWASM 供手动加载场景使用
-export { loadWASM } from '@cmtx/fpe-wasm';
+export { loadWASM } from "@cmtx/fpe-wasm";

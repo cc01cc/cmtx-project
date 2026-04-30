@@ -1,0 +1,7 @@
+{
+    "extends": ["../../typedoc.base.json"],
+    "entryPoints": ["src/index.ts"],
+    "name": "@cmtx/cli",
+    "includeVersion": true,
+    "readme": "README.md"
+}

@@ -1,4 +1,4 @@
-import type { TemplateContext } from './types.js';
+import type { TemplateContext } from "./types.js";
 
 /**
  * 上下文管理器
@@ -215,7 +215,7 @@ export class BuiltinVariables {
      * 获取当前日期 (YYYY-MM-DD)
      */
     static getDate(): string {
-        return new Date().toISOString().split('T')[0];
+        return new Date().toISOString().split("T")[0];
     }
 
     /**

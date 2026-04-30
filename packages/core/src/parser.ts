@@ -44,8 +44,8 @@
  * @see {@link IMAGE_REGEX} - 使用的正则表达式常量
  */
 
-import { IMAGE_REGEX } from './constants/regex.js';
-import type { ParsedImage } from './types.js';
+import { IMAGE_REGEX } from "./constants/regex.js";
+import type { ParsedImage } from "./types.js";
 
 /**
  * 解析 Markdown 文本中的所有图片
@@ -104,7 +104,7 @@ export function parseImagesMdSingleline(text: string): ParsedImage[] {
             src,
             title,
             raw,
-            syntax: 'md',
+            syntax: "md",
         });
     }
 
@@ -133,7 +133,7 @@ export function parseImagesHtmlSingleline(text: string): ParsedImage[] {
         const tagContent = match[1];
 
         // 只处理单行 HTML（跳过多行标签）
-        if (fullTag.includes('\n')) {
+        if (fullTag.includes("\n")) {
             continue;
         }
 
@@ -149,7 +149,7 @@ export function parseImagesHtmlSingleline(text: string): ParsedImage[] {
         const widthMatch = IMAGE_REGEX.ATTRIBUTES.WIDTH.exec(tagContent);
         const heightMatch = IMAGE_REGEX.ATTRIBUTES.HEIGHT.exec(tagContent);
 
-        const alt = altMatch?.[1] ?? '';
+        const alt = altMatch?.[1] ?? "";
         const title = titleMatch?.[1];
         const width = widthMatch?.[1];
         const height = heightMatch?.[1];
@@ -161,7 +161,7 @@ export function parseImagesHtmlSingleline(text: string): ParsedImage[] {
             width,
             height,
             raw: fullTag,
-            syntax: 'html',
+            syntax: "html",
         });
     }
 

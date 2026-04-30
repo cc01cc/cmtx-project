@@ -1,9 +1,9 @@
-import rehypeRaw from 'rehype-raw';
-import rehypeStringify from 'rehype-stringify';
-import remarkGfm from 'remark-gfm';
-import remarkParse from 'remark-parse';
-import remarkRehype from 'remark-rehype';
-import { unified } from 'unified';
+import rehypeRaw from "rehype-raw";
+import rehypeStringify from "rehype-stringify";
+import remarkGfm from "remark-gfm";
+import remarkParse from "remark-parse";
+import remarkRehype from "remark-rehype";
+import { unified } from "unified";
 
 type HastNode = {
     type?: string;
@@ -15,13 +15,13 @@ type HastNode = {
 export type InlineStyleTheme = Record<string, string>;
 
 function appendStyle(properties: Record<string, unknown>, styleText: string): void {
-    const previous = typeof properties.style === 'string' ? properties.style.trim() : '';
+    const previous = typeof properties.style === "string" ? properties.style.trim() : "";
     properties.style = previous ? `${previous}; ${styleText}` : styleText;
 }
 
 function getSelector(tagName: string, parentTagName?: string): string {
-    if (parentTagName === 'pre' && tagName === 'code') {
-        return 'pre code';
+    if (parentTagName === "pre" && tagName === "code") {
+        return "pre code";
     }
 
     return tagName;
@@ -31,7 +31,7 @@ function applyStyleToElement(
     node: HastNode,
     tagName: string,
     theme: InlineStyleTheme,
-    parentTagName?: string
+    parentTagName?: string,
 ): void {
     const styleText = theme[getSelector(tagName, parentTagName)];
 
@@ -44,7 +44,7 @@ function applyStyleToElement(
 }
 
 function cleanLinkProperties(node: HastNode, tagName: string): void {
-    if (tagName !== 'a' || !node.properties) {
+    if (tagName !== "a" || !node.properties) {
         return;
     }
 
@@ -55,7 +55,7 @@ function cleanLinkProperties(node: HastNode, tagName: string): void {
 function visitChildren(
     children: HastNode[] | undefined,
     theme: InlineStyleTheme,
-    parentTagName?: string
+    parentTagName?: string,
 ): void {
     if (!Array.isArray(children)) {
         return;
@@ -67,7 +67,7 @@ function visitChildren(
 }
 
 function applyInlineStyles(node: HastNode, theme: InlineStyleTheme, parentTagName?: string): void {
-    if (node.type !== 'element' || typeof node.tagName !== 'string') {
+    if (node.type !== "element" || typeof node.tagName !== "string") {
         visitChildren(node.children, theme, parentTagName);
         return;
     }
@@ -93,6 +93,6 @@ export function renderMarkdownAsHtml(markdown: string, theme: InlineStyleTheme):
             .use(rehypeRaw)
             .use(() => inlineStylePlugin(theme))
             .use(rehypeStringify, { allowDangerousHtml: true })
-            .processSync(markdown)
+            .processSync(markdown),
     );
 }

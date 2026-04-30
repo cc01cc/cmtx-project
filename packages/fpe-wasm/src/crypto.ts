@@ -5,7 +5,7 @@
  * 采用自动 WASM 加载机制，用户无需手动调用 loadWASM()。
  */
 
-import { decrypt_string, encrypt_string, FF1Cipher, isWasmLoaded } from './index.js';
+import { decrypt_string, encrypt_string, FF1Cipher, isWasmLoaded } from "./index.js";
 
 /**
  * 准备 FPE 加密密钥
@@ -18,13 +18,13 @@ import { decrypt_string, encrypt_string, FF1Cipher, isWasmLoaded } from './index
 export function prepareFPEKey(key: string | Buffer): Uint8Array {
     if (!key) {
         throw new Error(
-            'FPE encryption key is required. Please provide it via the encryptionKey parameter.'
+            "FPE encryption key is required. Please provide it via the encryptionKey parameter.",
         );
     }
 
     if (Buffer.isBuffer(key)) {
         if (![16, 24, 32].includes(key.length)) {
-            throw new Error('Key must be 16, 24, or 32 bytes');
+            throw new Error("Key must be 16, 24, or 32 bytes");
         }
         if (key.length < 32) {
             const padded = Buffer.alloc(32, 0);
@@ -34,8 +34,8 @@ export function prepareFPEKey(key: string | Buffer): Uint8Array {
         return new Uint8Array(key);
     }
 
-    const padded = key.padEnd(32, '0').slice(0, 32);
-    return new Uint8Array(Buffer.from(padded, 'utf-8'));
+    const padded = key.padEnd(32, "0").slice(0, 32);
+    return new Uint8Array(Buffer.from(padded, "utf-8"));
 }
 
 /**
@@ -72,7 +72,7 @@ export function createFF1Cipher(key: Uint8Array, radix = 36): FF1Cipher {
  */
 export function encryptString(cipher: FF1Cipher, plaintext: string): string {
     if (!isWasmLoaded()) {
-        throw new Error('WASM not loaded. Please create a FF1Cipher first.');
+        throw new Error("WASM not loaded. Please create a FF1Cipher first.");
     }
     return encrypt_string(cipher, plaintext);
 }
@@ -86,7 +86,7 @@ export function encryptString(cipher: FF1Cipher, plaintext: string): string {
  */
 export function decryptString(cipher: FF1Cipher, ciphertext: string): string {
     if (!isWasmLoaded()) {
-        throw new Error('WASM not loaded. Please create a FF1Cipher first.');
+        throw new Error("WASM not loaded. Please create a FF1Cipher first.");
     }
     return decrypt_string(cipher, ciphertext);
 }

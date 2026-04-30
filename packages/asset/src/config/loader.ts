@@ -1,51 +1,24 @@
 /**
- * 配置加载器
+ * CMTX 配置加载器
  *
  * @module config/loader
  * @description
- * 支持 YAML 配置文件加载，支持环境变量模板注入。
- * 敏感字段必须使用环境变量模板语法 ${VAR_NAME}，非敏感字段支持明文或环境变量模板。
- *
- * @remarks
- * ## 配置格式
- *
- * ```yaml
- * source:
- *   customDomain: source-bucket.oss-cn-hangzhou.aliyuncs.com
- *   credentials:
- *     accessKeyId: ${SOURCE_ACCESS_KEY_ID}
- *     accessKeySecret: ${SOURCE_ACCESS_KEY_SECRET}
- *     region: ${SOURCE_REGION}
- *     bucket: ${SOURCE_BUCKET}
- *
- * target:
- *   customDomain: cdn.example.com
- *   credentials:
- *     accessKeyId: ${TARGET_ACCESS_KEY_ID}
- *     accessKeySecret: ${TARGET_ACCESS_KEY_SECRET}
- *     region: ${TARGET_REGION}
- *     bucket: ${TARGET_BUCKET}
- *   prefix: blog/
- *   namingStrategy: preserve
- *   overwrite: false
- *
- * options:
- *   concurrency: 5
- *   tempDir: /tmp/cmtx-transfer
- * ```
- *
- * ## 安全说明
- *
- * - 敏感字段（accessKeyId, accessKeySecret）必须使用环境变量模板 ${VAR_NAME}
- * - 非敏感字段（region, bucket）支持明文或环境变量模板
- * - 敏感字段使用明文凭证会被拒绝并抛出错误
- * - 环境变量名称可以自定义，不限于特定命名
+ * 支持从 YAML 文件加载 CMTX 配置，支持环境变量模板注入。
  */
 
-import { promises as fs } from 'node:fs';
-import { resolve } from 'node:path';
-import * as yaml from 'js-yaml';
-import type { CloudCredentials, TransferConfig } from '../transfer/types.js';
+import { existsSync } from "node:fs";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, isAbsolute, join } from "node:path";
+import * as yaml from "js-yaml";
+import { substituteEnvVarsInObject } from "../utils/env-substitution.js";
+import type {
+    CmtxConfig,
+    CmtxStorageConfig,
+    CmtxUploadConfig,
+    ReplaceConfig,
+    DeleteConfig,
+} from "./types.js";
+import { DEFAULT_CONFIG } from "./types.js";
 
 /**
  * 配置加载选项
@@ -53,16 +26,38 @@ import type { CloudCredentials, TransferConfig } from '../transfer/types.js';
 export interface LoaderOptions {
     /** 是否启用详细日志 */
     verbose?: boolean;
-
     /** 自定义环境变量解析器 */
     envResolver?: (name: string) => string | undefined;
-
-    /** 当前解析的凭证字段上下文（用于错误提示） */
-    credentialContext?: 'source' | 'target';
 }
 
 /**
- * 配置加载器
+ * 验证敏感字段的环境变量使用
+ */
+function validateSensitiveField(
+    storageId: string,
+    key: string,
+    value: string,
+    resolver: (name: string) => string | undefined,
+    sensitiveFields: string[],
+): void {
+    if (sensitiveFields.includes(key) && typeof value === "string") {
+        if (!value.includes("${")) {
+            throw new Error(
+                `敏感字段不支持明文凭证，请使用环境变量：storages.${storageId}.config.${key}`,
+            );
+        }
+        const match = value.match(/\$\{([^}:-]+)(?::-[^}]*)?\}/);
+        if (match) {
+            const varName = match[1];
+            if (resolver(varName) === undefined) {
+                throw new Error(`环境变量未设置：${varName}`);
+            }
+        }
+    }
+}
+
+/**
+ * 配置加载器类
  */
 export class ConfigLoader {
     private readonly options: LoaderOptions;
@@ -76,9 +71,9 @@ export class ConfigLoader {
      * @param configPath - 配置文件路径
      * @returns 解析后的配置
      */
-    async loadFromFile(configPath: string): Promise<TransferConfig> {
+    async loadFromFile(configPath: string): Promise<CmtxConfig> {
         const absolutePath = this.resolvePath(configPath);
-        const content = await fs.readFile(absolutePath, 'utf-8');
+        const content = await readFile(absolutePath, "utf-8");
         return this.loadFromString(content);
     }
 
@@ -87,9 +82,35 @@ export class ConfigLoader {
      * @param content - YAML 内容
      * @returns 解析后的配置
      */
-    loadFromString(content: string): TransferConfig {
+    loadFromString(content: string): CmtxConfig {
         const rawConfig = yaml.load(content) as Record<string, unknown>;
-        return this.parseConfig(rawConfig);
+        const config = this.parseConfig(rawConfig);
+        // 在解析后替换环境变量，使用自定义解析器或默认 process.env
+        return substituteEnvVarsInObject(config, this.options.envResolver);
+    }
+
+    /**
+     * 保存配置到文件
+     * @param configPath - 配置文件路径
+     * @param config - 配置对象
+     */
+    async saveToFile(configPath: string, config: CmtxConfig): Promise<void> {
+        const absolutePath = this.resolvePath(configPath);
+
+        // Ensure directory exists
+        const dir = dirname(absolutePath);
+        if (!existsSync(dir)) {
+            await mkdir(dir, { recursive: true });
+        }
+
+        const content = yaml.dump(config, {
+            indent: 2,
+            lineWidth: 120,
+            noRefs: true,
+            sortKeys: false,
+        });
+
+        await writeFile(absolutePath, content, "utf-8");
     }
 
     /**
@@ -97,314 +118,330 @@ export class ConfigLoader {
      * @param raw - 原始配置对象
      * @returns 解析后的配置
      */
-    private parseConfig(raw: Record<string, unknown>): TransferConfig {
-        // 验证基本结构
-        if (!raw.source || typeof raw.source !== 'object') {
-            throw new Error('配置缺少 source 字段');
-        }
-        if (!raw.target || typeof raw.target !== 'object') {
-            throw new Error('配置缺少 target 字段');
+    private parseConfig(raw: Record<string, unknown>): CmtxConfig {
+        // 验证 version
+        if (!raw.version || typeof raw.version !== "string") {
+            throw new Error("配置缺少 version 字段");
         }
 
-        const sourceRaw = raw.source as Record<string, unknown>;
-        const targetRaw = raw.target as Record<string, unknown>;
-
-        // 解析 source credentials
-        if (!sourceRaw.credentials || typeof sourceRaw.credentials !== 'object') {
-            throw new Error('source.credentials 是必需的');
-        }
-
-        // 解析 target credentials
-        if (!targetRaw.credentials || typeof targetRaw.credentials !== 'object') {
-            throw new Error('target.credentials 是必需的');
-        }
-
-        // 解析凭证（带环境变量模板解析和明文检测）
-        const sourceCredentials = this.resolveCredentials(
-            sourceRaw.credentials as Record<string, string>,
-            'source'
-        );
-        const targetCredentials = this.resolveCredentials(
-            targetRaw.credentials as Record<string, string>,
-            'target'
-        );
-
-        // 构建最终配置
-        const config: TransferConfig = {
-            source: {
-                customDomain: this.resolveValue(sourceRaw.customDomain),
-                credentials: sourceCredentials,
-                useSignedUrl: sourceRaw.useSignedUrl as boolean | undefined,
-                signedUrlExpires: sourceRaw.signedUrlExpires as number | undefined,
-            },
-            target: {
-                customDomain: this.resolveValue(targetRaw.customDomain),
-                credentials: targetCredentials,
-                prefix: this.resolveValue(targetRaw.prefix),
-                namingStrategy: targetRaw.namingStrategy as
-                    | 'preserve'
-                    | 'timestamp'
-                    | 'hash'
-                    | 'uuid'
-                    | undefined,
-                overwrite: targetRaw.overwrite as boolean | undefined,
-            },
+        const config: CmtxConfig = {
+            version: raw.version as string,
         };
 
-        // 解析 options（如果存在）
-        if (raw.options && typeof raw.options === 'object') {
-            const optionsRaw = raw.options as Record<string, unknown>;
-            config.options = {
-                concurrency: optionsRaw.concurrency as number | undefined,
-                maxConcurrentDownloads: optionsRaw.maxConcurrentDownloads as number | undefined,
-                tempDir: this.resolveValue(optionsRaw.tempDir),
-                debug: optionsRaw.debug as boolean | undefined,
-            };
+        // 解析 storages（可选）
+        if (raw.storages) {
+            config.storages = this.parseStorages(raw.storages as Record<string, unknown>);
+        }
 
-            // 解析 filter
-            if (optionsRaw.filter && typeof optionsRaw.filter === 'object') {
-                const filterRaw = optionsRaw.filter as Record<string, unknown>;
-                config.options.filter = {
-                    extensions: filterRaw.extensions as string[] | undefined,
-                    maxSize: filterRaw.maxSize as number | undefined,
-                    minSize: filterRaw.minSize as number | undefined,
-                };
-            }
+        // 解析 upload（可选）
+        if (raw.upload) {
+            config.upload = this.parseUpload(raw.upload as Record<string, unknown>);
+        }
+
+        // 解析 presignedUrls（可选）
+        if (raw.presignedUrls) {
+            config.presignedUrls = this.parsePresignedUrls(
+                raw.presignedUrls as Record<string, unknown>,
+            );
+        }
+
+        // 解析 resize（可选）
+        if (raw.resize) {
+            config.resize = this.parseResize(raw.resize as Record<string, unknown>);
+        }
+
+        // 解析 rules（可选）
+        if (raw.rules) {
+            config.rules = raw.rules as Record<string, Record<string, unknown>>;
+        }
+
+        // 解析 presets（可选）
+        // PresetConfig 可以是 string[] 或 PresetConfigFull
+        if (raw.presets) {
+            config.presets = raw.presets as Record<
+                string,
+                | string[]
+                | {
+                      id: string;
+                      name: string;
+                      description?: string;
+                      steps: Array<{
+                          id: string;
+                          enabled?: boolean;
+                          config?: Record<string, unknown>;
+                      }>;
+                  }
+            >;
         }
 
         return config;
     }
 
     /**
-     * 解析凭证配置
-     * @param credentials - 原始凭证对象
-     * @param context - 凭证上下文（source 或 target）
-     * @returns 解析后的凭证配置
+     * 解析存储池配置
      */
-    private resolveCredentials(
-        credentials: Record<string, string>,
-        context: 'source' | 'target'
-    ): CloudCredentials {
-        const provider = (credentials.provider as CloudCredentials['provider']) || 'aliyun-oss';
-        const prefix = context === 'source' ? 'SOURCE' : 'TARGET';
+    private parseStorages(raw: Record<string, unknown>): Record<string, CmtxStorageConfig> {
+        const storages: Record<string, CmtxStorageConfig> = {};
 
-        switch (provider) {
-            case 'aliyun-oss':
-                return {
-                    provider: 'aliyun-oss',
-                    accessKeyId: this.resolveCredentialField(
-                        credentials.accessKeyId,
-                        `${prefix}_ACCESS_KEY_ID`,
-                        true,
-                        'aliyun-oss'
-                    ),
-                    accessKeySecret: this.resolveCredentialField(
-                        credentials.accessKeySecret,
-                        `${prefix}_ACCESS_KEY_SECRET`,
-                        true,
-                        'aliyun-oss'
-                    ),
-                    region: this.resolveCredentialField(
-                        credentials.region,
-                        `${prefix}_REGION`,
-                        false,
-                        'aliyun-oss'
-                    ),
-                    bucket: this.resolveCredentialField(
-                        credentials.bucket,
-                        `${prefix}_BUCKET`,
-                        false,
-                        'aliyun-oss'
-                    ),
-                    stsToken: credentials.stsToken
-                        ? this.resolveCredentialField(
-                              credentials.stsToken,
-                              `${prefix}_STS_TOKEN`,
-                              true,
-                              'aliyun-oss'
-                          )
-                        : undefined,
-                };
+        // 敏感字段列表，这些字段必须使用环境变量
+        const sensitiveFields = [
+            "accessKeyId",
+            "accessKeySecret",
+            "secretKey",
+            "secretId",
+            "password",
+            "token",
+        ];
 
-            case 'tencent-cos':
-                return {
-                    provider: 'tencent-cos',
-                    secretId: this.resolveCredentialField(
-                        credentials.secretId,
-                        `${prefix}_SECRET_ID`,
-                        true,
-                        'tencent-cos'
-                    ),
-                    secretKey: this.resolveCredentialField(
-                        credentials.secretKey,
-                        `${prefix}_SECRET_KEY`,
-                        true,
-                        'tencent-cos'
-                    ),
-                    region: this.resolveCredentialField(
-                        credentials.region,
-                        `${prefix}_REGION`,
-                        false,
-                        'tencent-cos'
-                    ),
-                    bucket: this.resolveCredentialField(
-                        credentials.bucket,
-                        `${prefix}_BUCKET`,
-                        false,
-                        'tencent-cos'
-                    ),
-                    sessionToken: credentials.sessionToken
-                        ? this.resolveCredentialField(
-                              credentials.sessionToken,
-                              `${prefix}_SESSION_TOKEN`,
-                              true,
-                              'tencent-cos'
-                          )
-                        : undefined,
-                };
+        // 获取环境变量解析器
+        const resolver = this.options.envResolver || ((name) => process.env[name]);
 
-            default:
-                throw new Error(
-                    `不支持的云服务商: ${provider}\n支持的云服务商: aliyun-oss, tencent-cos`
-                );
+        for (const [storageId, storage] of Object.entries(raw)) {
+            if (!storage || typeof storage !== "object") {
+                throw new Error(`storages.${storageId} 必须是对象类型`);
+            }
+
+            const storageObj = storage as Record<string, unknown>;
+
+            if (!storageObj.adapter || typeof storageObj.adapter !== "string") {
+                throw new Error(`storages.${storageId}.adapter 是必需的字符串字段`);
+            }
+
+            if (!storageObj.config || typeof storageObj.config !== "object") {
+                throw new Error(`storages.${storageId}.config 是必需的对象字段`);
+            }
+
+            const configObj = storageObj.config as Record<string, string>;
+
+            // 验证敏感字段是否使用环境变量
+            for (const [key, value] of Object.entries(configObj)) {
+                validateSensitiveField(storageId, key, value, resolver, sensitiveFields);
+            }
+
+            storages[storageId] = {
+                adapter: storageObj.adapter as string,
+                config: configObj,
+            };
         }
+
+        return storages;
     }
 
     /**
-     * 解析凭证字段
-     * 敏感字段必须使用环境变量模板 ${VAR_NAME}
-     * 非敏感字段支持环境变量模板或明文
-     *
-     * @param value - 字段值
-     * @param defaultEnvName - 默认环境变量名（用于错误提示）
-     * @param isSensitive - 是否为敏感字段
-     * @param provider - 云服务商类型
-     * @returns 解析后的值
-     * @throws {Error} 当环境变量未设置或敏感字段使用明文凭证时
+     * 解析上传配置
      */
-    private resolveCredentialField(
-        value: string | undefined,
-        defaultEnvName: string,
-        isSensitive: boolean,
-        _provider: CloudCredentials['provider']
-    ): string {
-        if (value === undefined || value === null || value === '') {
-            throw new Error(`凭证字段不能为空，请使用环境变量模板: \${${defaultEnvName}}`);
+    private parseUpload(raw: Record<string, unknown>): CmtxUploadConfig {
+        const config: CmtxUploadConfig = {};
+
+        if (raw.imageFormat && typeof raw.imageFormat === "string") {
+            config.imageFormat = raw.imageFormat as "markdown" | "html";
         }
 
-        // 检查是否是环境变量模板 ${VAR_NAME}
-        const match = value.match(/^\$\{([^}]+)\}$/);
-        if (match) {
-            const envVarName = match[1];
-            const resolver = this.options.envResolver ?? ((name: string) => process.env[name]);
-            const envValue = resolver(envVarName);
-
-            if (envValue === undefined || envValue === '') {
-                throw new Error(
-                    `环境变量未设置: ${envVarName}\n` +
-                        `请设置环境变量后重试:\n` +
-                        `  export ${envVarName}=your_value`
-                );
-            }
-
-            if (this.options.verbose) {
-                console.log(`[INFO] 已解析环境变量: ${envVarName}`);
-            }
-
-            return envValue;
+        if (raw.batchLimit !== undefined) {
+            config.batchLimit = raw.batchLimit as number;
         }
 
-        // 如果是敏感字段，拒绝明文凭证
-        if (isSensitive) {
-            throw new Error(
-                `敏感字段不支持明文凭证，请使用环境变量模板: \${ENV_VAR_NAME}\n` +
-                    `当前值: "${value.substring(0, 10)}${value.length > 10 ? '...' : ''}"\n` +
-                    `建议改为: \${${defaultEnvName}}\n\n` +
-                    `设置环境变量示例:\n` +
-                    `  export ${defaultEnvName}=your_value`
-            );
+        if (raw.imageAltTemplate !== undefined) {
+            config.imageAltTemplate = raw.imageAltTemplate as string;
         }
 
-        // 非敏感字段允许明文值
-        if (this.options.verbose) {
-            console.log(`[INFO] 使用明文值: ${defaultEnvName.replace(/_/, ' ').toLowerCase()}`);
+        if (raw.namingTemplate !== undefined) {
+            config.namingTemplate = raw.namingTemplate as string;
         }
-        return value;
+
+        if (raw.auto !== undefined) {
+            config.auto = raw.auto as boolean;
+        }
+
+        if (raw.conflictStrategy !== undefined) {
+            config.conflictStrategy = raw.conflictStrategy as "skip" | "overwrite";
+        }
+
+        if (raw.useStorage !== undefined) {
+            config.useStorage = raw.useStorage as string;
+        }
+
+        if (raw.prefix !== undefined) {
+            config.prefix = raw.prefix as string;
+        }
+
+        if (raw.replace !== undefined) {
+            config.replace = raw.replace as ReplaceConfig;
+        }
+
+        if (raw.delete !== undefined) {
+            config.delete = raw.delete as DeleteConfig;
+        }
+
+        return config;
     }
 
     /**
-     * 解析普通值（支持环境变量模板）
-     * @param value - 原始值
-     * @returns 解析后的值
+     * 解析预签名 URL 配置
      */
-    private resolveValue(value: unknown): string | undefined {
-        if (value === undefined || value === null) {
-            return undefined;
+    private parsePresignedUrls(raw: Record<string, unknown>): Record<string, unknown> {
+        const config: Record<string, unknown> = {};
+
+        if (raw.expire !== undefined) {
+            config.expire = raw.expire;
         }
 
-        if (typeof value !== 'string') {
-            return String(value);
+        if (raw.maxRetryCount !== undefined) {
+            config.maxRetryCount = raw.maxRetryCount;
         }
 
-        // 解析环境变量模板
-        return value.replace(/\$\{([^}]+)\}/g, (match, varName) => {
-            const resolver = this.options.envResolver ?? ((name: string) => process.env[name]);
-            const envValue = resolver(varName);
+        if (raw.imageFormat !== undefined) {
+            config.imageFormat = raw.imageFormat;
+        }
 
-            if (envValue === undefined) {
-                if (this.options.verbose) {
-                    console.warn(`[WARN] 环境变量未设置: ${varName}，保留原值`);
-                }
-                return match;
-            }
+        if (raw.domains && Array.isArray(raw.domains)) {
+            config.domains = raw.domains;
+        }
 
-            return envValue;
-        });
+        return config;
+    }
+
+    /**
+     * 解析图片缩放配置
+     */
+    private parseResize(raw: Record<string, unknown>): Record<string, unknown> {
+        const config: Record<string, unknown> = {};
+
+        if (raw.widths && Array.isArray(raw.widths)) {
+            config.widths = raw.widths;
+        }
+
+        if (raw.domains && Array.isArray(raw.domains)) {
+            config.domains = raw.domains;
+        }
+
+        return config;
     }
 
     /**
      * 解析路径
-     * @param configPath - 配置文件路径
-     * @returns 绝对路径
      */
     private resolvePath(configPath: string): string {
-        if (configPath.startsWith('/') || configPath.includes(':\\')) {
+        if (configPath.startsWith("/") || configPath.includes(":\\")) {
             return configPath;
         }
-        return resolve(process.cwd(), configPath);
+        return join(process.cwd(), configPath);
+    }
+
+    /**
+     * 查找默认配置文件路径
+     * 在当前目录及其父目录中查找 cmtx.config.yaml 或 .cmtx/config.yaml
+     * @returns 默认配置文件路径，如果未找到则返回 undefined
+     */
+    async findDefaultConfig(): Promise<string | undefined> {
+        let currentDir = process.cwd();
+
+        // 向上遍历目录树，最多 10 层
+        for (let i = 0; i < 10; i++) {
+            // 检查当前目录
+            const configPath1 = join(currentDir, "cmtx.config.yaml");
+            if (existsSync(configPath1)) {
+                return configPath1;
+            }
+
+            const configPath2 = join(currentDir, ".cmtx", "config.yaml");
+            if (existsSync(configPath2)) {
+                return configPath2;
+            }
+
+            // 移动到父目录
+            const parentDir = dirname(currentDir);
+            if (parentDir === currentDir) {
+                // 已到达根目录
+                break;
+            }
+            currentDir = parentDir;
+        }
+
+        return undefined;
     }
 }
 
 /**
- * 创建配置加载器
- * @param options - 加载选项
- * @returns ConfigLoader 实例
- */
-export function createConfigLoader(options?: LoaderOptions): ConfigLoader {
-    return new ConfigLoader(options);
-}
-
-/**
- * 从文件加载配置
+ * 从文件加载配置（便捷函数）
  * @param configPath - 配置文件路径
  * @param options - 加载选项
  * @returns 解析后的配置
  */
 export async function loadConfigFromFile(
     configPath: string,
-    options?: LoaderOptions
-): Promise<TransferConfig> {
-    const loader = createConfigLoader(options);
-    return loader.loadFromFile(configPath);
+    options?: LoaderOptions,
+): Promise<CmtxConfig> {
+    const loader = new ConfigLoader(options);
+    const config = await loader.loadFromFile(configPath);
+    return substituteEnvVarsInObject(config);
 }
 
 /**
- * 从字符串加载配置
+ * 从字符串加载配置（便捷函数）
  * @param content - YAML 内容
  * @param options - 加载选项
  * @returns 解析后的配置
  */
-export function loadConfigFromString(content: string, options?: LoaderOptions): TransferConfig {
-    const loader = createConfigLoader(options);
-    return loader.loadFromString(content);
+export function loadConfigFromString(content: string, options?: LoaderOptions): CmtxConfig {
+    const loader = new ConfigLoader(options);
+    const config = loader.loadFromString(content);
+    return substituteEnvVarsInObject(config);
+}
+
+/**
+ * 保存配置到文件（便捷函数）
+ * @param configPath - 配置文件路径
+ * @param config - 配置对象
+ */
+export async function saveConfigToFile(configPath: string, config: CmtxConfig): Promise<void> {
+    const loader = new ConfigLoader();
+    await loader.saveToFile(configPath, config);
+}
+
+/**
+ * 确保配置文件存在，不存在则创建默认配置
+ * @param configPath - 配置文件路径
+ * @returns 配置对象
+ */
+export async function ensureConfig(configPath: string): Promise<CmtxConfig> {
+    if (existsSync(configPath)) {
+        return loadConfigFromFile(configPath);
+    }
+
+    // Create default config
+    await saveConfigToFile(configPath, DEFAULT_CONFIG);
+    return DEFAULT_CONFIG;
+}
+
+/**
+ * 获取配置目录路径
+ * @param baseDir - 基础目录
+ * @param configDir - 配置目录名（可选，默认 .cmtx）
+ * @returns 配置目录路径
+ */
+export function getConfigDirPath(baseDir: string, configDir: string = ".cmtx"): string {
+    if (isAbsolute(configDir)) {
+        return configDir;
+    }
+    return join(baseDir, configDir);
+}
+
+/**
+ * 获取配置文件路径
+ * @param baseDir - 基础目录
+ * @param configDir - 配置目录名（可选，默认 .cmtx）
+ * @returns 配置文件路径
+ */
+export function getConfigFilePath(baseDir: string, configDir?: string): string {
+    return join(getConfigDirPath(baseDir, configDir), "config.yaml");
+}
+
+/**
+ * 创建配置加载器实例（工厂函数）
+ * @param options - 加载选项
+ * @returns ConfigLoader 实例
+ */
+export function createConfigLoader(options?: LoaderOptions): ConfigLoader {
+    return new ConfigLoader(options);
 }

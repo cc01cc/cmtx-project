@@ -14,8 +14,8 @@
  * - License: MIT License
  */
 
-import { addSectionNumbers, removeSectionNumbers } from '@cmtx/core';
-import type { Rule, RuleContext, RuleResult } from '../rule-types.js';
+import { addSectionNumbers, removeSectionNumbers } from "@cmtx/core";
+import type { Rule, RuleContext, RuleResult } from "../rule-types.js";
 
 /**
  * 章节编号 Rule 配置
@@ -35,9 +35,9 @@ interface SectionNumbersConfig {
  * 添加/更新章节编号 Rule
  */
 export const addSectionNumbersRule: Rule = {
-    id: 'add-section-numbers',
-    name: '添加/更新章节编号',
-    description: '为 Markdown 标题自动添加层级编号（如 1.1. 标题）',
+    id: "add-section-numbers",
+    name: "添加/更新章节编号",
+    description: "为 Markdown 标题自动添加层级编号（如 1.1. 标题）",
 
     execute(context: RuleContext, config?: SectionNumbersConfig): RuleResult {
         const { document } = context;
@@ -54,7 +54,7 @@ export const addSectionNumbersRule: Rule = {
             modified: result.modified,
             messages: result.modified
                 ? [`已为 ${result.headingsCount} 个标题添加/更新章节编号`]
-                : ['没有需要添加章节编号的标题'],
+                : ["没有需要添加章节编号的标题"],
         };
     },
 };
@@ -63,9 +63,9 @@ export const addSectionNumbersRule: Rule = {
  * 移除章节编号 Rule
  */
 export const removeSectionNumbersRule: Rule = {
-    id: 'remove-section-numbers',
-    name: '移除章节编号',
-    description: '移除 Markdown 标题中的章节编号',
+    id: "remove-section-numbers",
+    name: "移除章节编号",
+    description: "移除 Markdown 标题中的章节编号",
 
     execute(context: RuleContext, config?: SectionNumbersConfig): RuleResult {
         const { document } = context;
@@ -80,7 +80,7 @@ export const removeSectionNumbersRule: Rule = {
             modified: result.modified,
             messages: result.modified
                 ? [`已从 ${result.headingsCount} 个标题移除章节编号`]
-                : ['没有找到章节编号'],
+                : ["没有找到章节编号"],
         };
     },
 };

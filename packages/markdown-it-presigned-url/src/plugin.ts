@@ -1,10 +1,10 @@
-import type MarkdownIt from 'markdown-it';
+import type MarkdownIt from "markdown-it";
 
-import { PresignedUrlHandler } from './handler.js';
-import type { PresignedUrlPluginOptions } from './types.js';
+import { PresignedUrlHandler } from "./handler.js";
+import type { PresignedUrlPluginOptions } from "./types.js";
 
 const TOKEN_TYPES = {
-    CMTX_PRESIGNED_IMAGE: 'cmtx_presigned_image',
+    CMTX_PRESIGNED_IMAGE: "cmtx_presigned_image",
 } as const;
 
 /**
@@ -14,14 +14,14 @@ const TOKEN_TYPES = {
  * @public
  */
 export function presignedUrlPlugin(md: MarkdownIt, options: PresignedUrlPluginOptions): void {
-    options.logger?.info('开始添加预签名 URL 标记');
+    options.logger?.info("开始添加预签名 URL 标记");
     options.logger?.info(
-        `配置详情：domains=${options.domains.join(', ')}, imageFormat=${options.imageFormat}`
+        `配置详情：domains=${options.domains.join(", ")}, imageFormat=${options.imageFormat}`,
     );
 
     const handler = new PresignedUrlHandler(md, options);
 
-    md.inline.ruler.before('text', 'cmtx_presigned_image_inline', (state, silent) => {
+    md.inline.ruler.before("text", "cmtx_presigned_image_inline", (state, silent) => {
         return handler.handleInlineHtmlImageRule(state, silent);
     });
 
@@ -38,7 +38,7 @@ export function presignedUrlPlugin(md: MarkdownIt, options: PresignedUrlPluginOp
             opts,
             env,
             self,
-            defaultHtmlInlineRule
+            defaultHtmlInlineRule,
         );
     };
 
@@ -53,16 +53,16 @@ export function presignedUrlPlugin(md: MarkdownIt, options: PresignedUrlPluginOp
                 opts,
                 env,
                 self,
-                defaultHtmlBlockRule
+                defaultHtmlBlockRule,
             );
         };
     } else {
-        options.logger?.warn('defaultHtmlBlockRule 为 undefined，html_block 规则未被覆盖');
+        options.logger?.warn("defaultHtmlBlockRule 为 undefined，html_block 规则未被覆盖");
     }
 
     md.renderer.rules[TOKEN_TYPES.CMTX_PRESIGNED_IMAGE] = (tokens, idx, opts, env, self) => {
         return handler.handleCustomImageRenderer(tokens, idx, opts, env, self);
     };
 
-    options.logger?.info('预签名 URL 标记添加完成');
+    options.logger?.info("预签名 URL 标记添加完成");
 }

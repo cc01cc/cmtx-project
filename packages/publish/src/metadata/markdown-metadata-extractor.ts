@@ -1,13 +1,15 @@
-import { readFile, stat } from 'node:fs/promises';
+/* eslint-disable no-console */
+
+import { readFile, stat } from "node:fs/promises";
 import {
     extractMetadata as extractMetadataFromCore,
     extractSectionHeadings,
     extractTitleFromMarkdown,
     parseFrontmatter,
     parseYamlFrontmatter,
-} from '@cmtx/core';
-import glob from 'fast-glob';
-import type { ExtractOptions, MarkdownMetadata } from '../types.js';
+} from "@cmtx/core";
+import { glob } from "tinyglobby";
+import type { ExtractOptions, MarkdownMetadata } from "../types.js";
 
 /**
  * 文档管理器
@@ -31,7 +33,7 @@ export class MarkdownMetadataExtractor {
      */
     async extractFromText(
         content: string,
-        options: ExtractOptions = {}
+        options: ExtractOptions = {},
     ): Promise<Record<string, string | string[]>> {
         const { extractAllHeadings = false, headingLevel = 1 } = options;
 
@@ -44,12 +46,12 @@ export class MarkdownMetadataExtractor {
                 const frontmatter = parseYamlFrontmatter(data);
                 // 将 frontmatter 中的字段合并到 metadata，过滤掉 null 值和非字符串/数组值
                 for (const [key, value] of Object.entries(frontmatter)) {
-                    if (value !== null && (typeof value === 'string' || Array.isArray(value))) {
+                    if (value !== null && (typeof value === "string" || Array.isArray(value))) {
                         metadata[key] = value;
                     }
                 }
             } catch (error) {
-                console.warn('Failed to parse frontmatter:', error);
+                console.warn("Failed to parse frontmatter:", error);
             }
         }
 
@@ -86,7 +88,7 @@ export class MarkdownMetadataExtractor {
      */
     async extractFromFile(
         filePath: string,
-        options: ExtractOptions = {}
+        options: ExtractOptions = {},
     ): Promise<MarkdownMetadata> {
         const { extractAllHeadings = false, headingLevel = 1 } = options;
 
@@ -97,7 +99,7 @@ export class MarkdownMetadataExtractor {
 
         // 读取文件以获取 headings 和文件系统信息
         const [content, fileStats] = await Promise.all([
-            readFile(filePath, 'utf-8'),
+            readFile(filePath, "utf-8"),
             stat(filePath),
         ]);
 
@@ -137,9 +139,9 @@ export class MarkdownMetadataExtractor {
      */
     async extractFromDirectory(
         dirPath: string,
-        options: ExtractOptions = {}
+        options: ExtractOptions = {},
     ): Promise<MarkdownMetadata[]> {
-        const files = await glob('**/*.md', { cwd: dirPath, absolute: true });
+        const files = await glob("**/*.md", { cwd: dirPath, absolute: true });
 
         const results = [];
         for (const file of files) {

@@ -28,12 +28,12 @@ pnpm add @cmtx/template
 ### 3.1. 基础用法
 
 ```typescript
-import { renderTemplate } from '@cmtx/template';
+import { renderTemplate } from "@cmtx/template";
 
-const template = 'Hello {name}! Today is {date}.';
+const template = "Hello {name}! Today is {date}.";
 const context = {
-  name: 'World',
-  date: '2024-01-01'
+    name: "World",
+    date: "2024-01-01",
 };
 
 const result = renderTemplate(template, context);
@@ -43,24 +43,21 @@ console.log(result); // "Hello World! Today is 2024-01-01."
 ### 3.2. 使用 Builder 模式
 
 ```typescript
-import { BaseTemplateBuilder } from '@cmtx/template';
+import { BaseTemplateBuilder } from "@cmtx/template";
 
 // 创建自定义 Builder
 class MyBuilder extends BaseTemplateBuilder {
-  withCustomData(data: any): this {
-    this.addVariable('custom', data.value);
-    return this;
-  }
-  
-  build(): string {
-    return JSON.stringify(this.getContext());
-  }
+    withCustomData(data: any): this {
+        this.addVariable("custom", data.value);
+        return this;
+    }
+
+    build(): string {
+        return JSON.stringify(this.getContext());
+    }
 }
 
-const result = new MyBuilder()
-  .withDate()
-  .withCustomData({ value: 'test' })
-  .build();
+const result = new MyBuilder().withDate().withCustomData({ value: "test" }).build();
 
 console.log(result);
 // {"date":"2024-01-01","timestamp":"1704067200000","uuid":"...","custom":"test"}
@@ -92,14 +89,14 @@ console.log(result);
 - `uuid`：随机 UUID
 
 ```typescript
-import { BaseTemplateBuilder } from '@cmtx/template';
+import { BaseTemplateBuilder } from "@cmtx/template";
 
 const builder = new BaseTemplateBuilder();
 const context = builder.getContext();
 
-console.log(context.date);     // "2024-01-01"
+console.log(context.date); // "2024-01-01"
 console.log(context.timestamp); // "1704067200000"
-console.log(context.uuid);     // "550e8400-e29b-41d4-a716-446655440000"
+console.log(context.uuid); // "550e8400-e29b-41d4-a716-446655440000"
 ```
 
 ## 5. API 参考
@@ -112,10 +109,10 @@ console.log(context.uuid);     // "550e8400-e29b-41d4-a716-446655440000"
 
 ```typescript
 interface TemplateContext {
-  [key: string]: string | number | boolean | undefined;
-  date?: string;      // 内置变量：当前日期 (YYYY-MM-DD)
-  timestamp?: string; // 内置变量：时间戳
-  uuid?: string;      // 内置变量：UUID
+    [key: string]: string | number | boolean | undefined;
+    date?: string; // 内置变量：当前日期 (YYYY-MM-DD)
+    timestamp?: string; // 内置变量：时间戳
+    uuid?: string; // 内置变量：UUID
 }
 ```
 
@@ -125,8 +122,8 @@ interface TemplateContext {
 
 ```typescript
 interface ValidationResult {
-  isValid: boolean;   // 模板是否有效
-  errors: string[];   // 错误信息列表
+    isValid: boolean; // 模板是否有效
+    errors: string[]; // 错误信息列表
 }
 ```
 
@@ -136,14 +133,14 @@ interface ValidationResult {
 
 ```typescript
 interface TemplateEngine {
-  render(template: string, context: TemplateContext): string;
-  validate(template: string): ValidationResult;
+    render(template: string, context: TemplateContext): string;
+    validate(template: string): ValidationResult;
 }
 ```
 
 ### 5.2. 核心函数
 
-#### 5.2.1. `renderTemplate(template: string, context: TemplateContext): string`
+#### 5.2.1. `renderTemplate(template: string, context: TemplateContext, options?: RenderTemplateOptions): string`
 
 渲染模板字符串，使用简单的 `{variable}` 语法进行变量替换。
 
@@ -151,28 +148,65 @@ interface TemplateEngine {
 
 - `template`: 要渲染的模板字符串
 - `context`: 上下文变量对象
+- `options`: 可选配置项
+    - `emptyString`: 空字符串处理策略 (`'replace'` | `'preserve'`)，默认 `'replace'`
+    - `trimWhitespace`: 是否修剪变量名中的空格，默认 `true`
+    - `postProcess`: 后处理函数 `(result: string) => string`
 
 **返回值：** 渲染后的字符串
 
 **异常：** 当参数类型不正确时抛出 `TypeError`
 
 ```typescript
-import { renderTemplate } from '@cmtx/template';
+import { renderTemplate } from "@cmtx/template";
 
 // 基本用法
-const result = renderTemplate('Hello {name}!', { name: 'World' });
+const result = renderTemplate("Hello {name}!", { name: "World" });
 // 返回：'Hello World!'
 
 // 多个变量
-const multi = renderTemplate('{greeting} {name}!', { 
-  greeting: 'Hello', 
-  name: 'World' 
+const multi = renderTemplate("{greeting} {name}!", {
+    greeting: "Hello",
+    name: "World",
 });
 // 返回：'Hello World!'
 
 // 处理未定义变量
-const undefinedVar = renderTemplate('Hello {name}!', {});
+const undefinedVar = renderTemplate("Hello {name}!", {});
 // 返回：'Hello {name}!'
+
+// 使用 options 控制空字符串行为
+const withEmptyString = renderTemplate(
+    "Hello {name}!",
+    { name: "" },
+    {
+        emptyString: "preserve", // 保留占位符
+    },
+);
+// 返回：'Hello {name}!'
+
+// 使用 trimWhitespace 控制变量名空格处理
+const withTrim = renderTemplate(
+    "{ user name }",
+    { "user name": "World" },
+    {
+        trimWhitespace: true, // 默认行为，自动修剪
+    },
+);
+// 返回：'Hello World!'
+
+// 使用 postProcess 进行后处理
+const withPostProcess = renderTemplate(
+    "{path}/{file}",
+    {
+        path: "images/",
+        file: "logo.png",
+    },
+    {
+        postProcess: (result) => result.replace(/\/+/g, "/"), // 规范化路径
+    },
+);
+// 返回：'images/logo.png'
 ```
 
 #### 5.2.2. `validateTemplate(template: string): ValidationResult`
@@ -186,18 +220,18 @@ const undefinedVar = renderTemplate('Hello {name}!', {});
 **返回值：** 包含验证结果的对象
 
 ```typescript
-import { validateTemplate } from '@cmtx/template';
+import { validateTemplate } from "@cmtx/template";
 
 // 有效模板
-const result = validateTemplate('Hello {name}!');
+const result = validateTemplate("Hello {name}!");
 // 返回：{ isValid: true, errors: [] }
 
 // 未闭合的大括号
-const unclosed = validateTemplate('Hello {name!');
+const unclosed = validateTemplate("Hello {name!");
 // 返回：{ isValid: false, errors: ['大括号不匹配：找到 1 个 opening brace 和 0 个 closing brace'] }
 
 // 空的大括号
-const empty = validateTemplate('Hello {}!');
+const empty = validateTemplate("Hello {}!");
 // 返回：{ isValid: false, errors: ['空的模板变量：{}'] }
 ```
 
@@ -249,26 +283,24 @@ Builder 模式的基类，提供链式 API。
 ### 6.1. 创建自定义 Builder
 
 ```typescript
-import { BaseTemplateBuilder } from '@cmtx/template';
+import { BaseTemplateBuilder } from "@cmtx/template";
 
 // 为特定业务场景创建 Builder
 class FileNamingBuilder extends BaseTemplateBuilder {
-  withFileInfo(fileName: string, fileSize: number): this {
-    this.addVariable('filename', fileName);
-    this.addVariable('filesize', fileSize);
-    return this;
-  }
-  
-  build(): string {
-    const context = this.getContext();
-    return `${context.date}_${context.filename}`;
-  }
+    withFileInfo(fileName: string, fileSize: number): this {
+        this.addVariable("filename", fileName);
+        this.addVariable("filesize", fileSize);
+        return this;
+    }
+
+    build(): string {
+        const context = this.getContext();
+        return `${context.date}_${context.filename}`;
+    }
 }
 
 // 使用示例
-const fileName = new FileNamingBuilder()
-  .withFileInfo('document.pdf', 1024)
-  .build();
+const fileName = new FileNamingBuilder().withFileInfo("document.pdf", 1024).build();
 
 console.log(fileName); // "2024-01-01_document.pdf"
 ```
@@ -296,4 +328,4 @@ Apache-2.0
 ## 9. 相关项目
 
 - [@cmtx/core](../core) - 文档处理原子操作库
-- [@cmtx/upload](../upload) - 文件上传和处理工具
+- [@cmtx/asset](../asset) - 文件上传和处理工具

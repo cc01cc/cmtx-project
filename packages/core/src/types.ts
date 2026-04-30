@@ -1,17 +1,10 @@
 /**
- * Core Layer Type Definitions
- *
- * @module types
- * @description
- * 提供核心功能所需的类型定义，包括图片数据、选项、结果等。
- *
  * @remarks
  * 主要类型包括：
  * - 图片数据类型：{@link ParsedImage}, {@link ImageMatch} 及其子类型
  * - 筛选选项和过滤模式：{@link ImageFilterOptions}, {@link ImageFilterMode}
  * - 替换相关类型：{@link ReplaceOptions}, {@link ReplaceResult}, {@link FileReplaceResult}
  * - 删除相关类型：{@link DeleteFileOptions}, {@link DeleteFileResult}, {@link DeletionStrategy}
- * - 日志回调类型：{@link LoggerCallback}
  * - 错误处理：{@link CoreError}, {@link ErrorCode}
  *
  * @example
@@ -21,7 +14,6 @@
  *   ImageFilterOptions,
  *   ReplaceOptions,
  *   DeleteFileOptions,
- *   LoggerCallback
  * } from '@cmtx/core';
  *
  * const filterOptions: ImageFilterOptions = {
@@ -48,35 +40,7 @@
  * @public
  * @category 核心类型
  */
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-
-/**
- * 日志回调函数
- *
- * @param level - 日志级别
- * @param message - 日志消息
- * @param meta - 可选的元数据对象
- *
- * @remarks
- * 提供可选的日志输出机制，不会强制输出到控制台。
- * 应用可以根据需要实现自己的日志处理逻辑。
- *
- * @example
- * ```typescript
- * const logger: LoggerCallback = (level, message, meta) => {
- *   console.log(`[${level.toUpperCase()}] ${message}`, meta);
- * };
- *
- * await extractImagesFromFile("./README.md", { logger });
- * ```
- * @public
- * @category 核心类型
- */
-export type LoggerCallback = (
-    level: LogLevel,
-    message: string,
-    meta?: Record<string, unknown>
-) => void;
+export type LogLevel = "debug" | "info" | "warn" | "error";
 
 /**
  * 验证结果
@@ -105,7 +69,7 @@ export interface ValidationResult {
  * @public
  * @category 核心类型
  */
-export type ImageSourceType = 'web' | 'local';
+export type ImageSourceType = "web" | "local";
 
 /**
  * 解析后的图片数据
@@ -126,7 +90,7 @@ export interface ParsedImage {
     width?: string;
     height?: string;
     raw: string;
-    syntax: 'md' | 'html';
+    syntax: "md" | "html";
 }
 
 /**
@@ -139,15 +103,15 @@ export interface ParsedImage {
  * @category 图片匹配
  */
 export interface WebImageMatch {
-    type: 'web';
+    type: "web";
     alt: string;
     src: string; // URL
     title?: string;
     width?: string;
     height?: string;
     raw: string;
-    syntax: 'md' | 'html';
-    source: 'text' | 'file';
+    syntax: "md" | "html";
+    source: "text" | "file";
 }
 
 /**
@@ -159,15 +123,15 @@ export interface WebImageMatch {
  * @category 图片匹配
  */
 export interface LocalImageMatchWithRelativePath {
-    type: 'local';
+    type: "local";
     alt: string;
     src: string; // 原始 Markdown 中的相对或绝对路径
     title?: string;
     width?: string;
     height?: string;
     raw: string;
-    syntax: 'md' | 'html';
-    source: 'text';
+    syntax: "md" | "html";
+    source: "text";
 }
 
 /**
@@ -179,7 +143,7 @@ export interface LocalImageMatchWithRelativePath {
  * @category 图片匹配
  */
 export interface LocalImageMatchWithAbsPath {
-    type: 'local';
+    type: "local";
     alt: string;
     src: string; // 原始 Markdown 中的相对或绝对路径
     absLocalPath: string; // 规范化的本地图片绝对路径
@@ -187,8 +151,8 @@ export interface LocalImageMatchWithAbsPath {
     width?: string;
     height?: string;
     raw: string;
-    syntax: 'md' | 'html';
-    source: 'file';
+    syntax: "md" | "html";
+    source: "file";
 }
 
 /**
@@ -242,7 +206,7 @@ export interface ImageFilterOptions {
  * @public
  * @category 筛选类型
  */
-export type ImageFilterMode = 'sourceType' | 'hostname' | 'absolutePath' | 'regex';
+export type ImageFilterMode = "sourceType" | "hostname" | "absolutePath" | "regex";
 
 /**
  * 图片筛选值
@@ -291,7 +255,7 @@ export type ImageFilterValue = string | RegExp;
  * @category 替换类型
  */
 export interface ReplaceOptions {
-    field: 'src' | 'raw';
+    field: "src" | "raw";
     pattern: string | RegExp;
     newSrc?: string;
     newAlt?: string;
@@ -383,7 +347,7 @@ export interface FileReplaceResult {
  * @public
  * @category 删除类型
  */
-export type DeletionStrategy = 'trash' | 'move' | 'hard-delete';
+export type DeletionStrategy = "trash" | "move" | "hard-delete";
 
 /**
  * 文件删除选项
@@ -417,7 +381,7 @@ export interface DeleteFileOptions {
  */
 export interface DeleteFileResult {
     /** 删除状态 */
-    status: 'success' | 'failed' | 'skipped';
+    status: "success" | "failed" | "skipped";
 
     /** 重试次数 */
     retries: number;
@@ -440,22 +404,22 @@ export interface DeleteFileResult {
  */
 export enum ErrorCode {
     /** 文件不存在 */
-    FILE_NOT_FOUND = 'FILE_NOT_FOUND',
+    FILE_NOT_FOUND = "FILE_NOT_FOUND",
 
     /** 权限被拒绝 */
-    PERMISSION_DENIED = 'PERMISSION_DENIED',
+    PERMISSION_DENIED = "PERMISSION_DENIED",
 
     /** 无效的路径 */
-    INVALID_PATH = 'INVALID_PATH',
+    INVALID_PATH = "INVALID_PATH",
 
     /** 解析失败 */
-    PARSE_FAILED = 'PARSE_FAILED',
+    PARSE_FAILED = "PARSE_FAILED",
 
     /** 操作超时 */
-    TIMEOUT = 'TIMEOUT',
+    TIMEOUT = "TIMEOUT",
 
     /** 删除失败 */
-    DELETE_FAILED = 'DELETE_FAILED',
+    DELETE_FAILED = "DELETE_FAILED",
 }
 
 /**
@@ -486,10 +450,10 @@ export class CoreError extends Error {
     constructor(
         public code: ErrorCode,
         message: string,
-        public details?: Record<string, unknown>
+        public details?: Record<string, unknown>,
     ) {
         super(message);
-        this.name = 'CoreError';
+        this.name = "CoreError";
 
         // 支持 ES5 原型链
         Object.setPrototypeOf(this, CoreError.prototype);
@@ -758,7 +722,7 @@ export interface SectionHeadingExtractOptions {
  */
 export interface HeadingConvertOptions {
     /** Frontmatter 格式，默认 'yaml' */
-    format?: 'yaml';
+    format?: "yaml";
     /** 用于提取标题的标题等级，默认 1 */
     headingLevel?: number;
 }
@@ -770,7 +734,7 @@ export interface HeadingConvertOptions {
  */
 export interface UpsertFrontmatterOptions {
     /** Frontmatter 格式，默认 'yaml' */
-    format?: 'yaml';
+    format?: "yaml";
     /** 如果不存在 Frontmatter 是否创建，默认 true */
     createIfMissing?: boolean;
 }
@@ -865,11 +829,11 @@ export interface HtmlImageAttributes {
     /** 图片高度 */
     height?: string | number;
     /** 加载方式 */
-    loading?: 'eager' | 'lazy';
+    loading?: "eager" | "lazy";
     /** 解码方式 */
-    decoding?: 'sync' | 'async' | 'auto';
+    decoding?: "sync" | "async" | "auto";
     /** CORS 设置 */
-    crossorigin?: 'anonymous' | 'use-credentials';
+    crossorigin?: "anonymous" | "use-credentials";
     /** 引用策略 */
     referrerpolicy?: string;
 }

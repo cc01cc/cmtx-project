@@ -1,8 +1,21 @@
 {
     "extends": ["../../typedoc.base.json"],
-    "entryPoints": ["src/index.ts", "src/node/index.ts"],
-    "out": "docs/api",
+    "entryPoints": ["src/index.ts"],
     "name": "@cmtx/publish",
     "includeVersion": true,
-    "tsconfig": "tsconfig.json"
+    "readme": "README.md",
+    "categoryOrder": [
+        "平台适配",
+        "规则引擎",
+        "元数据处理",
+        "图片处理",
+        "加密和ID",
+        "内部服务",
+        "外部服务",
+        "核心类型",
+        "规则类型",
+        "平台类型",
+        "服务类型",
+        "*"
+    ]
 }

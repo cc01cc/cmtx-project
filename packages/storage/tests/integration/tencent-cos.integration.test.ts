@@ -8,9 +8,9 @@
  * 需要在 tests/integration/test-config.json 中配置凭证。
  */
 
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import type { TencentCOSAdapter } from '../../src/adapters/tencent-cos.js';
-import type { TencentTestConfig } from './shared-test-utils.js';
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { TencentCOSAdapter } from "../../src/adapters/tencent-cos.js";
+import type { TencentTestConfig } from "./shared-test-utils.js";
 import {
     cleanupTestFiles,
     createCOSAdapter,
@@ -20,7 +20,7 @@ import {
     getFixturePath,
     loadTestConfig,
     readFixture,
-} from './shared-test-utils.js';
+} from "./shared-test-utils.js";
 
 // 配置：测试完成后等待时间（毫秒），方便手动检查 COS 控制台
 const MANUAL_CHECK_DELAY = 10000; // 10 秒，设为 0 可禁用
@@ -34,17 +34,17 @@ try {
     config = fullConfig.tencent;
     shouldRun = config.enabled;
 } catch (error) {
-    console.log('[INFO] COS integration tests will be skipped:', error);
+    console.log("[INFO] COS integration tests will be skipped:", error);
     shouldRun = false;
 }
 
-describe.skipIf(!shouldRun)('TencentCOSAdapter Integration Tests', () => {
+describe.skipIf(!shouldRun)("TencentCOSAdapter Integration Tests", () => {
     let adapter: TencentCOSAdapter;
     let testPath: string;
 
     beforeAll(async () => {
         if (!config) {
-            throw new Error('Config not loaded');
+            throw new Error("Config not loaded");
         }
         adapter = createCOSAdapter(config);
         testPath = generateTestPath(config.testPrefix);
@@ -55,36 +55,36 @@ describe.skipIf(!shouldRun)('TencentCOSAdapter Integration Tests', () => {
     afterAll(async () => {
         try {
             await cleanupTestFiles(adapter, testPath);
-            console.log('[OK] Test files cleaned up');
+            console.log("[OK] Test files cleaned up");
         } catch (error) {
-            console.log('[WARN] Cleanup error:', error);
+            console.log("[WARN] Cleanup error:", error);
         }
     });
 
-    describe('upload', () => {
-        it('should upload local text file', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+    describe("upload", () => {
+        it("should upload local text file", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}sample-text.txt`;
 
             const result = await adapter.upload(localPath, remotePath);
 
             expect(result.name).toBe(remotePath);
             expect(result.url).toContain(config!.bucket);
-            expect(result.url).toContain('https://');
+            expect(result.url).toContain("https://");
         });
 
-        it('should upload local image file', async () => {
-            const localPath = getFixturePath('sample-image.png');
+        it("should upload local image file", async () => {
+            const localPath = getFixturePath("sample-image.png");
             const remotePath = `${testPath}sample-image.png`;
 
             const result = await adapter.upload(localPath, remotePath);
 
             expect(result.name).toBe(remotePath);
-            expect(result.url).toContain('.png');
+            expect(result.url).toContain(".png");
         });
 
-        it('should upload local binary file', async () => {
-            const localPath = getFixturePath('sample-binary.bin');
+        it("should upload local binary file", async () => {
+            const localPath = getFixturePath("sample-binary.bin");
             const remotePath = `${testPath}sample-binary.bin`;
 
             const result = await adapter.upload(localPath, remotePath);
@@ -93,9 +93,9 @@ describe.skipIf(!shouldRun)('TencentCOSAdapter Integration Tests', () => {
         });
     });
 
-    describe('uploadBuffer', () => {
-        it('should upload Buffer content', async () => {
-            const content = Buffer.from('Test buffer upload content for COS');
+    describe("uploadBuffer", () => {
+        it("should upload Buffer content", async () => {
+            const content = Buffer.from("Test buffer upload content for COS");
             const remotePath = `${testPath}uploaded-buffer.txt`;
 
             const result = await adapter.uploadBuffer!(remotePath, content);
@@ -104,29 +104,29 @@ describe.skipIf(!shouldRun)('TencentCOSAdapter Integration Tests', () => {
             expect(result.url).toContain(remotePath);
         });
 
-        it('should upload Buffer with contentType', async () => {
-            const content = Buffer.from('Text content with type for COS');
+        it("should upload Buffer with contentType", async () => {
+            const content = Buffer.from("Text content with type for COS");
             const remotePath = `${testPath}buffer-with-type.txt`;
 
             const result = await adapter.uploadBuffer!(remotePath, content, {
-                contentType: 'text/plain',
+                contentType: "text/plain",
             });
 
             expect(result.name).toBe(remotePath);
         });
     });
 
-    describe('getSignedUrl', () => {
-        it('should generate valid presigned URL for uploaded file', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+    describe("getSignedUrl", () => {
+        it("should generate valid presigned URL for uploaded file", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}presigned-test.txt`;
-            const expectedContent = readFixture('sample-text.txt');
+            const expectedContent = readFixture("sample-text.txt");
 
             await adapter.upload(localPath, remotePath);
 
             const signedUrl = await adapter.getSignedUrl!(remotePath, 3600);
 
-            expect(signedUrl).toContain('https://');
+            expect(signedUrl).toContain("https://");
             expect(signedUrl).toContain(config!.bucket);
 
             // 输出 presigned URL 方便手动校验
@@ -142,8 +142,8 @@ describe.skipIf(!shouldRun)('TencentCOSAdapter Integration Tests', () => {
             expect(response.data.equals(expectedContent)).toBe(true);
         });
 
-        it('should generate presigned URL with custom expiry', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+        it("should generate presigned URL with custom expiry", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}presigned-expiry.txt`;
 
             await adapter.upload(localPath, remotePath);
@@ -164,18 +164,18 @@ describe.skipIf(!shouldRun)('TencentCOSAdapter Integration Tests', () => {
         });
     });
 
-    describe('getSignedUrl with disposition', () => {
-        it('should generate presigned URL with inline disposition', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+    describe("getSignedUrl with disposition", () => {
+        it("should generate presigned URL with inline disposition", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}presigned-inline.txt`;
 
             await adapter.upload(localPath, remotePath);
 
             const signedUrl = await adapter.getSignedUrl!(remotePath, 3600, {
-                disposition: 'inline',
+                disposition: "inline",
             });
 
-            expect(signedUrl).toContain('https://');
+            expect(signedUrl).toContain("https://");
 
             // 输出 presigned URL 方便手动校验
             if (MANUAL_CHECK_DELAY > 0) {
@@ -186,17 +186,17 @@ describe.skipIf(!shouldRun)('TencentCOSAdapter Integration Tests', () => {
             }
         });
 
-        it('should generate presigned URL with attachment disposition', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+        it("should generate presigned URL with attachment disposition", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}presigned-attachment.txt`;
 
             await adapter.upload(localPath, remotePath);
 
             const signedUrl = await adapter.getSignedUrl!(remotePath, 3600, {
-                disposition: 'attachment',
+                disposition: "attachment",
             });
 
-            expect(signedUrl).toContain('https://');
+            expect(signedUrl).toContain("https://");
 
             // 输出 presigned URL 方便手动校验
             if (MANUAL_CHECK_DELAY > 0) {
@@ -208,11 +208,11 @@ describe.skipIf(!shouldRun)('TencentCOSAdapter Integration Tests', () => {
         });
     });
 
-    describe('downloadToFile', () => {
-        it('should download file and match original content', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+    describe("downloadToFile", () => {
+        it("should download file and match original content", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}download-test.txt`;
-            const expectedContent = readFixture('sample-text.txt');
+            const expectedContent = readFixture("sample-text.txt");
 
             await adapter.upload(localPath, remotePath);
 
@@ -220,10 +220,10 @@ describe.skipIf(!shouldRun)('TencentCOSAdapter Integration Tests', () => {
             expect(matches).toBe(true);
         });
 
-        it('should download binary file correctly', async () => {
-            const localPath = getFixturePath('sample-binary.bin');
+        it("should download binary file correctly", async () => {
+            const localPath = getFixturePath("sample-binary.bin");
             const remotePath = `${testPath}download-binary.bin`;
-            const expectedContent = readFixture('sample-binary.bin');
+            const expectedContent = readFixture("sample-binary.bin");
 
             await adapter.upload(localPath, remotePath);
 
@@ -232,9 +232,9 @@ describe.skipIf(!shouldRun)('TencentCOSAdapter Integration Tests', () => {
         });
     });
 
-    describe('getObjectMeta', () => {
-        it('should get metadata for uploaded file', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+    describe("getObjectMeta", () => {
+        it("should get metadata for uploaded file", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}meta-test.txt`;
 
             await adapter.upload(localPath, remotePath);
@@ -247,9 +247,9 @@ describe.skipIf(!shouldRun)('TencentCOSAdapter Integration Tests', () => {
         });
     });
 
-    describe('exists', () => {
-        it('should return true for existing file', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+    describe("exists", () => {
+        it("should return true for existing file", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}exists-test.txt`;
 
             await adapter.upload(localPath, remotePath);
@@ -258,7 +258,7 @@ describe.skipIf(!shouldRun)('TencentCOSAdapter Integration Tests', () => {
             expect(exists).toBe(true);
         });
 
-        it('should return false for non-existing file', async () => {
+        it("should return false for non-existing file", async () => {
             const remotePath = `${testPath}non-existing-file.txt`;
 
             const exists = await adapter.exists!(remotePath);
@@ -266,9 +266,9 @@ describe.skipIf(!shouldRun)('TencentCOSAdapter Integration Tests', () => {
         });
     });
 
-    describe('delete', () => {
-        it('should delete uploaded file', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+    describe("delete", () => {
+        it("should delete uploaded file", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}delete-test.txt`;
 
             await adapter.upload(localPath, remotePath);
@@ -278,10 +278,10 @@ describe.skipIf(!shouldRun)('TencentCOSAdapter Integration Tests', () => {
             if (MANUAL_CHECK_DELAY > 0) {
                 console.log(`[INFO] File uploaded: ${remotePath}`);
                 console.log(
-                    `[INFO] Waiting ${MANUAL_CHECK_DELAY}ms before delete for manual verification...`
+                    `[INFO] Waiting ${MANUAL_CHECK_DELAY}ms before delete for manual verification...`,
                 );
                 console.log(
-                    `[INFO] You can check the bucket at: https://console.cloud.tencent.com/cos/bucket/${config!.region}/${config!.bucket}/object`
+                    `[INFO] You can check the bucket at: https://console.cloud.tencent.com/cos/bucket/${config!.region}/${config!.bucket}/object`,
                 );
                 await new Promise((resolve) => setTimeout(resolve, MANUAL_CHECK_DELAY));
             }
@@ -292,11 +292,11 @@ describe.skipIf(!shouldRun)('TencentCOSAdapter Integration Tests', () => {
         });
     });
 
-    describe('full workflow', () => {
-        it('should complete upload-download-delete workflow', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+    describe("full workflow", () => {
+        it("should complete upload-download-delete workflow", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}workflow-test.txt`;
-            const expectedContent = readFixture('sample-text.txt');
+            const expectedContent = readFixture("sample-text.txt");
 
             const uploadResult = await adapter.upload(localPath, remotePath);
             expect(uploadResult.url).toBeDefined();
@@ -311,10 +311,10 @@ describe.skipIf(!shouldRun)('TencentCOSAdapter Integration Tests', () => {
             if (MANUAL_CHECK_DELAY > 0) {
                 console.log(`[INFO] File ready: ${remotePath}`);
                 console.log(
-                    `[INFO] Waiting ${MANUAL_CHECK_DELAY}ms before delete for manual verification...`
+                    `[INFO] Waiting ${MANUAL_CHECK_DELAY}ms before delete for manual verification...`,
                 );
                 console.log(
-                    `[INFO] You can check the bucket at: https://console.cloud.tencent.com/cos/bucket/${config!.region}/${config!.bucket}/object`
+                    `[INFO] You can check the bucket at: https://console.cloud.tencent.com/cos/bucket/${config!.region}/${config!.bucket}/object`,
                 );
                 await new Promise((resolve) => setTimeout(resolve, MANUAL_CHECK_DELAY));
             }

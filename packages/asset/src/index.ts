@@ -74,6 +74,17 @@
  * ```
  */
 
+// Delete 模块导出
+export type {
+    DeleteDetail,
+    DeleteOptions,
+    DeleteProgress,
+    DeleteResult,
+    DeleteServiceConfig,
+    DeleteTarget,
+    ReferenceInfo,
+} from "./delete/index.js";
+export { DeleteService } from "./delete/index.js";
 // Download 模块导出
 export type {
     DownloadFilter,
@@ -84,17 +95,17 @@ export type {
     InternalDownloadConfig,
     NamingVariables,
     ParsedUrlInfo,
-} from './download/index.js';
+} from "./download/index.js";
 export {
     createDownloadService,
     DEFAULT_NAMING_TEMPLATE,
     generateNamingVariables,
     generateUniqueFileName,
     parseUrlForNaming,
-    renderNamingTemplate,
-} from './download/index.js';
+} from "./download/index.js";
+
 // Shared 模块导出
-export type { BaseNamingVariables } from './shared/index.js';
+export type { BaseNamingVariables } from "./shared/index.js";
 export type {
     FileFilter,
     SourceConfig,
@@ -106,30 +117,19 @@ export type {
     TransferProgress,
     TransferResult,
     UrlMapping,
-} from './transfer/index.js';
+} from "./transfer/index.js";
 // Transfer 模块导出
-export {
-    TransferConfigBuilder,
-    transferRemoteImages,
-} from './transfer/index.js';
+export { TransferConfigBuilder, transferRemoteImages } from "./transfer/index.js";
 export type {
+    ConflictResolutionStrategy,
     DeduplicationInfo,
-    DeleteOptions,
-    EventOptions,
     FailedItem,
     ImageCloudMapBody,
-    ReplaceOptions,
-    StorageOptions,
     UploadConfig,
     UploadEvent,
     UploadEventType,
     UploadResult,
-} from './upload/index.js';
-// Upload 模块导出（向后兼容）
-export {
-    ConfigBuilder,
-    uploadLocalImageInMarkdown,
-} from './upload/index.js';
+} from "./upload/index.js";
 export {
     detectStorageUrl,
     isAliyunOssUrl,
@@ -137,11 +137,47 @@ export {
     isSignedUrl,
     isStorageUrl,
     isTencentCosUrl,
-} from './utils/storage-url-detector.js';
+} from "./utils/storage-url-detector.js";
 // Utils 模块导出 - 云存储 URL 检测
 export type {
     DetectedCloudProvider,
     StorageUrlDetectOptions,
     StorageUrlInfo,
     StorageUrlType,
-} from './utils/storage-url-types.js';
+} from "./utils/storage-url-types.js";
+
+// ==================== Config 模块导出（配置管理）====================
+
+export type {
+    CmtxConfig,
+    CmtxPresignedUrlConfig,
+    CmtxPresignedUrlDomain,
+    CmtxResizeConfig,
+    CmtxResizeDomain,
+    CmtxStorageConfig,
+    CmtxUploadConfig,
+    ConfigValidationError,
+    DeleteConfig,
+    LoaderOptions,
+    PresetConfig,
+    PresetConfigFull,
+    ReplaceConfig,
+    RuleStepConfig,
+} from "./config/index.js";
+export {
+    ConfigLoader,
+    ConfigValidator,
+    DEFAULT_CONFIG,
+    DEFAULT_CONFIG_TEMPLATE,
+    ensureConfig,
+    formatValidationErrors,
+    generateDefaultConfig,
+    getConfigDirPath,
+    getConfigFilePath,
+    loadConfigFromFile,
+    loadConfigFromString,
+    saveConfigToFile,
+    substituteEnvVars,
+    substituteEnvVarsInObject,
+    validateConfig,
+} from "./config/index.js";

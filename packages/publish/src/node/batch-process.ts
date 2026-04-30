@@ -1,12 +1,7 @@
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, extname, join, relative, resolve } from 'node:path';
-import { renderMarkdown, validateMarkdown } from '../platform/registry.js';
-import { applyAdaptRules } from '../rules/apply.js';
+import { join, relative, resolve } from "node:path";
+import { FileService } from "@cmtx/asset/file";
+import { renderMarkdown, validateMarkdown } from "../preset/registry.js";
 import type {
-    AdaptDirectoryOptions,
-    AdaptDirectoryResult,
-    AdaptedFileResult,
-    AdaptFileOptions,
     RenderDirectoryOptions,
     RenderDirectoryResult,
     RenderedFileResult,
@@ -15,79 +10,19 @@ import type {
     ValidatedFileResult,
     ValidateFileOptions,
     ValidationSummary,
-} from '../types.js';
+} from "../types.js";
 
-/**
- * 对单个 Markdown 文件执行适配。
- */
-export async function adaptFile(
-    inputFile: string,
-    options: AdaptFileOptions
-): Promise<AdaptedFileResult> {
-    const fullInputPath = resolve(inputFile);
-    const content = await readFile(fullInputPath, 'utf-8');
-    const result = applyAdaptRules(content, options.rules);
-
-    let outputPath: string | undefined;
-    if (!options.dryRun && options.outFile) {
-        outputPath = resolve(options.outFile);
-        await mkdir(dirname(outputPath), { recursive: true });
-        await writeFile(outputPath, result.content, 'utf-8');
-    }
-
-    return {
-        ...result,
-        inputPath: fullInputPath,
-        outputPath,
-    };
-}
-
-/**
- * 递归处理目录中的全部 Markdown 文件。
- */
-export async function adaptDirectory(
-    inputDir: string,
-    options: AdaptDirectoryOptions
-): Promise<AdaptDirectoryResult> {
-    if (!options.dryRun && !options.outDir) {
-        throw new TypeError('Processing a directory requires outDir when dryRun is false');
-    }
-
-    const fullInputDir = resolve(inputDir);
-    const files = await collectMarkdownFiles(fullInputDir);
-    const results: AdaptedFileResult[] = [];
-
-    for (const filePath of files) {
-        const content = await readFile(filePath, 'utf-8');
-        const result = applyAdaptRules(content, options.rules);
-
-        let outputPath: string | undefined;
-        if (!options.dryRun && options.outDir) {
-            const relativePath = relative(fullInputDir, filePath);
-            outputPath = join(resolve(options.outDir), relativePath);
-            await mkdir(dirname(outputPath), { recursive: true });
-            await writeFile(outputPath, result.content, 'utf-8');
-        }
-
-        results.push({
-            ...result,
-            inputPath: filePath,
-            outputPath,
-        });
-    }
-
-    return { files: results };
-}
+const fileService = new FileService();
 
 /**
  * 对单个 Markdown 文件执行平台校验。
  */
 export async function validateFile(
     inputFile: string,
-    options: ValidateFileOptions
+    options: ValidateFileOptions,
 ): Promise<ValidatedFileResult> {
     const fullInputPath = resolve(inputFile);
-    const content = await readFile(fullInputPath, 'utf-8');
+    const content = await fileService.readFileContent(fullInputPath);
 
     return {
         inputPath: fullInputPath,
@@ -100,14 +35,14 @@ export async function validateFile(
  */
 export async function validateDirectory(
     inputDir: string,
-    options: ValidateDirectoryOptions
+    options: ValidateDirectoryOptions,
 ): Promise<ValidationSummary> {
     const fullInputDir = resolve(inputDir);
     const files = await collectMarkdownFiles(fullInputDir);
     const results: ValidatedFileResult[] = [];
 
     for (const filePath of files) {
-        const content = await readFile(filePath, 'utf-8');
+        const content = await fileService.readFileContent(filePath);
         const issues = await validateMarkdown(content, options.platform);
         results.push({ inputPath: filePath, issues });
     }
@@ -123,17 +58,16 @@ export async function validateDirectory(
  */
 export async function renderFile(
     inputFile: string,
-    options: RenderFileOptions
+    options: RenderFileOptions,
 ): Promise<RenderedFileResult> {
     const fullInputPath = resolve(inputFile);
-    const content = await readFile(fullInputPath, 'utf-8');
+    const content = await fileService.readFileContent(fullInputPath);
     const result = await renderMarkdown(content, options.platform);
 
     let outputPath: string | undefined;
     if (!options.dryRun && options.outFile) {
         outputPath = resolve(options.outFile);
-        await mkdir(dirname(outputPath), { recursive: true });
-        await writeFile(outputPath, result.content, 'utf-8');
+        await fileService.writeFileContent(outputPath, result.content);
     }
 
     return {
@@ -148,10 +82,10 @@ export async function renderFile(
  */
 export async function renderDirectory(
     inputDir: string,
-    options: RenderDirectoryOptions
+    options: RenderDirectoryOptions,
 ): Promise<RenderDirectoryResult> {
     if (!options.dryRun && !options.outDir) {
-        throw new TypeError('Rendering a directory requires outDir when dryRun is false');
+        throw new TypeError("Rendering a directory requires outDir when dryRun is false");
     }
 
     const fullInputDir = resolve(inputDir);
@@ -159,18 +93,17 @@ export async function renderDirectory(
     const results: RenderedFileResult[] = [];
 
     for (const filePath of files) {
-        const content = await readFile(filePath, 'utf-8');
+        const content = await fileService.readFileContent(filePath);
         const result = await renderMarkdown(content, options.platform);
 
         let outputPath: string | undefined;
         if (!options.dryRun && options.outDir) {
             const relativePath = relative(fullInputDir, filePath).replace(
                 /\.md$/i,
-                result.format === 'html' ? '.html' : '.md'
+                result.format === "html" ? ".html" : ".md",
             );
             outputPath = join(resolve(options.outDir), relativePath);
-            await mkdir(dirname(outputPath), { recursive: true });
-            await writeFile(outputPath, result.content, 'utf-8');
+            await fileService.writeFileContent(outputPath, result.content);
         }
 
         results.push({
@@ -184,21 +117,8 @@ export async function renderDirectory(
 }
 
 async function collectMarkdownFiles(dirPath: string): Promise<string[]> {
-    const entries = await readdir(dirPath, { withFileTypes: true });
-    const files: string[] = [];
-
-    for (const entry of entries) {
-        const fullPath = join(dirPath, entry.name);
-
-        if (entry.isDirectory()) {
-            files.push(...(await collectMarkdownFiles(fullPath)));
-            continue;
-        }
-
-        if (entry.isFile() && extname(entry.name).toLowerCase() === '.md') {
-            files.push(fullPath);
-        }
-    }
-
-    return files;
+    return fileService.scanDirectory(dirPath, {
+        patterns: ["**/*.md", "**/*.markdown"],
+        ignore: ["node_modules/**", ".git/**"],
+    });
 }

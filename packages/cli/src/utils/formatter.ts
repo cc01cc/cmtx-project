@@ -4,8 +4,8 @@
  * 支持 JSON、表格、纯文本格式
  */
 
-import chalk from 'chalk';
-import type { OutputFormat } from '../types/cli.js';
+import chalk from "chalk";
+import type { OutputFormat } from "../types/cli.js";
 
 // 定义分析结果类型
 interface AnalysisResult {
@@ -27,14 +27,14 @@ interface AnalysisResult {
  */
 export function formatAnalyzeResult(
     analysis: AnalysisResult,
-    format: OutputFormat = 'table'
+    format: OutputFormat = "table",
 ): string {
     switch (format) {
-        case 'json':
+        case "json":
             return formatAnalyzeJSON(analysis);
-        case 'table':
+        case "table":
             return formatAnalyzeTable(analysis);
-        case 'plain':
+        case "plain":
             return formatAnalyzePlain(analysis);
     }
 }
@@ -54,7 +54,7 @@ function formatAnalyzeJSON(analysis: AnalysisResult): string {
                     totalSize: analysis.totalSize,
                     totalReferences: analysis.images.reduce(
                         (sum, img) => sum + img.referencedIn.length,
-                        0
+                        0,
                     ),
                 },
                 images: analysis.images,
@@ -62,7 +62,7 @@ function formatAnalyzeJSON(analysis: AnalysisResult): string {
             },
         },
         null,
-        2
+        2,
     );
 }
 
@@ -70,32 +70,32 @@ function formatAnalyzeJSON(analysis: AnalysisResult): string {
  * 表格格式输出
  */
 function formatAnalyzeTable(analysis: AnalysisResult): string {
-    let output = chalk.bold('\n✓ 分析结果\n');
+    let output = chalk.bold("\n✓ 分析结果\n");
 
     if (analysis.images.length > 0) {
-        output += chalk.cyan('📸 有效图片：\n');
+        output += chalk.cyan("📸 有效图片：\n");
         for (const img of analysis.images) {
             const sizeKB = (img.fileSize / 1024).toFixed(1);
             output += chalk.dim(
-                `  • ${img.localPath} (${sizeKB}KB, ${img.referencedIn.length} 处引用)\n`
+                `  • ${img.localPath} (${sizeKB}KB, ${img.referencedIn.length} 处引用)\n`,
             );
         }
     }
 
     if (analysis.skipped.length > 0) {
-        output += chalk.yellow('\n⚠️  跳过的图片：\n');
+        output += chalk.yellow("\n⚠️  跳过的图片：\n");
         for (const skipped of analysis.skipped) {
             output += chalk.dim(`  • ${skipped.localPath} (${skipped.reason})\n`);
         }
     }
 
     const totalSize = (analysis.totalSize / 1024).toFixed(1);
-    output += chalk.bold('\n📊 统计：\n');
+    output += chalk.bold("\n📊 统计：\n");
     output += chalk.dim(
         `  总图片数: ${analysis.images.length}\n` +
             `  跳过数: ${analysis.skipped.length}\n` +
             `  总大小: ${totalSize}KB\n` +
-            `  总引用数: ${analysis.images.reduce((sum, img) => sum + img.referencedIn.length, 0)}\n`
+            `  总引用数: ${analysis.images.reduce((sum, img) => sum + img.referencedIn.length, 0)}\n`,
     );
 
     return output;
@@ -118,7 +118,7 @@ function formatAnalyzePlain(analysis: AnalysisResult): string {
         lines.push(`  ✗ ${skipped.localPath} (${skipped.reason})`);
     }
 
-    return lines.join('\n');
+    return lines.join("\n");
 }
 
 /**
@@ -128,10 +128,10 @@ export function formatUploadPreview(
     preview: { imagePath: string; remotePath: string }[],
     willReplace: number,
     willDelete: number,
-    format: OutputFormat = 'table'
+    format: OutputFormat = "table",
 ): string {
     switch (format) {
-        case 'json':
+        case "json":
             return JSON.stringify(
                 {
                     success: true,
@@ -144,11 +144,11 @@ export function formatUploadPreview(
                     },
                 },
                 null,
-                2
+                2,
             );
-        case 'table':
+        case "table":
             return formatPreviewTable(preview, willReplace, willDelete);
-        case 'plain':
+        case "plain":
             return formatPreviewPlain(preview, willReplace, willDelete);
     }
 }
@@ -159,19 +159,19 @@ export function formatUploadPreview(
 function formatPreviewTable(
     preview: { imagePath: string; remotePath: string }[],
     willReplace: number,
-    willDelete: number
+    willDelete: number,
 ): string {
-    let output = chalk.bold('\n📋 上传预览（干运行）\n');
+    let output = chalk.bold("\n📋 上传预览（干运行）\n");
 
-    output += chalk.cyan('📤 待上传文件：\n');
+    output += chalk.cyan("📤 待上传文件：\n");
     for (const item of preview) {
         output += chalk.dim(`  • ${item.imagePath} → ${item.remotePath}\n`);
     }
 
-    output += chalk.bold('\n📊 预期操作：\n');
+    output += chalk.bold("\n📊 预期操作：\n");
     output += chalk.dim(`  将在 ${willReplace} 个文件中替换引用\n`);
     output += chalk.dim(`  将删除 ${willDelete} 个本地文件\n`);
-    output += chalk.yellow('\n⚠️  这是预览，未实际执行任何操作\n');
+    output += chalk.yellow("\n⚠️  这是预览，未实际执行任何操作\n");
 
     return output;
 }
@@ -182,10 +182,10 @@ function formatPreviewTable(
 function formatPreviewPlain(
     preview: { imagePath: string; remotePath: string }[],
     willReplace: number,
-    willDelete: number
+    willDelete: number,
 ): string {
     const lines: string[] = [
-        '[DRY-RUN] 上传预览',
+        "[DRY-RUN] 上传预览",
         `[待上传] ${preview.length} 个文件`,
         `[替换] ${willReplace} 个文件中的引用`,
         `[删除] ${willDelete} 个本地文件`,
@@ -195,14 +195,14 @@ function formatPreviewPlain(
         lines.push(`  • ${item.imagePath} → ${item.remotePath}`);
     }
 
-    return lines.join('\n');
+    return lines.join("\n");
 }
 
 /**
  * 格式化错误消息
  */
 export function formatError(error: Error | string): string {
-    const message = typeof error === 'string' ? error : error.message;
+    const message = typeof error === "string" ? error : error.message;
     return chalk.red(`✗ 错误: ${message}`);
 }
 

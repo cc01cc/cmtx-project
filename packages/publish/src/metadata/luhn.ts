@@ -10,12 +10,12 @@
  * - 支持 radix 2-36
  */
 
-const DEFAULT_ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const DEFAULT_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 /**
  * 卢恩算法工具类
  */
-// biome-ignore lint/complexity/noStaticOnlyClass: exported as a static utility class to preserve the public API.
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class LuhnAlgorithm {
     private static getAlphabet(radix: number, customAlphabet?: string): string {
         const alphabet = customAlphabet || DEFAULT_ALPHABET;
@@ -29,7 +29,7 @@ export class LuhnAlgorithm {
 
     private static toDigits(str: string, radix: number, alphabet: string): number[] {
         if (str.length === 0) {
-            throw new Error('Input must contain at least one character');
+            throw new Error("Input must contain at least one character");
         }
 
         // Convert both str and alphabet to uppercase for case-insensitive matching
@@ -37,7 +37,7 @@ export class LuhnAlgorithm {
 
         return str
             .toUpperCase()
-            .split('')
+            .split("")
             .map((char) => {
                 const digit = upperAlphabet.indexOf(char);
                 if (digit === -1) {
@@ -121,7 +121,7 @@ export class LuhnAlgorithm {
         const expectedCheck = LuhnAlgorithm.calculateChecksum(
             str.slice(0, -1),
             radix,
-            customAlphabet
+            customAlphabet,
         );
         return expectedCheck.toUpperCase() === str.slice(-1);
     }
@@ -163,7 +163,7 @@ export class LuhnAlgorithm {
     static validateAndExtract(
         strWithChecksum: string,
         radix: number = 36,
-        customAlphabet?: string
+        customAlphabet?: string,
     ): { valid: boolean; original?: string } {
         if (!LuhnAlgorithm.validate(strWithChecksum, radix, customAlphabet)) {
             return { valid: false };

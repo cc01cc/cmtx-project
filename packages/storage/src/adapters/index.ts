@@ -7,6 +7,7 @@
  * 导出所有支持的存储服务适配器和工厂函数。
  */
 
-export { AliOSSAdapter, type AliOSSClient } from './ali-oss.js';
-export { createAdapter } from './factory.js';
-export { type CosAdapterConfig, type CosClient, TencentCOSAdapter } from './tencent-cos.js';
+export { AliOSSAdapter, type AliOSSClient } from "./ali-oss.js";
+export { createAdapter } from "./factory.js";
+export { type CosAdapterConfig, TencentCOSAdapter } from "./tencent-cos.js";
+export type { CosClient } from "./cos-types.js";

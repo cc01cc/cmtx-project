@@ -1,5 +1,7 @@
-import glob from 'fast-glob';
-import { MarkdownMetadataExtractor } from './markdown-metadata-extractor.js';
+/* eslint-disable no-console */
+
+import { glob } from "tinyglobby";
+import { MarkdownMetadataExtractor } from "./markdown-metadata-extractor.js";
 
 /**
  * ID 唯一性检查选项
@@ -7,6 +9,29 @@ import { MarkdownMetadataExtractor } from './markdown-metadata-extractor.js';
 export interface IsUniqueIdOptions {
     /** 是否区分大小写（默认：false，不区分大小写） */
     caseSensitive?: boolean;
+}
+
+/**
+ * 检查单个文件是否包含指定 ID
+ */
+async function checkFileForId(
+    filePath: string,
+    normalizedNewId: string,
+    caseSensitive: boolean,
+    extractor: MarkdownMetadataExtractor,
+): Promise<boolean | undefined> {
+    try {
+        const metadata = await extractor.extractFromFile(filePath);
+        if (metadata.id) {
+            const existingId = caseSensitive ? metadata.id : metadata.id.toLowerCase();
+            if (existingId === normalizedNewId) {
+                return false;
+            }
+        }
+    } catch (error) {
+        console.warn(`Failed to extract metadata from ${filePath}:`, error);
+    }
+    return undefined;
 }
 
 /**
@@ -38,7 +63,7 @@ export interface IsUniqueIdOptions {
 export async function isUniqueId(
     newId: string,
     globPattern: string,
-    options: IsUniqueIdOptions = {}
+    options: IsUniqueIdOptions = {},
 ): Promise<boolean> {
     const { caseSensitive = false } = options;
 
@@ -59,21 +84,14 @@ export async function isUniqueId(
 
         // 检查每个文件
         for (const filePath of files) {
-            try {
-                const metadata = await extractor.extractFromFile(filePath);
-
-                // 仅检查有 ID 的文件
-                if (metadata.id) {
-                    const existingId = caseSensitive ? metadata.id : metadata.id.toLowerCase();
-
-                    // 如果找到匹配的 ID，则返回 false（ID 已存在）
-                    if (existingId === normalizedNewId) {
-                        return false;
-                    }
-                }
-            } catch (error) {
-                // 记录警告但继续检查其他文件
-                console.warn(`Failed to extract metadata from ${filePath}:`, error);
+            const result = await checkFileForId(
+                filePath,
+                normalizedNewId,
+                caseSensitive,
+                extractor,
+            );
+            if (result === false) {
+                return false;
             }
         }
 
@@ -81,7 +99,7 @@ export async function isUniqueId(
         return true;
     } catch (error) {
         // 在 glob 或其他操作失败时，假设 ID 唯一
-        console.warn('Error checking ID uniqueness:', error);
+        console.warn("Error checking ID uniqueness:", error);
         return true;
     }
 }

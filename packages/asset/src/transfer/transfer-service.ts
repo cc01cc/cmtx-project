@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+
 /**
  * 传输服务
  *
@@ -25,12 +27,12 @@
  * - 磁盘空间不足：提前检查并报错
  */
 
-import { readFile } from 'node:fs/promises';
-import type { ObjectMeta } from '@cmtx/storage';
-import type { ProgressTracker } from '../utils/progress-tracker.js';
-import type { TempManager } from '../utils/temp-manager.js';
-import type { InternalTransferConfig, UrlMapping } from './types.js';
-import { createUrlTransformer } from './url-transformer.js';
+import { readFile } from "node:fs/promises";
+import type { ObjectMeta } from "@cmtx/storage";
+import type { ProgressTracker } from "../utils/progress-tracker.js";
+import type { TempManager } from "../utils/temp-manager.js";
+import type { InternalTransferConfig, UrlMapping } from "./types.js";
+import { createUrlTransformer } from "./url-transformer.js";
 
 /**
  * 传输服务配置
@@ -81,83 +83,19 @@ export class TransferService {
      * @returns URL 映射结果
      */
     async transfer(originalUrl: string, remotePath: string): Promise<UrlMapping> {
-        const { target, options } = this.config.transferConfig;
-        const fileName = originalUrl.split('/').pop() || 'unknown';
+        const fileName = originalUrl.split("/").pop() || "unknown";
 
         // 开始追踪
-        this.config.progressTracker.start(fileName, 'downloading');
+        this.config.progressTracker.start(fileName, "downloading");
 
         // 初步生成 URL 映射（用于不依赖 MD5 的场景）
         let mapping = this.urlTransformer.transform(originalUrl, remotePath);
 
         try {
-            // 1. 检查目标文件是否已存在
-            if (await this.checkFileExists(mapping.remotePath, target.overwrite)) {
-                mapping.success = true;
-                this.config.progressTracker.skip(fileName);
-                return mapping;
-            }
-
-            // 2. 获取源文件元数据
-            const meta = await this.getSourceMeta(remotePath);
-            if (!meta) {
-                throw new Error(`Failed to get metadata for ${remotePath}`);
-            }
-
-            // 3. 检查文件过滤器
-            if (options?.filter && !this.checkFilter(meta, options.filter)) {
-                mapping.success = true;
-                this.config.progressTracker.skip(fileName);
-                return mapping;
-            }
-
-            // 4. 检查磁盘空间
-            const hasSpace = await this.config.tempManager.checkDiskSpace(meta.size);
-            if (!hasSpace) {
-                throw new Error(`Insufficient disk space for ${fileName} (${meta.size} bytes)`);
-            }
-
-            // 5. 下载到临时文件
-            const tempFilePath = this.config.tempManager.getTempFilePath(
-                this.config.taskDir,
-                fileName
-            );
-
-            this.config.progressTracker.update(fileName, 'downloading');
-            await this.downloadFile(remotePath, tempFilePath);
-
-            // 6. 如果模板需要 MD5，读取文件内容并重新生成文件名
-            let fileContent: Buffer | undefined;
-            if (this.urlTransformer.needsMd5()) {
-                fileContent = await readFile(tempFilePath);
-                mapping = this.urlTransformer.transformWithContent(
-                    originalUrl,
-                    tempFilePath,
-                    fileContent
-                );
-            }
-
-            // 更新文件大小
-            mapping = { ...mapping, size: fileContent?.length ?? meta.size };
-
-            // 7. 再次检查目标文件是否已存在（使用新的 remotePath）
-            if (await this.checkFileExists(mapping.remotePath, target.overwrite)) {
-                mapping.success = true;
-                this.config.progressTracker.skip(fileName);
-                return mapping;
-            }
-
-            // 8. 上传到目标
-            this.config.progressTracker.update(fileName, 'uploading');
-            await this.uploadFile(tempFilePath, mapping.remotePath);
-
-            // 9. 如果配置了 deleteSource，删除源文件
-            if (options?.deleteSource && mapping.success) {
-                await this.deleteSourceFile(remotePath);
-            }
+            // 执行传输步骤
+            mapping = await this.performTransferSteps(originalUrl, remotePath, mapping, fileName);
 
             mapping.success = true;
-
             this.config.progressTracker.complete(fileName, mapping.newUrl);
 
             return mapping;
@@ -168,11 +106,113 @@ export class TransferService {
 
             this.config.progressTracker.fail(
                 fileName,
-                error instanceof Error ? error : new Error(errorMessage)
+                error instanceof Error ? error : new Error(errorMessage),
             );
 
             return mapping;
         }
+    }
+
+    /**
+     * 执行传输的主要步骤
+     */
+    private async performTransferSteps(
+        originalUrl: string,
+        remotePath: string,
+        mapping: UrlMapping,
+        fileName: string,
+    ): Promise<UrlMapping> {
+        const { target, options } = this.config.transferConfig;
+        let currentMapping = mapping;
+
+        // 1. 检查目标文件是否已存在
+        if (await this.checkFileExists(currentMapping.remotePath, target.overwrite)) {
+            currentMapping.success = true;
+            this.config.progressTracker.skip(fileName);
+            return currentMapping;
+        }
+
+        // 2. 获取源文件元数据
+        const meta = await this.getSourceMeta(remotePath);
+        if (!meta) {
+            throw new Error(`Failed to get metadata for ${remotePath}`);
+        }
+
+        // 3. 检查文件过滤器
+        if (options?.filter && !this.checkFilter(meta, options.filter)) {
+            currentMapping.success = true;
+            this.config.progressTracker.skip(fileName);
+            return currentMapping;
+        }
+
+        // 4. 检查磁盘空间
+        const hasSpace = await this.config.tempManager.checkDiskSpace(meta.size);
+        if (!hasSpace) {
+            throw new Error(`Insufficient disk space for ${fileName} (${meta.size} bytes)`);
+        }
+
+        // 5. 下载并处理文件
+        currentMapping = await this.downloadAndProcessFile(
+            originalUrl,
+            remotePath,
+            currentMapping,
+            meta,
+            fileName,
+        );
+
+        // 6. 再次检查目标文件是否已存在（使用新的 remotePath）
+        if (await this.checkFileExists(currentMapping.remotePath, target.overwrite)) {
+            currentMapping.success = true;
+            this.config.progressTracker.skip(fileName);
+            return currentMapping;
+        }
+
+        // 7. 上传到目标
+        this.config.progressTracker.update(fileName, "uploading");
+        await this.uploadFile(
+            this.config.tempManager.getTempFilePath(this.config.taskDir, fileName),
+            currentMapping.remotePath,
+        );
+
+        // 8. 删除源文件（如果需要）
+        if (options?.deleteSource) {
+            await this.deleteSourceFile(remotePath);
+        }
+
+        return currentMapping;
+    }
+
+    /**
+     * 下载并处理文件
+     */
+    private async downloadAndProcessFile(
+        originalUrl: string,
+        remotePath: string,
+        mapping: UrlMapping,
+        meta: ObjectMeta,
+        fileName: string,
+    ): Promise<UrlMapping> {
+        // 下载到临时文件
+        const tempFilePath = this.config.tempManager.getTempFilePath(this.config.taskDir, fileName);
+
+        this.config.progressTracker.update(fileName, "downloading");
+        await this.downloadFile(remotePath, tempFilePath);
+
+        // 如果模板需要 MD5，读取文件内容并重新生成文件名
+        let fileContent: Buffer | undefined;
+        let updatedMapping = mapping;
+
+        if (this.urlTransformer.needsMd5()) {
+            fileContent = await readFile(tempFilePath);
+            updatedMapping = this.urlTransformer.transformWithContent(
+                originalUrl,
+                tempFilePath,
+                fileContent,
+            );
+        }
+
+        // 更新文件大小
+        return { ...updatedMapping, size: fileContent?.length ?? meta.size };
     }
 
     /**
@@ -205,7 +245,7 @@ export class TransferService {
             maxSize?: number;
             minSize?: number;
             custom?: (meta: { size: number; name: string }) => boolean;
-        }
+        },
     ): boolean {
         if (filter.maxSize && meta.size > filter.maxSize) {
             return false;
@@ -215,7 +255,7 @@ export class TransferService {
         }
 
         if (filter.custom) {
-            return filter.custom({ size: meta.size, name: '' });
+            return filter.custom({ size: meta.size, name: "" });
         }
 
         return true;
@@ -228,7 +268,7 @@ export class TransferService {
         const { source } = this.config.transferConfig;
 
         if (!source.adapter.downloadToFile) {
-            throw new Error('Source adapter does not support downloadToFile');
+            throw new Error("Source adapter does not support downloadToFile");
         }
 
         const maxRetries = 3;
@@ -290,7 +330,9 @@ export class TransferService {
             await source.adapter.delete(remotePath);
         } catch (error) {
             console.error(
-                `Failed to delete source file ${remotePath}: ${error instanceof Error ? error.message : String(error)}`
+                `Failed to delete source file ${remotePath}: ${
+                    error instanceof Error ? error.message : String(error)
+                }`,
             );
         }
     }

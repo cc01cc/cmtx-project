@@ -1,11 +1,31 @@
 {
     "name": "@cmtx/asset",
-    "version": "0.1.1-alpha.0",
+    "version": "0.1.1-alpha.1",
     "description": "Markdown asset management for cmtx - 支持本地图片上传和远程图片转移",
-    "license": "Apache-2.0",
-    "publishConfig": {
-        "access": "public"
+    "keywords": [
+        "asset",
+        "cmtx",
+        "image",
+        "markdown",
+        "transfer",
+        "upload"
+    ],
+    "homepage": "https://github.com/cc01cc/cmtx-project",
+    "bugs": {
+        "url": "https://github.com/cc01cc/cmtx-project/issues"
     },
+    "license": "Apache-2.0",
+    "author": "cc01cc",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cc01cc/cmtx-project.git",
+        "directory": "packages/asset"
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "CHANGELOG.md"
+    ],
     "type": "module",
     "main": "./dist/index.cjs",
     "module": "./dist/index.mjs",
@@ -40,31 +60,16 @@
             "types": "./dist/config.d.ts",
             "import": "./dist/config.mjs",
             "require": "./dist/config.cjs"
+        },
+        "./file": {
+            "types": "./dist/file.d.ts",
+            "import": "./dist/file.mjs",
+            "require": "./dist/file.cjs"
         }
     },
-    "files": [
-        "dist",
-        "README.md",
-        "CHANGELOG.md"
-    ],
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/cc01cc/cmtx-project.git",
-        "directory": "packages/asset"
+    "publishConfig": {
+        "access": "public"
     },
-    "bugs": {
-        "url": "https://github.com/cc01cc/cmtx-project/issues"
-    },
-    "homepage": "https://github.com/cc01cc/cmtx-project",
-    "author": "cc01cc",
-    "keywords": [
-        "upload",
-        "transfer",
-        "markdown",
-        "image",
-        "asset",
-        "cmtx"
-    ],
     "scripts": {
         "build": "tsdown",
         "build:watch": "tsdown --watch",
@@ -72,14 +77,15 @@
         "typecheck": "tsc --noEmit -p tsconfig.json",
         "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
         "test": "vitest run",
-        "docs": "typedoc",
-        "lint": "biome check --write src tests"
+        "docs": "typedoc"
     },
     "dependencies": {
         "@cmtx/core": "workspace:*",
         "@cmtx/storage": "workspace:*",
         "@cmtx/template": "workspace:*",
+        "js-yaml": "^4.1.0",
         "p-limit": "^7.3.0",
+        "tinyglobby": "catalog:",
         "trash": "catalog:"
     },
     "devDependencies": {

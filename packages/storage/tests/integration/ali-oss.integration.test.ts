@@ -8,13 +8,13 @@
  * 需要在 tests/integration/test-config.json 中配置凭证。
  */
 
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 // 配置：测试完成后等待时间（毫秒），方便手动检查 OSS 控制台
 const MANUAL_CHECK_DELAY = 10000; // 10 秒，设为 0 可禁用
 
-import type { AliOSSAdapter } from '../../src/adapters/ali-oss.js';
-import type { AliyunTestConfig } from './shared-test-utils.js';
+import type { AliOSSAdapter } from "../../src/adapters/ali-oss.js";
+import type { AliyunTestConfig } from "./shared-test-utils.js";
 import {
     cleanupTestFiles,
     createOSSAdapter,
@@ -24,7 +24,7 @@ import {
     getFixturePath,
     loadTestConfig,
     readFixture,
-} from './shared-test-utils.js';
+} from "./shared-test-utils.js";
 
 // 在模块加载时检查配置，决定是否需要跳过所有测试
 let shouldRun = false;
@@ -35,17 +35,17 @@ try {
     config = fullConfig.aliyun;
     shouldRun = config.enabled;
 } catch (error) {
-    console.log('[INFO] OSS integration tests will be skipped:', error);
+    console.log("[INFO] OSS integration tests will be skipped:", error);
     shouldRun = false;
 }
 
-describe.skipIf(!shouldRun)('AliOSSAdapter Integration Tests', () => {
+describe.skipIf(!shouldRun)("AliOSSAdapter Integration Tests", () => {
     let adapter: AliOSSAdapter;
     let testPath: string;
 
     beforeAll(async () => {
         if (!config) {
-            throw new Error('Config not loaded');
+            throw new Error("Config not loaded");
         }
         adapter = createOSSAdapter(config);
         testPath = generateTestPath(config.testPrefix);
@@ -56,36 +56,36 @@ describe.skipIf(!shouldRun)('AliOSSAdapter Integration Tests', () => {
     afterAll(async () => {
         try {
             await cleanupTestFiles(adapter, testPath);
-            console.log('[OK] Test files cleaned up');
+            console.log("[OK] Test files cleaned up");
         } catch (error) {
-            console.log('[WARN] Cleanup error:', error);
+            console.log("[WARN] Cleanup error:", error);
         }
     });
 
-    describe('upload', () => {
-        it('should upload local text file', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+    describe("upload", () => {
+        it("should upload local text file", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}sample-text.txt`;
 
             const result = await adapter.upload(localPath, remotePath);
 
             expect(result.name).toBe(remotePath);
             expect(result.url).toContain(config!.bucket);
-            expect(result.url).toContain('https://');
+            expect(result.url).toContain("https://");
         });
 
-        it('should upload local image file', async () => {
-            const localPath = getFixturePath('sample-image.png');
+        it("should upload local image file", async () => {
+            const localPath = getFixturePath("sample-image.png");
             const remotePath = `${testPath}sample-image.png`;
 
             const result = await adapter.upload(localPath, remotePath);
 
             expect(result.name).toBe(remotePath);
-            expect(result.url).toContain('.png');
+            expect(result.url).toContain(".png");
         });
 
-        it('should upload local binary file', async () => {
-            const localPath = getFixturePath('sample-binary.bin');
+        it("should upload local binary file", async () => {
+            const localPath = getFixturePath("sample-binary.bin");
             const remotePath = `${testPath}sample-binary.bin`;
 
             const result = await adapter.upload(localPath, remotePath);
@@ -94,9 +94,9 @@ describe.skipIf(!shouldRun)('AliOSSAdapter Integration Tests', () => {
         });
     });
 
-    describe('uploadBuffer', () => {
-        it('should upload Buffer content', async () => {
-            const content = Buffer.from('Test buffer upload content');
+    describe("uploadBuffer", () => {
+        it("should upload Buffer content", async () => {
+            const content = Buffer.from("Test buffer upload content");
             const remotePath = `${testPath}uploaded-buffer.txt`;
 
             const result = await adapter.uploadBuffer!(remotePath, content);
@@ -105,43 +105,43 @@ describe.skipIf(!shouldRun)('AliOSSAdapter Integration Tests', () => {
             expect(result.url).toContain(remotePath);
         });
 
-        it('should upload Buffer with contentType', async () => {
-            const content = Buffer.from('Text content with type');
+        it("should upload Buffer with contentType", async () => {
+            const content = Buffer.from("Text content with type");
             const remotePath = `${testPath}buffer-with-type.txt`;
 
             const result = await adapter.uploadBuffer!(remotePath, content, {
-                contentType: 'text/plain',
+                contentType: "text/plain",
             });
 
             expect(result.name).toBe(remotePath);
         });
 
-        it('should upload Buffer with metadata', async () => {
-            const content = Buffer.from('Content with metadata');
+        it("should upload Buffer with metadata", async () => {
+            const content = Buffer.from("Content with metadata");
             const remotePath = `${testPath}buffer-with-meta.txt`;
 
             const result = await adapter.uploadBuffer!(remotePath, content, {
-                contentType: 'text/plain',
-                metadata: { 'custom-key': 'custom-value' },
+                contentType: "text/plain",
+                metadata: { "custom-key": "custom-value" },
             });
 
             expect(result.name).toBe(remotePath);
         });
     });
 
-    describe('getSignedUrl', () => {
-        it('should generate valid presigned URL for uploaded file', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+    describe("getSignedUrl", () => {
+        it("should generate valid presigned URL for uploaded file", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}presigned-test.txt`;
-            const expectedContent = readFixture('sample-text.txt');
+            const expectedContent = readFixture("sample-text.txt");
 
             await adapter.upload(localPath, remotePath);
 
             const signedUrl = await adapter.getSignedUrl!(remotePath, 3600);
 
-            expect(signedUrl).toContain('https://');
-            expect(signedUrl).toContain('OSSAccessKeyId');
-            expect(signedUrl).toContain('Signature');
+            expect(signedUrl).toContain("https://");
+            expect(signedUrl).toContain("OSSAccessKeyId");
+            expect(signedUrl).toContain("Signature");
 
             // 输出 presigned URL 方便手动校验
             if (MANUAL_CHECK_DELAY > 0) {
@@ -156,8 +156,8 @@ describe.skipIf(!shouldRun)('AliOSSAdapter Integration Tests', () => {
             expect(response.data.equals(expectedContent)).toBe(true);
         });
 
-        it('should generate presigned URL with custom expiry', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+        it("should generate presigned URL with custom expiry", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}presigned-expiry.txt`;
 
             await adapter.upload(localPath, remotePath);
@@ -166,8 +166,8 @@ describe.skipIf(!shouldRun)('AliOSSAdapter Integration Tests', () => {
             const longExpiryUrl = await adapter.getSignedUrl!(remotePath, 7200);
 
             // Expires 是绝对时间戳，验证 URL 包含 Expires 参数即可
-            expect(shortExpiryUrl).toContain('Expires=');
-            expect(longExpiryUrl).toContain('Expires=');
+            expect(shortExpiryUrl).toContain("Expires=");
+            expect(longExpiryUrl).toContain("Expires=");
             // 验证两个 URL 的过期时间不同（短过期时间应该小于长过期时间）
             const shortExpiryMatch = shortExpiryUrl.match(/Expires=(\d+)/);
             const longExpiryMatch = longExpiryUrl.match(/Expires=(\d+)/);
@@ -185,18 +185,18 @@ describe.skipIf(!shouldRun)('AliOSSAdapter Integration Tests', () => {
         });
     });
 
-    describe('getSignedUrl with disposition', () => {
-        it('should generate presigned URL with inline disposition', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+    describe("getSignedUrl with disposition", () => {
+        it("should generate presigned URL with inline disposition", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}presigned-inline.txt`;
 
             await adapter.upload(localPath, remotePath);
 
             const signedUrl = await adapter.getSignedUrl!(remotePath, 3600, {
-                disposition: 'inline',
+                disposition: "inline",
             });
 
-            expect(signedUrl).toContain('https://');
+            expect(signedUrl).toContain("https://");
 
             // 输出 presigned URL 方便手动校验
             if (MANUAL_CHECK_DELAY > 0) {
@@ -207,17 +207,17 @@ describe.skipIf(!shouldRun)('AliOSSAdapter Integration Tests', () => {
             }
         });
 
-        it('should generate presigned URL with attachment disposition', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+        it("should generate presigned URL with attachment disposition", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}presigned-attachment.txt`;
 
             await adapter.upload(localPath, remotePath);
 
             const signedUrl = await adapter.getSignedUrl!(remotePath, 3600, {
-                disposition: 'attachment',
+                disposition: "attachment",
             });
 
-            expect(signedUrl).toContain('https://');
+            expect(signedUrl).toContain("https://");
 
             // 输出 presigned URL 方便手动校验
             if (MANUAL_CHECK_DELAY > 0) {
@@ -229,11 +229,11 @@ describe.skipIf(!shouldRun)('AliOSSAdapter Integration Tests', () => {
         });
     });
 
-    describe('downloadToFile', () => {
-        it('should download file and match original content', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+    describe("downloadToFile", () => {
+        it("should download file and match original content", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}download-test.txt`;
-            const expectedContent = readFixture('sample-text.txt');
+            const expectedContent = readFixture("sample-text.txt");
 
             await adapter.upload(localPath, remotePath);
 
@@ -241,10 +241,10 @@ describe.skipIf(!shouldRun)('AliOSSAdapter Integration Tests', () => {
             expect(matches).toBe(true);
         });
 
-        it('should download binary file correctly', async () => {
-            const localPath = getFixturePath('sample-binary.bin');
+        it("should download binary file correctly", async () => {
+            const localPath = getFixturePath("sample-binary.bin");
             const remotePath = `${testPath}download-binary.bin`;
-            const expectedContent = readFixture('sample-binary.bin');
+            const expectedContent = readFixture("sample-binary.bin");
 
             await adapter.upload(localPath, remotePath);
 
@@ -253,9 +253,9 @@ describe.skipIf(!shouldRun)('AliOSSAdapter Integration Tests', () => {
         });
     });
 
-    describe('getObjectMeta', () => {
-        it('should get metadata for uploaded file', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+    describe("getObjectMeta", () => {
+        it("should get metadata for uploaded file", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}meta-test.txt`;
 
             await adapter.upload(localPath, remotePath);
@@ -267,21 +267,21 @@ describe.skipIf(!shouldRun)('AliOSSAdapter Integration Tests', () => {
             expect(meta.etag).toBeDefined();
         });
 
-        it('should return correct content type', async () => {
-            const localPath = getFixturePath('sample-image.png');
+        it("should return correct content type", async () => {
+            const localPath = getFixturePath("sample-image.png");
             const remotePath = `${testPath}meta-image.png`;
 
             await adapter.upload(localPath, remotePath);
 
             const meta = await adapter.getObjectMeta!(remotePath);
 
-            expect(meta.contentType).toContain('image');
+            expect(meta.contentType).toContain("image");
         });
     });
 
-    describe('exists', () => {
-        it('should return true for existing file', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+    describe("exists", () => {
+        it("should return true for existing file", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}exists-test.txt`;
 
             await adapter.upload(localPath, remotePath);
@@ -290,7 +290,7 @@ describe.skipIf(!shouldRun)('AliOSSAdapter Integration Tests', () => {
             expect(exists).toBe(true);
         });
 
-        it('should return false for non-existing file', async () => {
+        it("should return false for non-existing file", async () => {
             const remotePath = `${testPath}non-existing-file.txt`;
 
             const exists = await adapter.exists!(remotePath);
@@ -298,9 +298,9 @@ describe.skipIf(!shouldRun)('AliOSSAdapter Integration Tests', () => {
         });
     });
 
-    describe('delete', () => {
-        it('should delete uploaded file', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+    describe("delete", () => {
+        it("should delete uploaded file", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}delete-test.txt`;
 
             await adapter.upload(localPath, remotePath);
@@ -310,7 +310,7 @@ describe.skipIf(!shouldRun)('AliOSSAdapter Integration Tests', () => {
             if (MANUAL_CHECK_DELAY > 0) {
                 console.log(`[INFO] File uploaded: ${remotePath}`);
                 console.log(
-                    `[INFO] Waiting ${MANUAL_CHECK_DELAY}ms before delete for manual verification...`
+                    `[INFO] Waiting ${MANUAL_CHECK_DELAY}ms before delete for manual verification...`,
                 );
                 await new Promise((resolve) => setTimeout(resolve, MANUAL_CHECK_DELAY));
             }
@@ -321,11 +321,11 @@ describe.skipIf(!shouldRun)('AliOSSAdapter Integration Tests', () => {
         });
     });
 
-    describe('full workflow', () => {
-        it('should complete upload-download-delete workflow', async () => {
-            const localPath = getFixturePath('sample-text.txt');
+    describe("full workflow", () => {
+        it("should complete upload-download-delete workflow", async () => {
+            const localPath = getFixturePath("sample-text.txt");
             const remotePath = `${testPath}workflow-test.txt`;
-            const expectedContent = readFixture('sample-text.txt');
+            const expectedContent = readFixture("sample-text.txt");
 
             const uploadResult = await adapter.upload(localPath, remotePath);
             expect(uploadResult.url).toBeDefined();
@@ -340,7 +340,7 @@ describe.skipIf(!shouldRun)('AliOSSAdapter Integration Tests', () => {
             if (MANUAL_CHECK_DELAY > 0) {
                 console.log(`[INFO] File ready: ${remotePath}`);
                 console.log(
-                    `[INFO] Waiting ${MANUAL_CHECK_DELAY}ms before delete for manual verification...`
+                    `[INFO] Waiting ${MANUAL_CHECK_DELAY}ms before delete for manual verification...`,
                 );
                 await new Promise((resolve) => setTimeout(resolve, MANUAL_CHECK_DELAY));
             }

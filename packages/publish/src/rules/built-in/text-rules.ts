@@ -6,15 +6,15 @@
  * 提供文本替换相关的 Rules，如移除 frontmatter、标题层级转换等。
  */
 
-import type { Rule, RuleContext, RuleResult } from '../rule-types.js';
+import type { Rule, RuleContext, RuleResult } from "../rule-types.js";
 
 /**
  * 移除 frontmatter Rule
  */
 export const stripFrontmatterRule: Rule = {
-    id: 'strip-frontmatter',
-    name: '移除 frontmatter',
-    description: '移除文档开头的 YAML frontmatter',
+    id: "strip-frontmatter",
+    name: "移除 frontmatter",
+    description: "移除文档开头的 YAML frontmatter",
 
     execute(context: RuleContext): RuleResult {
         const { document } = context;
@@ -27,11 +27,11 @@ export const stripFrontmatterRule: Rule = {
             return {
                 content: document,
                 modified: false,
-                messages: ['文档没有 frontmatter'],
+                messages: ["文档没有 frontmatter"],
             };
         }
 
-        const newContent = document.replace(frontmatterRegex, '');
+        const newContent = document.replace(frontmatterRegex, "");
 
         return {
             content: newContent,
@@ -53,9 +53,9 @@ interface PromoteHeadingsConfig {
  * 标题层级提升 Rule
  */
 export const promoteHeadingsRule: Rule = {
-    id: 'promote-headings',
-    name: '标题层级提升',
-    description: '将标题层级提升（如 h2→h1, h3→h2）',
+    id: "promote-headings",
+    name: "标题层级提升",
+    description: "将标题层级提升（如 h2→h1, h3→h2）",
 
     execute(context: RuleContext, config?: PromoteHeadingsConfig): RuleResult {
         const { document } = context;
@@ -65,7 +65,7 @@ export const promoteHeadingsRule: Rule = {
             return {
                 content: document,
                 modified: false,
-                messages: ['提升级数必须大于 0'],
+                messages: ["提升级数必须大于 0"],
             };
         }
 
@@ -78,8 +78,8 @@ export const promoteHeadingsRule: Rule = {
             const targetLevel = Math.max(1, i - levels);
             if (targetLevel === i) continue;
 
-            const regex = new RegExp(`^#{${i}} (.+)$`, 'gm');
-            const replacement = `${'#'.repeat(targetLevel)} $1`;
+            const regex = new RegExp(`^#{${i}} (.+)$`, "gm");
+            const replacement = `${"#".repeat(targetLevel)} $1`;
 
             const matches = newContent.match(regex);
             if (matches) {
@@ -94,7 +94,7 @@ export const promoteHeadingsRule: Rule = {
         return {
             content: newContent,
             modified,
-            messages: modified ? messages : ['没有需要调整的标题'],
+            messages: modified ? messages : ["没有需要调整的标题"],
         };
     },
 };
@@ -106,10 +106,10 @@ interface TextReplaceConfig {
     /** 正则表达式 */
     match: string;
 
-    /** 替换字符串 */
-    replace: string;
+    /** 替换字符串，默认为空字符串 */
+    replace?: string;
 
-    /** 正则标志 */
+    /** 正则标志，默认为 "gm" */
     flags?: string;
 }
 
@@ -117,9 +117,9 @@ interface TextReplaceConfig {
  * 通用文本替换 Rule
  */
 export const textReplaceRule: Rule = {
-    id: 'text-replace',
-    name: '文本替换',
-    description: '使用正则表达式替换文本',
+    id: "text-replace",
+    name: "文本替换",
+    description: "使用正则表达式替换文本",
 
     execute(context: RuleContext, config?: TextReplaceConfig): RuleResult {
         const { document } = context;
@@ -128,11 +128,11 @@ export const textReplaceRule: Rule = {
             return {
                 content: document,
                 modified: false,
-                messages: ['缺少 match 配置'],
+                messages: ["缺少 match 配置"],
             };
         }
 
-        const { match, replace = '', flags = 'gm' } = config;
+        const { match, replace = "", flags = "gm" } = config;
 
         try {
             const regex = new RegExp(match, flags);
@@ -142,7 +142,7 @@ export const textReplaceRule: Rule = {
                 return {
                     content: document,
                     modified: false,
-                    messages: ['没有匹配的内容'],
+                    messages: ["没有匹配的内容"],
                 };
             }
 

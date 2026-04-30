@@ -1,77 +1,146 @@
 /**
- * 日志系统
+ * CLI Logger Module
  *
- * 支持多种日志级别和着色输出
+ * @module cli-logger
+ * @description
+ * 提供基于 winston 的 CLI 日志实现，支持控制台输出和文件日志按日轮转。
+ *
+ * @remarks
+ * 这是 @cmtx/core Logger interface 的 CLI 实现。
+ * 仅限 @cmtx/cli 使用，其他包应通过 @cmtx/core 的 Logger interface 接入。
  */
 
-import chalk from 'chalk';
-import type { Logger } from '../types/cli.js';
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+import { type Logger } from "@cmtx/core";
+import winston from "winston";
+import DailyRotateFile from "winston-daily-rotate-file";
 
 /**
- * 日志级别优先级
+ * CLI Logger 配置选项
+ *
+ * @public
  */
-const LOG_LEVELS: Record<LogLevel, number> = {
-    debug: 0,
-    info: 1,
-    warn: 2,
-    error: 3,
-};
+export interface CliLoggerOptions {
+    /** 日志级别，默认 'info' */
+    level?: string;
+    /** 日志目录，默认系统临时目录下的 'cmtx-logs' */
+    logDir?: string;
+    /** 是否静默（禁用控制台输出），默认 true */
+    silent?: boolean;
+    /** 是否禁用文件日志，默认 false */
+    disableFile?: boolean;
+}
 
 /**
- * 创建日志函数
+ * 创建 CLI Logger 实例
+ *
+ * @remarks
+ * 基于 winston 实现，支持控制台和文件双输出。
+ * 文件日志按日轮转，保留 14 天。
+ *
+ * @param options - 日志配置对象，或 verbose(启用控制台输出) / quiet(禁用控制台输出) 简短参数
+ * @returns 符合 @cmtx/core Logger interface 的实例
+ *
+ * @example
+ * ```typescript
+ * import { createLogger } from './utils/logger.js';
+ *
+ * // 对象形式
+ * const logger = createLogger({ silent: false });
+ *
+ * // 简短参数形式（兼容旧签名）
+ * const logger = createLogger(true); // verbose, 相当于 { silent: false }
+ * const logger = createLogger(true, false); // verbose, 不静默
+ * ```
+ *
+ * @public
  */
-export function createLogger(verbose = false, quiet = false): Logger {
-    let minLevel: number;
-    if (quiet) {
-        minLevel = 2; // error only
-    } else if (verbose) {
-        minLevel = 0; // all
-    } else {
-        minLevel = 1; // info+
+export function createLogger(options?: CliLoggerOptions | boolean, _quiet?: boolean): Logger;
+export function createLogger(options: CliLoggerOptions | boolean = {}, _quiet?: boolean): Logger {
+    // 兼容旧签名: createLogger(verbose: boolean, quiet: boolean)
+    const opts: CliLoggerOptions = typeof options === "boolean" ? { silent: !options } : options;
+
+    const { level = "info", logDir, silent = true, disableFile = false } = opts;
+
+    const transports: winston.transport[] = [];
+
+    if (!silent) {
+        transports.push(new winston.transports.Console());
     }
 
-    return (level: LogLevel, message: string, meta?: unknown) => {
-        if (LOG_LEVELS[level] < minLevel) {
-            return;
+    if (!disableFile) {
+        const fileTransport = createFileTransportSafe(logDir);
+        if (fileTransport) {
+            transports.push(fileTransport);
         }
+    }
 
-        const timestamp = new Date().toISOString().slice(11, 19);
-        let prefix: string;
+    const winstonLogger = winston.createLogger({
+        level,
+        format: createFormat(),
+        transports,
+        exitOnError: false,
+    });
 
-        switch (level) {
-            case 'debug':
-                prefix = chalk.gray(`[${timestamp}] ℹ`);
-                break;
-            case 'info':
-                prefix = chalk.blue(`[${timestamp}] ℹ`);
-                break;
-            case 'warn':
-                prefix = chalk.yellow(`[${timestamp}] ⚠`);
-                break;
-            case 'error':
-                prefix = chalk.red(`[${timestamp}] ✗`);
-                break;
-        }
-
-        console.log(`${prefix} ${message}`);
-
-        if (meta && verbose) {
-            console.log(chalk.gray(JSON.stringify(meta, null, 2)));
-        }
+    return {
+        debug: (message: string, ...args: unknown[]) => {
+            winstonLogger.debug(message, ...args);
+        },
+        info: (message: string, ...args: unknown[]) => {
+            winstonLogger.info(message, ...args);
+        },
+        warn: (message: string, ...args: unknown[]) => {
+            winstonLogger.warn(message, ...args);
+        },
+        error: (message: string, ...args: unknown[]) => {
+            winstonLogger.error(message, ...args);
+        },
     };
 }
 
 /**
- * 为 @cmtx/core 和 @cmtx/upload 创建 logger 回调
+ * 创建日志格式化器
  */
-export function createLibraryLogger(
-    verbose = false
-): (level: string, message: string, meta?: unknown) => void {
-    const logger = createLogger(verbose);
+function createFormat(): winston.Logform.Format {
+    const timestamp = winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" });
+    const printf = winston.format.printf(({ level, message, timestamp, ...meta }) => {
+        const metaKeys = Object.keys(meta).filter(
+            (k) => k !== "timestamp" && k !== "level" && k !== "message",
+        );
+        const metaStr =
+            metaKeys.length > 0
+                ? ` ${JSON.stringify(Object.fromEntries(metaKeys.map((k) => [k, (meta as Record<string, unknown>)[k]])))}`
+                : "";
+        return `${String(timestamp)} ${level.toUpperCase()} ${String(message)}${metaStr}`;
+    });
+    return winston.format.combine(timestamp, winston.format.errors({ stack: true }), printf);
+}
 
-    return (level: string, message: string, meta?: unknown) => {
-        logger(level as LogLevel, message, meta);
-    };
+/**
+ * 安全创建文件日志传输目标
+ */
+function createFileTransportSafe(logDir?: string): DailyRotateFile | null {
+    try {
+        const dir = logDir || getDefaultLogDir();
+        fs.mkdirSync(dir, { recursive: true });
+
+        return new DailyRotateFile({
+            filename: path.join(dir, "%DATE%.log"),
+            datePattern: "YYYY-MM-DD",
+            zippedArchive: true,
+            maxFiles: "14d",
+        });
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * 获取默认日志目录
+ */
+function getDefaultLogDir(): string {
+    return path.join(os.tmpdir(), "cmtx-logs");
 }

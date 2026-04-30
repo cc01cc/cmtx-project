@@ -22,7 +22,7 @@
  *
  * @public
  */
-export type CloudProvider = 'aliyun-oss' | 'tencent-cos' | 'aws-s3';
+export type CloudProvider = "aliyun-oss" | "tencent-cos" | "aws-s3";
 
 /**
  * 阿里云凭证配置
@@ -34,7 +34,7 @@ export type CloudProvider = 'aliyun-oss' | 'tencent-cos' | 'aws-s3';
  */
 export interface AliyunCredentials {
     /** 云服务商标识 */
-    provider: 'aliyun-oss';
+    provider: "aliyun-oss";
     /** 访问密钥 ID */
     accessKeyId: string;
     /** 访问密钥 Secret */
@@ -61,7 +61,7 @@ export interface AliyunCredentials {
  */
 export interface TencentCredentials {
     /** 云服务商标识 */
-    provider: 'tencent-cos';
+    provider: "tencent-cos";
     /** 密钥 ID */
     secretId: string;
     /** 密钥 Key */
@@ -99,6 +99,8 @@ export interface CloudStorageConfig {
     bucket: string;
     /** 地域 */
     region: string;
+    /** Storage Pool 中的 Storage ID（例如: 'default', 'backup'） */
+    storageId?: string;
     /** 自定义域名（可选） */
     domain?: string;
     /** 访问密钥 ID（可选） */
@@ -146,7 +148,7 @@ export interface GetSignedUrlOptions {
      * - inline: 浏览器内嵌显示（预览）
      * - attachment: 下载文件
      */
-    disposition?: 'inline' | 'attachment';
+    disposition?: "inline" | "attachment";
 }
 
 /**
@@ -192,7 +194,7 @@ export interface IStorageAdapter {
     getSignedUrl?(
         remotePath: string,
         expires: number,
-        options?: GetSignedUrlOptions
+        options?: GetSignedUrlOptions,
     ): Promise<string>;
 
     /**
@@ -205,7 +207,7 @@ export interface IStorageAdapter {
     uploadBuffer?(
         key: string,
         body: Buffer,
-        options?: UploadBufferOptions
+        options?: UploadBufferOptions,
     ): Promise<AdapterUploadResult>;
 
     /**
@@ -241,4 +243,34 @@ export interface IStorageAdapter {
      * @param remotePath - 远程存储路径
      */
     delete?(remotePath: string): Promise<void>;
+
+    /**
+     * 列出对象（可选）
+     * @param prefix - 前缀（可选）
+     * @returns 对象元数据列表
+     */
+    list?(prefix?: string): Promise<ObjectMeta[]>;
+}
+
+/**
+ * 存储服务配置
+ *
+ * @description
+ * 用于 Service 模式的存储配置接口
+ *
+ * @remarks
+ * Storage 层只负责上传/下载/删除，不包含文件命名逻辑。
+ * 命名逻辑由上层（如 @cmtx/asset）处理。
+ *
+ * @public
+ */
+export interface StorageServiceConfig {
+    // TODO: IStorageAdapter 增加可选 timeout 参数（毫秒）
+    //   阿里云 OSS: put() 支持 timeout
+    //   腾讯云 COS: putObject() 支持 Timeout
+    //   实现后从 @cmtx/asset/config 的 CmtxUploadConfig.fileWriteTimeout 读取
+    /** 存储适配器 */
+    adapter: IStorageAdapter;
+    /** 前缀（可选） */
+    prefix?: string;
 }

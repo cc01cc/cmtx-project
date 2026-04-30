@@ -1,9 +1,30 @@
 {
     "name": "@cmtx/template",
-    "version": "0.1.1-alpha.0",
+    "version": "0.1.1-alpha.1",
     "description": "轻量级模板渲染引擎，提供灵活的模板变量管理和 Builder 模式 API",
-    "author": "cmtx",
+    "keywords": [
+        "builder",
+        "cmtx",
+        "markdown",
+        "rendering",
+        "template"
+    ],
+    "homepage": "https://github.com/cc01cc/cmtx-project/tree/main/packages/template",
+    "bugs": {
+        "url": "https://github.com/cc01cc/cmtx-project/issues"
+    },
     "license": "Apache-2.0",
+    "author": "cc01cc",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cc01cc/cmtx-project.git",
+        "directory": "packages/template"
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "CHANGELOG.md"
+    ],
     "type": "module",
     "main": "./dist/index.cjs",
     "module": "./dist/index.mjs",
@@ -15,11 +36,9 @@
             "require": "./dist/index.cjs"
         }
     },
-    "files": [
-        "dist",
-        "README.md",
-        "CHANGELOG.md"
-    ],
+    "publishConfig": {
+        "access": "public"
+    },
     "scripts": {
         "build": "tsdown",
         "build:watch": "tsdown --watch",
@@ -30,36 +49,16 @@
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",
         "clean": "rimraf dist",
-        "docs": "typedoc",
-        "lint": "biome check --write src tests"
+        "docs": "typedoc"
     },
     "devDependencies": {
         "@types/node": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:",
+        "rimraf": "catalog:dev",
         "typedoc": "catalog:",
-        "rimraf": "catalog:dev"
+        "typescript": "catalog:",
+        "vitest": "catalog:"
     },
     "engines": {
         "node": ">=22.0.0"
-    },
-    "publishConfig": {
-        "access": "public"
-    },
-    "keywords": [
-        "template",
-        "builder",
-        "markdown",
-        "rendering",
-        "cmtx"
-    ],
-    "homepage": "https://github.com/cc01cc/cmtx-project/tree/main/packages/template",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/cc01cc/cmtx-project.git",
-        "directory": "packages/template"
-    },
-    "bugs": {
-        "url": "https://github.com/cc01cc/cmtx-project/issues"
     }
 }

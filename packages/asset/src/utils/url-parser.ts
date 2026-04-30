@@ -13,8 +13,8 @@
  * - 支持签名 URL 识别
  */
 
-import { filterImagesInText } from '@cmtx/core';
-import { isStorageUrl } from './storage-url-detector.js';
+import { filterImagesInText } from "@cmtx/core";
+import { isStorageUrl } from "./storage-url-detector.js";
 
 /**
  * 图片信息
@@ -86,8 +86,8 @@ export class UrlParser {
     extractImageUrls(markdown: string): ImageInfo[] {
         // 使用 filterImagesInText 提取所有远程图片
         const images = filterImagesInText(markdown, {
-            mode: 'sourceType',
-            value: 'web',
+            mode: "sourceType",
+            value: "web",
         });
         return images.map((img) => ({
             src: img.src,
@@ -173,10 +173,10 @@ export class UrlParser {
      */
     private extractFileName(url: URL): string {
         const pathname = url.pathname;
-        const baseName = pathname.split('/').pop() || 'unknown';
+        const baseName = pathname.split("/").pop() || "unknown";
 
         // 移除查询参数（签名 URL 中的参数）
-        return baseName.split('?')[0];
+        return baseName.split("?")[0];
     }
 
     /**
@@ -187,7 +187,7 @@ export class UrlParser {
     private extractExtension(url: URL): string {
         const fileName = this.extractFileName(url);
         const match = fileName.match(/\.[a-zA-Z0-9]+$/);
-        return match ? match[0].toLowerCase() : '';
+        return match ? match[0].toLowerCase() : "";
     }
 
     /**
@@ -197,7 +197,7 @@ export class UrlParser {
      */
     private extractRemotePath(url: URL): string {
         // 移除开头的斜杠
-        return url.pathname.replace(/^\//, '');
+        return url.pathname.replace(/^\//, "");
     }
 }
 
@@ -218,11 +218,11 @@ export function createUrlParser(config: UrlParserConfig): UrlParser {
 export function extractFileNameFromUrl(urlString: string): string {
     try {
         const url = new URL(urlString);
-        return url.pathname.split('/').pop() || 'unknown';
+        return url.pathname.split("/").pop() || "unknown";
     } catch {
         // 如果 URL 解析失败，尝试从字符串提取
-        const parts = urlString.split('/');
-        return parts[parts.length - 1].split('?')[0] || 'unknown';
+        const parts = urlString.split("/");
+        return parts[parts.length - 1].split("?")[0] || "unknown";
     }
 }
 
@@ -234,7 +234,7 @@ export function extractFileNameFromUrl(urlString: string): string {
 export function extractExtensionFromUrl(urlString: string): string {
     const fileName = extractFileNameFromUrl(urlString);
     const match = fileName.match(/\.([a-zA-Z0-9]+)$/);
-    return match ? match[1].toLowerCase() : '';
+    return match ? match[1].toLowerCase() : "";
 }
 
 /**

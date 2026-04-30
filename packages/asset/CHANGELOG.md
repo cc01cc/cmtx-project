@@ -1,4 +1,89 @@
-# @cmtx/upload Changelog
+# @cmtx/asset 更新日志 / Changelog
+
+## [0.1.1-alpha.1] - 2026-04-30
+### Added
+
+- **Storage Pool**: 支持多存储后端配置（v2），存储配置重构
+- **进度追踪**: 新增上传进度跟踪功能（`ProgressTracker`）
+- **冲突处理**: 上传冲突处理策略（`conflictResolution`），可配置覆盖/跳过/重命名
+- **完成统计**: 上传完成后输出详细统计信息（成功/失败/跳过数量）
+- **环境变量替换**: 支持配置中的 `${ENV_VAR}` 环境变量替换
+- **临时目录管理**: 新增临时文件目录管理工具
+- **FileService**: 新增文件服务模块，替代直接的 `@cmtx/core` 函数调用
+- **DeleteService**: 新增删除服务模块，封装文件删除逻辑
+- **AssetService**: 新增资产管理服务模块
+
+### Changed
+
+- **配置架构**: 配置验证和加载逻辑从 VS Code 扩展迁移至 `@cmtx/asset`，配置集中管理
+- **日志系统**: 日志回调从函数类型 `LoggerCallback` 变更为对象类型 `Logger`（`.debug()/.info()/.error()`），破坏性变更
+- **命名模板**: 优化命名模板渲染，支持更多内置变量
+- **类型重命名**: `StorageOptions` -> `StorageConfig`、`DeleteOptions` -> `DeleteConfig`、`ReplaceOptions` -> `ReplaceConfig`、`EventOptions` -> `EventConfig`（保留类型别名以兼容旧代码）
+- **Uploader API**: 移除 `UploadOptions | LoggerCallback` 第三参数重载，仅保留对象参数形式
+- 更新 Vitest 配置，简化 workspace 定义
+
+### Removed
+
+- **renderTemplateImage**: 移除 `renderTemplateImage()` 方法，改为委托 `@cmtx/template` 的 `renderTemplate()` 并传入 `emptyString: "preserve"` 选项
+
+### Fixed
+
+- 修复多图片替换时的位置偏移 bug
+
+---
+
+### Added
+
+- **Storage Pool**: Support for multi-storage backend configuration (v2), storage config refactored
+- **Progress Tracking**: Upload progress tracking (`ProgressTracker`)
+- **Conflict Resolution**: Upload conflict resolution strategy (`conflictResolution`) with overwrite/skip/rename options
+- **Completion Stats**: Detailed upload statistics upon completion (success/failure/skip counts)
+- **Env Var Substitution**: Support for `${ENV_VAR}` environment variable substitution in config
+- **Temp Directory Management**: Temporary file directory management utility
+- **FileService**: New file service module, replacing direct `@cmtx/core` function calls
+- **DeleteService**: New delete service module encapsulating file deletion logic
+- **AssetService**: New asset management service module
+
+### Changed
+
+- **Config Architecture**: Config validation and loading logic migrated from VS Code extension to `@cmtx/asset` for centralized management
+- **Logger**: Logger callback changed from function type `LoggerCallback` to object type `Logger` (`.debug()/.info()/.error()`), breaking change
+- **Naming Template**: Optimized naming template rendering with more built-in variables
+- **Type Renames**: `StorageOptions` -> `StorageConfig`, `DeleteOptions` -> `DeleteConfig`, `ReplaceOptions` -> `ReplaceConfig`, `EventOptions` -> `EventConfig` (type aliases preserved for backward compatibility)
+- **Uploader API**: Removed `UploadOptions | LoggerCallback` third-parameter overload, only object parameter form retained
+- Updated Vitest config, simplified workspace definition
+
+### Removed
+
+- **renderTemplateImage**: Removed `renderTemplateImage()` method, delegates to `@cmtx/template`'s `renderTemplate()` with `emptyString: "preserve"` option
+
+### Fixed
+
+- Fixed position offset bug during multi-image replacement
+
+## 0.1.2-alpha.0
+
+### Breaking Changes
+
+- **ConfigAdapter**: 移除 `getDeduplicateEnabled()` 方法
+- **TransferConfig**: 移除 `namingStrategy` 属性，使用 `namingTemplate` 替代
+
+### Migration Guide
+
+- 移除对 `ConfigAdapter.getDeduplicateEnabled()` 的调用（该方法始终返回 true）
+- 将 `namingStrategy` 配置替换为 `namingTemplate`：
+
+    ```typescript
+    // 旧配置
+    {
+        namingStrategy: "preserve";
+    }
+
+    // 新配置
+    {
+        namingTemplate: "{name}{ext}";
+    }
+    ```
 
 ## 0.1.1-alpha.0
 
@@ -6,44 +91,25 @@
 
 - 7d85dec: changeset test
 - Updated dependencies [7d85dec]
-  - @cmtx/core@0.3.1-alpha.0
-  - @cmtx/storage@0.1.1-alpha.0
-  - @cmtx/template@0.1.1-alpha.0
+    - @cmtx/core@0.3.1-alpha.0
+    - @cmtx/storage@0.1.1-alpha.0
+    - @cmtx/template@0.1.1-alpha.0
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
-
-### Fixed
-
-- **#BUG-位置偏移**: 修复单个 Markdown 文件中包含 3 个或更多不同图片时的文件损坏问题
-  - 问题：当替换 3+ 图片时，使用循环中累积的替换导致位置偏移，产生文本重叠（如 `![Banner](...)es/ba![Icon](...)`）
-  - 原因：原始代码在循环中多次调用 `replaceImagesInText()`，每次使用过时的位置信息到已修改的内容上应用
-  - 解决：改为一次性收集所有替换任务，使用单个 MagicString 按倒序处理所有图片，避免位置累积偏移
-
-### Tests
-
-- 增强测试设计：实施 8 层验证策略，从返回值到文件完整性
-  - 核心测试：添加详细注释说明为什么需要 3+ 图片的测试
-  - 验证层级：返回值 → 计数 → 完整语法 → 原始值不变性 → 文本重叠检查 → 结构完整性 → 内容保留 → 一致性检查
-  - 防护机制：防止类似"位置偏移"的累积修改 bug 在未来重复出现
-  - 文档化：将 bug 分析整合到测试注释中，便于代码审查和维护理解
-
 ## 0.1.0 - 2026-01-22
 
-### Added
-
-#### 核心功能
+### 核心功能
 
 - `analyzeImages`: 分析本地图片引用，统计文件大小和引用情况
 - `uploadImage`: 上传单个图片并自动替换 Markdown 引用
 - `uploadAndReplace`: 批量上传所有本地图片（串行执行，支持错误恢复）
 
-#### 适配器
+### 适配器
 
 - `AliOSSAdapter`: 阿里云 OSS 存储适配器实现
 
-#### 功能特性
+### 功能特性
 
 - 路径安全验证（所有操作限制在 projectRoot 内）
 - 文件大小限制（默认 10MB，可配置）
@@ -53,7 +119,7 @@ All notable changes to this project will be documented in this file.
 - 可选的 logger 回调（调试和监控）
 - 上传前缀配置（组织 OSS 文件结构）
 
-#### 类型定义
+### 类型定义
 
 - `IStorageAdapter`: 存储适配器接口（支持自定义实现）
 - `UploadOptions`: 上传选项配置
@@ -61,22 +127,72 @@ All notable changes to this project will be documented in this file.
 - `UploadResult`: 单个文件上传结果
 - `UploadAnalysis`: 图片分析结果
 
-#### 文档和示例
+### 文档和示例
 
 - 完整的 README 文档（中文）
 - 4 个使用示例：
-  - 分析本地图片引用
-  - 上传单个图片
-  - 批量上传
-  - 阿里云 OSS 完整示例
+    - 分析本地图片引用
+    - 上传单个图片
+    - 批量上传
+    - 阿里云 OSS 完整示例
 - TypeScript 类型声明和 JSDoc 注释
 
-#### 测试
+### 测试
 
 - 10 个测试用例全部通过
 - 覆盖核心功能、路径验证、事件回调、错误处理
 
-#### 依赖
+### 依赖
 
 - 依赖 @cmtx/core（workspace）
 - ali-oss 作为 peerDependency（可选）
+
+---
+
+### Core Features
+
+- `analyzeImages`: Analyze local image references, report file sizes and reference counts
+- `uploadImage`: Upload a single image and automatically replace Markdown references
+- `uploadAndReplace`: Batch upload all local images (serial execution with error recovery)
+
+### Adapters
+
+- `AliOSSAdapter`: Alibaba Cloud OSS storage adapter implementation
+
+### Features
+
+- Path safety validation (all operations scoped within projectRoot)
+- File size limit (default 10MB, configurable)
+- Extension whitelist filtering (supports jpg/jpeg/png/gif/svg/webp by default)
+- Event callback mechanism (scan/upload/replace/complete events)
+- Dry-run mode support (preview without actual execution)
+- Optional logger callback (debugging and monitoring)
+- Upload prefix configuration (organize OSS file structure)
+
+### Type Definitions
+
+- `IStorageAdapter`: Storage adapter interface (supports custom implementations)
+- `UploadOptions`: Upload option configuration
+- `UploadEvent`: Event type definitions
+- `UploadResult`: Single file upload result
+- `UploadAnalysis`: Image analysis result
+
+### Documentation and Examples
+
+- Complete README documentation (Chinese)
+- 4 usage examples:
+    - Analyze local image references
+    - Upload a single image
+    - Batch upload
+    - Alibaba Cloud OSS complete example
+- TypeScript type declarations and JSDoc comments
+
+### Tests
+
+- 10 test cases all passing
+- Covers core functionality, path validation, event callbacks, error handling
+
+### Dependencies
+
+- Depends on @cmtx/core (workspace)
+- ali-oss as peerDependency (optional)

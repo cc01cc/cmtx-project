@@ -6,7 +6,7 @@
  * 提供 MD5 哈希生成函数，供 Upload 和 Download 模块共用。
  */
 
-import { createHash } from 'node:crypto';
+import { createHash } from "node:crypto";
 
 /**
  * 生成 MD5 哈希
@@ -31,7 +31,7 @@ import { createHash } from 'node:crypto';
  * ```
  */
 export function generateMD5(content: string | Buffer, length: number = 32): string {
-    const hash = createHash('md5');
+    const hash = createHash("md5");
     hash.update(content);
-    return hash.digest('hex').slice(0, length);
+    return hash.digest("hex").slice(0, length);
 }

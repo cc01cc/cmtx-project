@@ -20,9 +20,9 @@
  * - **策略选择**：支持回收站、移动、硬删除三种方式
  */
 
-import type { DeleteFileOptions, LoggerCallback } from '@cmtx/core';
-import { deleteLocalImage, deleteLocalImageSafely } from '@cmtx/core';
-import type { DeleteOptions } from './types.js';
+import type { DeleteFileOptions, Logger } from "@cmtx/core";
+import { FileService } from "../file/file-service.js";
+import type { DeleteOptions } from "./types.js";
 
 /**
  * 删除本地图片
@@ -35,48 +35,42 @@ import type { DeleteOptions } from './types.js';
 export async function deleteImages(
     uploadedPaths: Set<string>,
     deleteOptions: DeleteOptions,
-    logger?: LoggerCallback
+    logger?: Logger,
 ): Promise<{ deletedCount: number }> {
-    logger?.('debug', `[DeleteService] Deleting ${uploadedPaths.size} images`);
+    logger?.debug(`[DeleteService] Deleting ${uploadedPaths.size} images`);
 
     let deletedCount = 0;
+    const fileService = new FileService();
 
     // 执行删除
     for (const imageAbsPath of uploadedPaths) {
         try {
-            logger?.('debug', `[DeleteService] Deleting ${imageAbsPath}`);
+            logger?.debug(`[DeleteService] Deleting ${imageAbsPath}`);
 
             // 将 DeleteConfig 转换为 DeleteFileOptions
             const fileOptions: DeleteFileOptions = {
-                strategy: deleteOptions.strategy === 'trash' ? 'move' : 'hard-delete',
+                strategy: deleteOptions.strategy === "trash" ? "move" : "hard-delete",
                 trashDir: deleteOptions.trashDir,
                 maxRetries: deleteOptions.maxRetries,
             };
 
-            let result;
-            if (deleteOptions.rootPath) {
-                result = await deleteLocalImageSafely(
-                    imageAbsPath,
-                    deleteOptions.rootPath,
-                    fileOptions
-                );
-            } else {
-                result = await deleteLocalImage(imageAbsPath, fileOptions);
-            }
-            if (result.status === 'success') {
+            const result = await fileService.deleteLocalImage(imageAbsPath, fileOptions);
+            if (result.status === "success") {
                 deletedCount++;
-                logger?.('info', `[DeleteService] Success: ${imageAbsPath}`);
+                logger?.info(`[DeleteService] Success: ${imageAbsPath}`);
             } else {
-                logger?.('warn', `[DeleteService] Failed: ${imageAbsPath}`, {
+                logger?.warn(`[DeleteService] Failed: ${imageAbsPath}`, {
                     error: result.error,
                 });
             }
         } catch (err) {
             const error = err instanceof Error ? err : new Error(String(err));
-            logger?.('warn', `[DeleteService] Error: ${imageAbsPath}`, { error });
+            logger?.warn(`[DeleteService] Error: ${imageAbsPath}`, {
+                error,
+            });
         }
     }
 
-    logger?.('info', `[DeleteService] Deleted ${deletedCount}/${uploadedPaths.size} images`);
+    logger?.info(`[DeleteService] Deleted ${deletedCount}/${uploadedPaths.size} images`);
     return { deletedCount };
 }

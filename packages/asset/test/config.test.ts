@@ -3,101 +3,130 @@
  * 基于新的 types.ts API
  */
 
-import { describe, expect, it } from 'vitest';
-import { ConfigBuilder } from '../src/types.js';
+import { describe, expect, it } from "vitest";
+import { ConfigBuilder } from "../src/upload/config.js";
 
-describe('配置构建器测试', () => {
-    describe('基础配置构建', () => {
-        it('应该正确构建最小配置', () => {
+describe("配置构建器测试", () => {
+    describe("基础配置构建", () => {
+        it("应该正确构建最小配置", () => {
             const config = new ConfigBuilder()
-                .storage({
-                    upload: async () => ({ name: 'test', url: 'https://cdn.example.com/uploaded' }),
-                } as any)
+                .storages({
+                    default: {
+                        adapter: {
+                            upload: async () => ({
+                                name: "test",
+                                url: "https://cdn.example.com/uploaded",
+                            }),
+                        } as any,
+                    },
+                })
+                .useStorage("default")
                 .build();
 
-            expect(config.storage).toBeDefined();
-            expect(config.storage.adapter).toBeDefined();
+            expect(config.storages["default"]).toBeDefined();
+            expect(config.storages["default"].adapter).toBeDefined();
             expect(config.replace).toBeDefined();
             expect(config.delete).toBeDefined();
         });
 
-        it('应该正确处理存储配置', () => {
+        it("应该正确处理存储配置", () => {
             const config = new ConfigBuilder()
-                .storage(
-                    {
-                        upload: async () => ({
-                            name: 'test',
-                            url: 'https://cdn.example.com/uploaded',
-                        }),
-                    } as any,
-                    {
-                        prefix: 'uploads/',
-                        namingTemplate: '{name}_{hash}{ext}',
-                    }
-                )
+                .storages({
+                    default: {
+                        adapter: {
+                            upload: async () => ({
+                                name: "test",
+                                url: "https://cdn.example.com/uploaded",
+                            }),
+                        } as any,
+                        namingTemplate: "{name}_{hash}{ext}",
+                    },
+                })
+                .useStorage("default")
+                .prefix("uploads/")
                 .build();
 
-            expect(config.storage.prefix).toBe('uploads/');
-            expect(config.storage.namingTemplate).toBe('{name}_{hash}{ext}');
+            expect(config.prefix).toBe("uploads/");
+            expect(config.storages["default"].namingTemplate).toBe("{name}_{hash}{ext}");
         });
     });
 
-    describe('字段模板配置', () => {
-        it('应该正确处理字段模板', () => {
+    describe("字段模板配置", () => {
+        it("应该正确处理字段模板", () => {
             const config = new ConfigBuilder()
-                .storage({} as any)
+                .storages({
+                    default: {
+                        adapter: {} as any,
+                    },
+                })
+                .useStorage("default")
                 .fieldTemplates({
-                    src: '{cloudSrc}?optimize=true',
-                    alt: '{originalValue} [processed]',
-                    title: '固定标题',
+                    src: "{cloudSrc}?optimize=true",
+                    alt: "{originalValue} [processed]",
+                    title: "固定标题",
                 })
                 .build();
 
-            expect(config.replace?.fields.src).toBe('{cloudSrc}?optimize=true');
-            expect(config.replace?.fields.alt).toBe('{originalValue} [processed]');
-            expect(config.replace?.fields.title).toBe('固定标题');
+            expect(config.replace?.fields.src).toBe("{cloudSrc}?optimize=true");
+            expect(config.replace?.fields.alt).toBe("{originalValue} [processed]");
+            expect(config.replace?.fields.title).toBe("固定标题");
         });
 
-        it('应该正确处理完整替换配置', () => {
+        it("应该正确处理完整替换配置", () => {
             const config = new ConfigBuilder()
-                .storage({} as any)
+                .storages({
+                    default: {
+                        adapter: {} as any,
+                    },
+                })
+                .useStorage("default")
                 .replace({
                     fields: {
-                        alt: '{originalValue} [新版]',
+                        alt: "{originalValue} [新版]",
                     },
                     context: {
-                        author: '测试作者',
+                        author: "测试作者",
                     },
                 })
                 .build();
 
-            expect(config.replace?.fields.alt).toBe('{originalValue} [新版]');
-            expect(config.replace?.context?.author).toBe('测试作者');
+            expect(config.replace?.fields.alt).toBe("{originalValue} [新版]");
+            expect(config.replace?.context?.author).toBe("测试作者");
         });
     });
 
-    describe('删除配置', () => {
-        it('应该正确处理删除配置', () => {
+    describe("删除配置", () => {
+        it("应该正确处理删除配置", () => {
             const config = new ConfigBuilder()
-                .storage({} as any)
+                .storages({
+                    default: {
+                        adapter: {} as any,
+                    },
+                })
+                .useStorage("default")
                 .delete({
-                    strategy: 'trash',
+                    strategy: "trash",
                     maxRetries: 3,
                 })
                 .build();
 
-            expect(config.delete?.strategy).toBe('trash');
+            expect(config.delete?.strategy).toBe("trash");
             expect(config.delete?.maxRetries).toBe(3);
         });
     });
 
-    describe('事件配置', () => {
-        it('应该正确处理事件回调', () => {
+    describe("事件配置", () => {
+        it("应该正确处理事件回调", () => {
             const mockProgress = () => {};
-            const mockLogger = () => {};
+            const mockLogger = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} };
 
             const config = new ConfigBuilder()
-                .storage({} as any)
+                .storages({
+                    default: {
+                        adapter: {} as any,
+                    },
+                })
+                .useStorage("default")
                 .events(mockProgress, mockLogger)
                 .build();
 
@@ -106,16 +135,21 @@ describe('配置构建器测试', () => {
         });
     });
 
-    describe('错误处理', () => {
-        it('应该在缺少存储配置时报错', () => {
+    describe("错误处理", () => {
+        it("应该在缺少存储配置时报错", () => {
             expect(() => {
                 new ConfigBuilder().build();
-            }).toThrow('Storage configuration is required');
+            }).toThrow("Storage pool configuration is required");
         });
 
-        it('应该正确处理空字段模板', () => {
+        it("应该正确处理空字段模板", () => {
             const config = new ConfigBuilder()
-                .storage({} as any)
+                .storages({
+                    default: {
+                        adapter: {} as any,
+                    },
+                })
+                .useStorage("default")
                 .fieldTemplates({})
                 .build();
 
@@ -123,27 +157,40 @@ describe('配置构建器测试', () => {
         });
     });
 
-    describe('配置验证', () => {
-        it('应该提供合理的默认值', () => {
-            const config = new ConfigBuilder().storage({} as any).build();
-
-            // 检查默认值
-            expect(config.replace?.fields.src).toBe('{cloudSrc}');
-            expect(config.replace?.fields.alt).toBe('{originalAlt}');
-            expect(config.delete?.strategy).toBe('trash');
-        });
-
-        it('应该正确合并配置', () => {
+    describe("配置验证", () => {
+        it("应该提供合理的默认值", () => {
             const config = new ConfigBuilder()
-                .storage({} as any, { prefix: 'test/' })
-                .fieldTemplates({ src: 'custom-{cloudSrc}' })
-                .delete({ strategy: 'trash' })
+                .storages({
+                    default: {
+                        adapter: {} as any,
+                    },
+                })
+                .useStorage("default")
                 .build();
 
-            expect(config.storage.prefix).toBe('test/');
-            expect(config.replace?.fields.src).toBe('custom-{cloudSrc}');
+            // 检查默认值
+            expect(config.replace?.fields.src).toBe("{cloudSrc}");
+            expect(config.replace?.fields.alt).toBe("{originalAlt}");
+            expect(config.delete?.enabled).toBe(false);
+        });
+
+        it("应该正确合并配置", () => {
+            const config = new ConfigBuilder()
+                .storages({
+                    default: {
+                        adapter: {} as any,
+                    },
+                })
+                .useStorage("default")
+                .prefix("test/")
+                .fieldTemplates({ src: "custom-{cloudSrc}" })
+                .delete({ strategy: "trash" })
+                .build();
+
+            expect(config.prefix).toBe("test/");
+            expect(config.replace?.fields.src).toBe("custom-{cloudSrc}");
             // 注意：delete 配置会被默认值覆盖，所以仍然是 'trash'
-            expect(config.delete?.strategy).toBe('trash');
+            expect(config.delete?.strategy).toBe("trash");
         });
     });
 });

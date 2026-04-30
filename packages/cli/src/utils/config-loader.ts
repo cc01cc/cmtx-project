@@ -9,12 +9,24 @@
  * 5. /etc/cmtx/.cmtxrc.json（系统全局，仅 Linux/Mac）
  */
 
-import { readFile, stat } from 'node:fs/promises';
-import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
-import { platform } from 'node:process';
+import { access } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
+import { platform } from "node:process";
 
-import type { CmtxConfig } from '../types/cli.js';
+import { FileService } from "@cmtx/asset/file";
+import type { CmtxConfig } from "../types/cli.js";
+
+const fileService = new FileService();
+
+async function fileExists(filePath: string): Promise<boolean> {
+    try {
+        await access(filePath);
+        return true;
+    } catch {
+        return false;
+    }
+}
 
 /**
  * 加载配置文件
@@ -27,12 +39,12 @@ export async function loadConfig(configPath?: string): Promise<CmtxConfig> {
             const exists = await fileExists(path);
             if (!exists) continue;
 
-            if (path.endsWith('.json')) {
-                const content = await readFile(path, 'utf-8');
+            if (path.endsWith(".json")) {
+                const content = await fileService.readFileContent(path);
                 return JSON.parse(content) as CmtxConfig;
             }
 
-            if (path.endsWith('.ts')) {
+            if (path.endsWith(".ts")) {
                 // 动态导入 TypeScript 配置文件（需要 tsx 或其他加载器）
                 // 这里简化为返回空配置，实际实现可使用 tsx 或 esbuild
                 return {};
@@ -56,31 +68,19 @@ function buildSearchPaths(configPath?: string): string[] {
     }
 
     // 当前目录
-    paths.push(resolve('cmtx.config.ts'));
-    paths.push(resolve('.cmtxrc.json'));
+    paths.push(resolve("cmtx.config.ts"));
+    paths.push(resolve(".cmtxrc.json"));
 
     // 用户主目录
     const home = homedir();
-    paths.push(join(home, '.cmtxrc.json'));
+    paths.push(join(home, ".cmtxrc.json"));
 
     // 系统全局（仅 Linux/Mac）
-    if (platform !== 'win32') {
-        paths.push('/etc/cmtx/.cmtxrc.json');
+    if (platform !== "win32") {
+        paths.push("/etc/cmtx/.cmtxrc.json");
     }
 
     return paths;
-}
-
-/**
- * 检查文件是否存在
- */
-async function fileExists(filePath: string): Promise<boolean> {
-    try {
-        await stat(filePath);
-        return true;
-    } catch {
-        return false;
-    }
 }
 
 /**

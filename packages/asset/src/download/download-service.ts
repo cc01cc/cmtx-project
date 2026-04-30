@@ -18,18 +18,18 @@
  * - 私有存储：通过 IStorageAdapter.downloadToFile 下载
  */
 
-import { promises as fs } from 'node:fs';
-import { dirname, join } from 'node:path';
-import type { IStorageAdapter } from '@cmtx/storage';
-import pLimit from 'p-limit';
+import { promises as fs } from "node:fs";
+import { dirname, join } from "node:path";
+import type { IStorageAdapter } from "@cmtx/storage";
+import { renderTemplate } from "@cmtx/template";
+import pLimit from "p-limit";
 import {
     DEFAULT_NAMING_TEMPLATE,
     generateNamingVariables,
     generateUniqueFileName,
-    renderNamingTemplate,
-} from './naming-handler.js';
-import type { DownloadItem, DownloadOptions, DownloadResult, ParsedUrlInfo } from './types.js';
-import { createUrlMatcher, type UrlMatcher } from './url-matcher.js';
+} from "./naming-handler.js";
+import type { DownloadItem, DownloadOptions, DownloadResult, ParsedUrlInfo } from "./types.js";
+import { createUrlMatcher, type UrlMatcher } from "./url-matcher.js";
 
 /**
  * 下载服务配置
@@ -64,7 +64,7 @@ export class DownloadService {
      * @returns 下载结果
      */
     async downloadFromMarkdown(markdownPath: string): Promise<DownloadResult> {
-        const content = await fs.readFile(markdownPath, 'utf-8');
+        const content = await fs.readFile(markdownPath, "utf-8");
         return this.downloadFromContent(content);
     }
 
@@ -98,7 +98,7 @@ export class DownloadService {
         const limit = pLimit(concurrency);
 
         const items = await Promise.all(
-            matchedUrls.map((urlInfo, index) => limit(() => this.downloadSingle(urlInfo, index)))
+            matchedUrls.map((urlInfo, index) => limit(() => this.downloadSingle(urlInfo, index))),
         );
 
         // 统计结果
@@ -118,7 +118,10 @@ export class DownloadService {
                 result.success++;
             } else {
                 result.failed++;
-                result.errors.push({ url: item.originalUrl, error: item.error || 'Unknown error' });
+                result.errors.push({
+                    url: item.originalUrl,
+                    error: item.error || "Unknown error",
+                });
             }
         }
 
@@ -136,17 +139,17 @@ export class DownloadService {
     async downloadSingleUrl(
         url: string,
         outputDir: string,
-        sequence: number = 1
+        sequence: number = 1,
     ): Promise<DownloadItem> {
         const urlInfo = this.urlMatcher.parseUrl(url);
         if (!urlInfo) {
             return {
                 originalUrl: url,
-                localPath: '',
-                fileName: '',
+                localPath: "",
+                fileName: "",
                 size: 0,
                 success: false,
-                error: 'Invalid URL',
+                error: "Invalid URL",
             };
         }
 
@@ -176,17 +179,19 @@ export class DownloadService {
             urlInfo.baseName,
             urlInfo.ext,
             undefined,
-            sequence
+            sequence,
         );
 
         const template = options.namingTemplate || DEFAULT_NAMING_TEMPLATE;
-        let fileName = renderNamingTemplate(template, namingVars);
+        let fileName = renderTemplate(template, namingVars, {
+            postProcess: (result) => result.replace(/\/+/g, "/"),
+        });
 
         // 如果使用了 MD5 变量，需要先下载内容计算 MD5
         if (
-            template.includes('{md5') ||
-            template.includes('{md5_8}') ||
-            template.includes('{md5_16}')
+            template.includes("{md5") ||
+            template.includes("{md5_8}") ||
+            template.includes("{md5_16}")
         ) {
             // TODO: 先下载到临时文件，计算 MD5 后重命名
             // 当前简化处理，使用默认 MD5
@@ -222,7 +227,7 @@ export class DownloadService {
             fileName,
             bytesDownloaded: 0,
             totalBytes: 0,
-            status: 'downloading',
+            status: "downloading",
         });
 
         try {
@@ -235,7 +240,7 @@ export class DownloadService {
                 fileName,
                 bytesDownloaded: size,
                 totalBytes: size,
-                status: 'completed',
+                status: "completed",
             });
 
             return {
@@ -254,7 +259,7 @@ export class DownloadService {
                 fileName,
                 bytesDownloaded: 0,
                 totalBytes: 0,
-                status: 'failed',
+                status: "failed",
             });
 
             return {
@@ -296,7 +301,7 @@ export class DownloadService {
     private async downloadWithAdapter(
         remotePath: string,
         localPath: string,
-        adapter: IStorageAdapter
+        adapter: IStorageAdapter,
     ): Promise<number> {
         const maxRetries = 3;
         let lastError: Error | undefined;

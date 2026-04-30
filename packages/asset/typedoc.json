@@ -1,13 +1,24 @@
 {
     "extends": ["../../typedoc.base.json"],
-    "entryPoints": ["src/index.ts", "src/transfer/types.ts", "src/download/download-service.ts"],
-    "out": "docs/api",
-    "name": "@cmtx/upload",
+    "entryPoints": ["src/index.ts"],
+    "name": "@cmtx/asset",
     "includeVersion": true,
-    "tsconfig": "tsconfig.typedoc.json",
-    "externalSymbolLinkMappings": {
-        "@cmtx/core": {
-            "DeleteFileOptions": "#"
-        }
-    }
+    "readme": "README.md",
+    "categoryOrder": [
+        "删除服务",
+        "下载服务",
+        "上传服务",
+        "转移服务",
+        "文件操作",
+        "配置管理",
+        "工具函数",
+        "核心类型",
+        "删除类型",
+        "下载类型",
+        "上传类型",
+        "转移类型",
+        "文件类型",
+        "配置类型",
+        "*"
+    ]
 }

@@ -1,7 +1,7 @@
 {
     "extends": ["../../typedoc.base.json"],
-    "entryPoints": ["src/index.ts", "src/adapters/ali-oss.ts"],
-    "out": "docs/api",
+    "entryPoints": ["src/index.ts"],
     "name": "@cmtx/storage",
-    "tsconfig": "tsconfig.json"
+    "includeVersion": true,
+    "readme": "README.md"
 }

@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+
 /**
  * 存储适配器工厂
  *
@@ -37,9 +39,12 @@
  * ```
  */
 
-import type { CloudCredentials, IStorageAdapter } from '../types.js';
-import { AliOSSAdapter } from './ali-oss.js';
-import { TencentCOSAdapter } from './tencent-cos.js';
+import type { CloudCredentials, IStorageAdapter } from "../types.js";
+import OSS from "ali-oss";
+import COS from "cos-nodejs-sdk-v5";
+import { AliOSSAdapter } from "./ali-oss.js";
+import { TencentCOSAdapter } from "./tencent-cos.js";
+import type { CosClient } from "./cos-types.js";
 
 /**
  * 根据凭证配置创建存储适配器
@@ -73,8 +78,7 @@ import { TencentCOSAdapter } from './tencent-cos.js';
  */
 export async function createAdapter(credentials: CloudCredentials): Promise<IStorageAdapter> {
     switch (credentials.provider) {
-        case 'aliyun-oss': {
-            const OSS = (await import('ali-oss')).default;
+        case "aliyun-oss": {
             const client = new OSS({
                 region: credentials.region,
                 accessKeyId: credentials.accessKeyId,
@@ -85,14 +89,12 @@ export async function createAdapter(credentials: CloudCredentials): Promise<ISto
             return new AliOSSAdapter(client);
         }
 
-        case 'tencent-cos': {
-            const COS = (await import('cos-nodejs-sdk-v5')).default;
+        case "tencent-cos": {
             const client = new COS({
                 SecretId: credentials.secretId,
                 SecretKey: credentials.secretKey,
                 SecurityToken: credentials.sessionToken,
-                // biome-ignore lint/suspicious/noExplicitAny: COS SDK 未提供完整类型定义
-            }) as any;
+            }) as unknown as CosClient;
             return new TencentCOSAdapter(client, {
                 Bucket: credentials.bucket,
                 Region: credentials.region,
@@ -102,7 +104,7 @@ export async function createAdapter(credentials: CloudCredentials): Promise<ISto
         default:
             throw new Error(
                 `Unsupported storage provider: ${(credentials as { provider: string }).provider}. ` +
-                    `Supported providers: aliyun-oss, tencent-cos`
+                    `Supported providers: aliyun-oss, tencent-cos`,
             );
     }
 }

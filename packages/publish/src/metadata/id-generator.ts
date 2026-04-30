@@ -1,9 +1,8 @@
-import { createHash, randomUUID } from 'node:crypto';
-import { renderTemplate } from '@cmtx/template';
-import type { EncryptedIdValidationResult, FF1EncryptOptions } from '../types.js';
-import type { FF1CipherWASM } from './fpe-ff1.js';
-import { decryptString, encryptString, FF1Cipher, prepareFPEKey } from './fpe-ff1.js';
-import { LuhnAlgorithm } from './luhn.js';
+import { createHash, randomUUID } from "node:crypto";
+import { renderTemplate } from "@cmtx/template";
+import type { EncryptedIdValidationResult, FF1EncryptOptions } from "../types.js";
+import { decryptString, encryptString, FF1CipherWASM, prepareFPEKey } from "./fpe-ff1.js";
+import { LuhnAlgorithm } from "./luhn.js";
 
 /**
  * ID 生成器
@@ -20,33 +19,37 @@ export class IdGenerator {
      * @returns 生成的 ID
      */
     public generate(
-        strategy: string = 'slug',
-        input: string = '',
-        options?: { encryptionKey?: string | Buffer; radix?: number; withChecksum?: boolean }
+        strategy: string = "slug",
+        input: string = "",
+        options?: {
+            encryptionKey?: string | Buffer;
+            radix?: number;
+            withChecksum?: boolean;
+        },
     ): string {
         switch (strategy) {
-            case 'ff1':
+            case "ff1":
                 if (!options?.encryptionKey) {
-                    throw new Error('encryptionKey is required for FF1 strategy');
+                    throw new Error("encryptionKey is required for FF1 strategy");
                 }
                 return this.encryptFF1(input, options.encryptionKey, {
                     radix: options.radix,
                     withChecksum: options.withChecksum,
                 });
 
-            case 'uuid':
+            case "uuid":
                 return this.generateUUID();
 
-            case 'md5':
-                return this.generateHash(input, 'md5', 8);
+            case "md5":
+                return this.generateHash(input, "md5", 8);
 
-            case 'sha1':
-                return this.generateHash(input, 'sha1', 8);
+            case "sha1":
+                return this.generateHash(input, "sha1", 8);
 
-            case 'sha256':
-                return this.generateHash(input, 'sha256', 8);
+            case "sha256":
+                return this.generateHash(input, "sha256", 8);
 
-            case 'slug':
+            case "slug":
                 return this.generateSlug(input);
 
             default:
@@ -78,7 +81,7 @@ export class IdGenerator {
     public encryptFF1(
         plaintext: string,
         encryptionKey: string | Buffer,
-        options?: FF1EncryptOptions
+        options?: FF1EncryptOptions,
     ): string {
         const { radix = 36, withChecksum = false } = options ?? {};
 
@@ -104,7 +107,7 @@ export class IdGenerator {
     public decryptFF1(
         ciphertext: string,
         encryptionKey: string | Buffer,
-        options?: { radix?: number; withChecksum?: boolean }
+        options?: { radix?: number; withChecksum?: boolean },
     ): string {
         const { radix = 36, withChecksum = false } = options ?? {};
 
@@ -131,22 +134,22 @@ export class IdGenerator {
             radix?: number;
             withChecksum?: boolean;
             encryptionKey: string | Buffer;
-        }
+        },
     ): EncryptedIdValidationResult {
         const { prefix, radix = 36, withChecksum = false, encryptionKey } = options;
 
         if (!encryptionKey) {
-            throw new Error('encryptionKey is required for validation');
+            throw new Error("encryptionKey is required for validation");
         }
 
         let normalizedId = id.toUpperCase();
 
         if (prefix) {
-            const prefixPattern = new RegExp(`^${this.escapeRegExp(prefix)}-`, 'i');
+            const prefixPattern = new RegExp(`^${this.escapeRegExp(prefix)}-`, "i");
             if (!prefixPattern.test(normalizedId)) {
                 return { valid: false, checksumValid: false };
             }
-            normalizedId = normalizedId.replace(prefixPattern, '');
+            normalizedId = normalizedId.replace(prefixPattern, "");
         }
 
         if (withChecksum) {
@@ -192,8 +195,8 @@ export class IdGenerator {
     /**
      * 生成哈希格式的 ID
      */
-    public generateHash(input: string, algorithm = 'md5', length?: number): string {
-        const hash = createHash(algorithm).update(input).digest('hex');
+    public generateHash(input: string, algorithm = "md5", length?: number): string {
+        const hash = createHash(algorithm).update(input).digest("hex");
         return length ? hash.substring(0, length) : hash;
     }
 
@@ -203,12 +206,12 @@ export class IdGenerator {
     generateSlug(input: string, maxLength = 15): string {
         let slug = input
             .trim()
-            .replaceAll(/[^\w\s\u4e00-\u9fff-]/g, '')
-            .replaceAll(/[\s_-]+/g, '-')
-            .replaceAll(/^-+|-+$/g, '');
+            .replaceAll(/[^\w\s\u4e00-\u9fff-]/g, "")
+            .replaceAll(/[\s_-]+/g, "-")
+            .replaceAll(/^-+|-+$/g, "");
 
         if (slug.length > maxLength) {
-            slug = slug.substring(0, maxLength).replaceAll(/-+$/g, '');
+            slug = slug.substring(0, maxLength).replaceAll(/-+$/g, "");
         }
 
         return slug;
@@ -218,9 +221,9 @@ export class IdGenerator {
      * 使用模板生成 ID
      */
     public generateFromTemplate(input: string, template: string): string {
-        const md5 = this.generateHash(input, 'md5', 8);
-        const sha1 = this.generateHash(input, 'sha1', 8);
-        const sha256 = this.generateHash(input, 'sha256', 8);
+        const md5 = this.generateHash(input, "md5", 8);
+        const sha1 = this.generateHash(input, "sha1", 8);
+        const sha256 = this.generateHash(input, "sha256", 8);
 
         const context = {
             input: input,
@@ -228,10 +231,10 @@ export class IdGenerator {
             md5: md5,
             sha1: sha1,
             sha256: sha256,
-            date: new Date().toISOString().split('T')[0],
+            date: new Date().toISOString().split("T")[0],
             year: new Date().getFullYear().toString(),
-            month: (new Date().getMonth() + 1).toString().padStart(2, '0'),
-            day: new Date().getDate().toString().padStart(2, '0'),
+            month: (new Date().getMonth() + 1).toString().padStart(2, "0"),
+            day: new Date().getDate().toString().padStart(2, "0"),
             timestamp: Date.now().toString(),
         };
 
@@ -241,12 +244,12 @@ export class IdGenerator {
     /**
      * 批量生成 IDs
      */
-    public generateBatch(inputs: string[], strategy = 'slug'): string[] {
+    public generateBatch(inputs: string[], strategy = "slug"): string[] {
         return inputs.map((input) => this.generate(strategy, input));
     }
 
     private createFF1Cipher(key: string | Buffer, radix: number = 36): FF1CipherWASM {
-        return new FF1Cipher(prepareFPEKey(key), radix);
+        return new FF1CipherWASM(prepareFPEKey(key), radix);
     }
 
     private encryptWithCipher(cipher: FF1CipherWASM, plaintext: string): string {

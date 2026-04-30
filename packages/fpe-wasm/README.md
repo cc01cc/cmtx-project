@@ -1,5 +1,8 @@
 # @cmtx/fpe-wasm
 
+[![npm version](https://img.shields.io/npm/v/@cmtx/fpe-wasm.svg)](https://www.npmjs.com/package/@cmtx/fpe-wasm)
+[![License](https://img.shields.io/npm/l/@cmtx/fpe-wasm.svg)](https://github.com/cc01cc/cmtx-project/blob/main/LICENSE)
+
 NIST SP 800-38G FF1 Format-Preserving Encryption (WASM)
 
 ## 1. 概述
@@ -15,7 +18,7 @@ pnpm add @cmtx/fpe-wasm
 ## 3. 使用
 
 ```typescript
-import { FF1Cipher, encrypt_string, decrypt_string } from '@cmtx/fpe-wasm';
+import { FF1Cipher, encrypt_string, decrypt_string } from "@cmtx/fpe-wasm";
 
 // 创建加密器（32 字节 AES-256 密钥）
 const key = new Uint8Array(32);
@@ -24,15 +27,19 @@ const key = new Uint8Array(32);
 const cipher = new FF1Cipher(key, 36); // radix = 36 (0-9, A-Z)
 
 // 加密字符串
-const encrypted = encrypt_string(cipher, 'ABC123');
-console.log('Encrypted:', encrypted);
+const encrypted = encrypt_string(cipher, "ABC123");
+console.log("Encrypted:", encrypted);
 
 // 解密字符串
 const decrypted = decrypt_string(cipher, encrypted);
-console.log('Decrypted:', decrypted);
+console.log("Decrypted:", decrypted);
 ```
 
 ## 4. API
+
+### 4.0. 懒加载机制
+
+本包采用**懒加载 + Promise 缓存机制**。首次使用加密功能时会自动加载 WASM 模块，无需手动调用 `loadWASM()`。如需提前加载或自定义 WASM 源，可使用 `loadWASM()`（幂等，多次调用只加载一次）。
 
 ### 4.1. `FF1Cipher`
 
@@ -60,6 +67,22 @@ FF1 加密器类。
 ### 4.3. `decrypt_string(cipher: FF1Cipher, ciphertext: string): string`
 
 解密 radix-36 字符串。
+
+### 4.4. 便捷函数
+
+| 函数 | 说明 |
+|------|------|
+| `encryptString(key, plaintext, radix?)` | 创建临时 cipher 并加密 |
+| `decryptString(key, ciphertext, radix?)` | 创建临时 cipher 并解密 |
+| `createFF1Cipher(key, radix?)` | 工厂函数，创建 FF1Cipher 实例 |
+| `prepareFPEKey(key)` | 密钥预处理 |
+
+### 4.5. WASM 管理
+
+| 函数 | 说明 |
+|------|------|
+| `loadWASM(options?)` | 加载 WASM 模块（可选，懒加载自动处理） |
+| `isWasmLoaded()` | 检查 WASM 是否已加载 |
 
 ## 5. 构建
 
@@ -145,9 +168,9 @@ packages/fpe-wasm/
 - 示例：
 
 ```typescript
-describe('FF1Cipher', () => {
-    describe('constructor', () => {
-        it('should create cipher with 32-byte key and radix 36', () => {
+describe("FF1Cipher", () => {
+    describe("constructor", () => {
+        it("should create cipher with 32-byte key and radix 36", () => {
             // ...
         });
     });
@@ -159,33 +182,33 @@ describe('FF1Cipher', () => {
 #### 6.5.1. 测试加密解密功能
 
 ```typescript
-import { loadWASM, FF1Cipher, prepareFPEKey, encrypt_string, decrypt_string } from '@cmtx/fpe-wasm';
+import { loadWASM, FF1Cipher, prepareFPEKey, encrypt_string, decrypt_string } from "@cmtx/fpe-wasm";
 
 // 1. 加载 WASM（必须先执行）
 await loadWASM();
 
 // 2. 准备密钥（字符串自动填充至 32 字节）
-const key = prepareFPEKey('my-secret-key-32-bytes!!');
+const key = prepareFPEKey("my-secret-key-32-bytes!!");
 
 // 3. 创建加密器
 const cipher = new FF1Cipher(key, 36); // radix = 36 (0-9, A-Z)
 
 // 4. 测试字符串加密
-const plaintext = 'ABC123';
+const plaintext = "ABC123";
 const encrypted = encrypt_string(cipher, plaintext);
 const decrypted = decrypt_string(cipher, encrypted);
 
-console.log('Plaintext:', plaintext);
-console.log('Encrypted:', encrypted);
-console.log('Decrypted:', decrypted);
-console.log('Match:', plaintext === decrypted); // true
-console.log('Length preserved:', encrypted.length === plaintext.length); // true
+console.log("Plaintext:", plaintext);
+console.log("Encrypted:", encrypted);
+console.log("Decrypted:", decrypted);
+console.log("Match:", plaintext === decrypted); // true
+console.log("Length preserved:", encrypted.length === plaintext.length); // true
 ```
 
 #### 6.5.2. 测试字节数组加密
 
 ```typescript
-import { loadWASM, FF1Cipher } from '@cmtx/fpe-wasm';
+import { loadWASM, FF1Cipher } from "@cmtx/fpe-wasm";
 
 await loadWASM();
 
@@ -196,13 +219,16 @@ const plaintext = new Uint8Array([1, 2, 3, 4, 5, 6]);
 const encrypted = cipher.encrypt(plaintext);
 const decrypted = cipher.decrypt(encrypted);
 
-console.log('Match:', decrypted.every((v, i) => v === plaintext[i])); // true
+console.log(
+    "Match:",
+    decrypted.every((v, i) => v === plaintext[i]),
+); // true
 ```
 
 #### 6.5.3. 测试不同进制
 
 ```typescript
-import { loadWASM, FF1Cipher, encrypt_string, decrypt_string } from '@cmtx/fpe-wasm';
+import { loadWASM, FF1Cipher, encrypt_string, decrypt_string } from "@cmtx/fpe-wasm";
 
 await loadWASM();
 
@@ -210,15 +236,15 @@ const key = new Uint8Array(32).fill(0);
 
 // radix = 10 (仅数字 0-9)
 const cipher10 = new FF1Cipher(key, 10);
-const digits = '123456';
+const digits = "123456";
 const enc10 = encrypt_string(cipher10, digits);
-console.log('radix-10:', enc10); // 仅包含数字
+console.log("radix-10:", enc10); // 仅包含数字
 
 // radix = 16 (十六进制 0-9, A-F)
 const cipher16 = new FF1Cipher(key, 16);
-const hex = 'ABCDEF';
+const hex = "ABCDEF";
 const enc16 = encrypt_string(cipher16, hex);
-console.log('radix-16:', enc16); // 仅包含 0-9, A-F
+console.log("radix-16:", enc16); // 仅包含 0-9, A-F
 ```
 
 ### 6.6. 集成测试

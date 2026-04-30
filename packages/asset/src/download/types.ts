@@ -6,8 +6,8 @@
  * 定义下载功能所需的所有类型接口和配置结构。
  */
 
-import type { IStorageAdapter } from '@cmtx/storage';
-import type { BaseNamingVariables } from '../shared/types.js';
+import type { IStorageAdapter } from "@cmtx/storage";
+import type { BaseNamingVariables } from "../shared/types.js";
 
 // ==================== 命名模板变量 ====================
 
@@ -175,7 +175,7 @@ export interface DownloadProgress {
     totalBytes: number;
 
     /** 状态 */
-    status: 'downloading' | 'completed' | 'failed' | 'skipped';
+    status: "downloading" | "completed" | "failed" | "skipped";
 }
 
 // ==================== URL 信息 ====================

@@ -1,412 +1,324 @@
+/* eslint-disable no-console */
+
 /**
- * 配置验证器
+ * CMTX 配置验证器
  *
  * @module config/validator
  * @description
- * 验证传输配置的完整性和有效性。
- *
- * @remarks
- * 验证规则:
- * - 源存储和目标存储必须配置
- * - 凭证配置必须包含必需的字段
- * - 自定义域名格式必须有效
- * - 命名策略必须是支持的值
+ * 验证 CMTX 配置的有效性和完整性。
  */
 
-import type { CloudCredentials } from '../transfer/types.js';
+import type { CmtxConfig } from "./types.js";
 
 /**
- * 验证错误
+ * 配置验证错误
  */
-export class ValidationError extends Error {
-    constructor(
-        message: string,
-        public readonly path: string
+/**
+ * 配置验证错误
+ */
+export interface ConfigValidationError {
+    /** 错误路径 */
+    path: string;
+    /** 错误消息 */
+    message: string;
+    /** 严重程度 */
+    severity: "error" | "warning";
+}
+
+/**
+ * 验证版本配置
+ */
+function validateVersion(config: CmtxConfig): ConfigValidationError[] {
+    if (!config.version) {
+        return [
+            {
+                path: "version",
+                message: "Version is required",
+                severity: "error",
+            },
+        ];
+    }
+    return [];
+}
+
+/**
+ * 验证上传配置
+ */
+function validateUpload(config: CmtxConfig): ConfigValidationError[] {
+    const errors: ConfigValidationError[] = [];
+    if (!config.upload) return errors;
+
+    if (config.upload.batchLimit !== undefined && config.upload.batchLimit < 1) {
+        errors.push({
+            path: "upload.batchLimit",
+            message: "Batch limit must be at least 1",
+            severity: "error",
+        });
+    }
+
+    if (config.upload.imageFormat && !["markdown", "html"].includes(config.upload.imageFormat)) {
+        errors.push({
+            path: "upload.imageFormat",
+            message: 'Image format must be "markdown" or "html"',
+            severity: "error",
+        });
+    }
+
+    if (
+        config.upload.conflictStrategy &&
+        !["skip", "overwrite"].includes(config.upload.conflictStrategy)
     ) {
-        super(message);
-        this.name = 'ValidationError';
+        errors.push({
+            path: "upload.conflictStrategy",
+            message: 'Conflict strategy must be "skip" or "overwrite"',
+            severity: "error",
+        });
     }
+
+    return errors;
 }
 
 /**
- * 配置验证结果
- *
- * @description
- * 扩展自 @cmtx/core 的 ValidationResult，添加详细的路径信息。
+ * 验证图片缩放配置
  */
-export interface ConfigValidationResult {
-    /** 是否有效 */
-    valid: boolean;
+function validateResize(config: CmtxConfig): ConfigValidationError[] {
+    const errors: ConfigValidationError[] = [];
+    if (!config.resize?.widths) return errors;
 
-    /** 错误列表 */
-    errors: Array<{ path: string; message: string }>;
+    if (!Array.isArray(config.resize.widths)) {
+        return [
+            {
+                path: "resize.widths",
+                message: "Widths must be an array",
+                severity: "error",
+            },
+        ];
+    }
+
+    if (config.resize.widths.some((w) => typeof w !== "number" || w < 1)) {
+        errors.push({
+            path: "resize.widths",
+            message: "All widths must be positive numbers",
+            severity: "error",
+        });
+    }
+
+    return errors;
 }
 
 /**
- * 配置验证器
+ * 验证预签名 URL 配置
  */
-export class ConfigValidator {
-    private errors: Array<{ path: string; message: string }> = [];
+function validatePresignedUrls(config: CmtxConfig): ConfigValidationError[] {
+    const errors: ConfigValidationError[] = [];
+    if (!config.presignedUrls) return errors;
 
-    /**
-     * 验证完整配置
-     * @param config - 传输配置
-     * @returns 验证结果
-     */
-    validate(config: unknown): ConfigValidationResult {
-        this.errors = [];
-
-        if (!config || typeof config !== 'object') {
-            this.addError('root', '配置必须是对象类型');
-            return { valid: false, errors: this.errors };
-        }
-
-        const cfg = config as Record<string, unknown>;
-
-        // 验证源存储配置
-        if (!cfg.source) {
-            this.addError('source', '缺少源存储配置 (source)');
-        } else {
-            this.validateSourceConfig(cfg.source, 'source');
-        }
-
-        // 验证目标存储配置
-        if (!cfg.target) {
-            this.addError('target', '缺少目标存储配置 (target)');
-        } else {
-            this.validateTargetConfig(cfg.target, 'target');
-        }
-
-        // 验证选项
-        if (cfg.options) {
-            this.validateOptions(cfg.options, 'options');
-        }
-
-        return {
-            valid: this.errors.length === 0,
-            errors: this.errors,
-        };
+    if (config.presignedUrls.expire !== undefined && config.presignedUrls.expire < 60) {
+        errors.push({
+            path: "presignedUrls.expire",
+            message: "Expiration time should be at least 60 seconds",
+            severity: "warning",
+        });
     }
 
-    /**
-     * 验证源存储配置
-     * @param source - 源配置
-     * @param path - 当前路径
-     */
-    private validateSourceConfig(source: unknown, path: string): void {
-        if (!source || typeof source !== 'object') {
-            this.addError(path, '源存储配置必须是对象类型');
-            return;
-        }
-
-        const cfg = source as Record<string, unknown>;
-
-        // 验证凭证配置
-        if (!cfg.credentials) {
-            this.addError(`${path}.credentials`, '源存储必须配置凭证 (credentials)');
-        } else {
-            this.validateCredentials(cfg.credentials as CloudCredentials, `${path}.credentials`);
-        }
-
-        // 验证自定义域名
-        if (cfg.customDomain !== undefined) {
-            this.validateUrl(cfg.customDomain as string, `${path}.customDomain`);
-        }
-
-        // 验证签名 URL 过期时间
-        if (cfg.signedUrlExpires !== undefined) {
-            this.validatePositiveNumber(cfg.signedUrlExpires as number, `${path}.signedUrlExpires`);
-        }
+    if (
+        config.presignedUrls.maxRetryCount !== undefined &&
+        config.presignedUrls.maxRetryCount < 0
+    ) {
+        errors.push({
+            path: "presignedUrls.maxRetryCount",
+            message: "Max retry count must be non-negative",
+            severity: "error",
+        });
     }
 
-    /**
-     * 验证目标存储配置
-     * @param target - 目标配置
-     * @param path - 当前路径
-     */
-    private validateTargetConfig(target: unknown, path: string): void {
-        if (!target || typeof target !== 'object') {
-            this.addError(path, '目标存储配置必须是对象类型');
-            return;
-        }
+    if (
+        config.presignedUrls.imageFormat &&
+        !["markdown", "html", "all"].includes(config.presignedUrls.imageFormat)
+    ) {
+        errors.push({
+            path: "presignedUrls.imageFormat",
+            message: 'Image format must be "markdown", "html", or "all"',
+            severity: "error",
+        });
+    }
 
-        const cfg = target as Record<string, unknown>;
+    return errors;
+}
 
-        // 验证凭证配置
-        if (!cfg.credentials) {
-            this.addError(`${path}.credentials`, '目标存储必须配置凭证 (credentials)');
-        } else {
-            this.validateCredentials(cfg.credentials as CloudCredentials, `${path}.credentials`);
-        }
-
-        // 验证自定义域名
-        if (cfg.customDomain !== undefined) {
-            this.validateUrl(cfg.customDomain as string, `${path}.customDomain`);
-        }
-
-        // 验证前缀
-        if (cfg.prefix !== undefined && typeof cfg.prefix !== 'string') {
-            this.addError(`${path}.prefix`, '前缀必须是字符串类型');
-        }
-
-        // 验证命名策略
-        if (cfg.namingStrategy !== undefined) {
-            const validStrategies = ['preserve', 'timestamp', 'hash', 'uuid'];
-            if (!validStrategies.includes(cfg.namingStrategy as string)) {
-                this.addError(
-                    `${path}.namingStrategy`,
-                    `无效的命名策略: ${cfg.namingStrategy}，有效值为: ${validStrategies.join(', ')}`
-                );
+/**
+ * 检查环境变量占位符
+ */
+function checkEnvPlaceholder(
+    key: string,
+    value: string,
+    storageId: string,
+): ConfigValidationError | null {
+    if (value.includes("${")) {
+        const match = value.match(/\$\{([^}]+)\}/);
+        if (match) {
+            const varName = match[1].split(":-")[0];
+            if (!process.env[varName]) {
+                return {
+                    path: `storages.${storageId}.config.${key}`,
+                    message: `Environment variable ${varName} is not set. Use CMTX_ prefix for CMTX-specific vars (e.g., CMTX_ALIYUN_ACCESS_KEY_ID)`,
+                    severity: "warning",
+                };
             }
         }
+    }
+    return null;
+}
 
-        // 验证覆盖选项
-        if (cfg.overwrite !== undefined && typeof cfg.overwrite !== 'boolean') {
-            this.addError(`${path}.overwrite`, 'overwrite 必须是布尔类型');
-        }
+/**
+ * 验证存储配置
+ */
+function validateStorage(config: CmtxConfig): ConfigValidationError[] {
+    const errors: ConfigValidationError[] = [];
+
+    if (!config.storages || Object.keys(config.storages).length === 0) {
+        errors.push({
+            path: "storages",
+            message: "At least one storage configuration is required",
+            severity: "error",
+        });
+        return errors;
     }
 
-    /**
-     * 验证敏感字段（必须使用环境变量模板）
-     */
-    private validateSensitiveField(
-        creds: Record<string, unknown>,
-        fieldName: string,
-        path: string
-    ): void {
-        if (!creds[fieldName] || typeof creds[fieldName] !== 'string') {
-            this.addError(`${path}.${fieldName}`, `${fieldName} 是必需的字符串字段`);
-            return;
-        }
-        const value = creds[fieldName] as string;
-        if (!this.isEnvVarTemplate(value)) {
-            this.addError(
-                `${path}.${fieldName}`,
-                `敏感字段 ${fieldName} 必须使用环境变量模板 \${VAR_NAME}，不支持明文凭证`
-            );
-        }
-    }
-
-    /**
-     * 验证凭证配置
-     * 敏感字段（accessKeyId, accessKeySecret）必须使用环境变量模板
-     * 非敏感字段（region, bucket）支持明文或环境变量模板
-     *
-     * @param credentials - 凭证配置
-     * @param path - 当前路径
-     */
-    private validateCredentials(credentials: unknown, path: string): void {
-        if (!credentials || typeof credentials !== 'object') {
-            this.addError(path, '凭证配置必须是对象类型');
-            return;
+    // 验证每个存储配置
+    for (const [storageId, storage] of Object.entries(config.storages)) {
+        if (!storage.adapter) {
+            errors.push({
+                path: `storages.${storageId}.adapter`,
+                message: "Storage adapter is required",
+                severity: "error",
+            });
         }
 
-        const creds = credentials as Record<string, unknown>;
-
-        // 验证敏感字段
-        this.validateSensitiveField(creds, 'accessKeyId', path);
-        this.validateSensitiveField(creds, 'accessKeySecret', path);
-
-        // 验证非敏感字段
-        if (!creds.region || typeof creds.region !== 'string') {
-            this.addError(`${path}.region`, 'region 是必需的字符串字段');
+        if (!storage.config) {
+            errors.push({
+                path: `storages.${storageId}.config`,
+                message: "Storage config is required",
+                severity: "error",
+            });
+            continue;
         }
 
-        if (!creds.bucket || typeof creds.bucket !== 'string') {
-            this.addError(`${path}.bucket`, 'bucket 是必需的字符串字段');
-        }
-    }
-
-    /**
-     * 检查值是否为环境变量模板格式 ${VAR_NAME}
-     * @param value - 要检查的值
-     * @returns 是否为环境变量模板
-     */
-    private isEnvVarTemplate(value: string): boolean {
-        return /^\$\{[^}]+\}$/.test(value);
-    }
-
-    /**
-     * 验证传输选项
-     * @param options - 选项配置
-     * @param path - 当前路径
-     */
-    private validateOptions(options: unknown, path: string): void {
-        if (!options || typeof options !== 'object') {
-            this.addError(path, '选项必须是对象类型');
-            return;
-        }
-
-        const opts = options as Record<string, unknown>;
-
-        // 验证并发数
-        if (opts.concurrency !== undefined) {
-            this.validatePositiveInteger(opts.concurrency as number, `${path}.concurrency`);
-        }
-
-        // 验证最大并发下载数
-        if (opts.maxConcurrentDownloads !== undefined) {
-            this.validatePositiveInteger(
-                opts.maxConcurrentDownloads as number,
-                `${path}.maxConcurrentDownloads`
-            );
-        }
-
-        // 验证临时目录
-        if (opts.tempDir !== undefined && typeof opts.tempDir !== 'string') {
-            this.addError(`${path}.tempDir`, '临时目录必须是字符串类型');
-        }
-
-        // 验证过滤器
-        if (opts.filter) {
-            this.validateFilter(opts.filter, `${path}.filter`);
-        }
-
-        // 验证调试模式
-        if (opts.debug !== undefined && typeof opts.debug !== 'boolean') {
-            this.addError(`${path}.debug`, 'debug 必须是布尔类型');
-        }
-    }
-
-    /**
-     * 验证扩展名字段
-     */
-    private validateExtensions(extensions: unknown, path: string): void {
-        if (!Array.isArray(extensions)) {
-            this.addError(`${path}.extensions`, '扩展名必须是数组类型');
-            return;
-        }
-        for (let i = 0; i < extensions.length; i++) {
-            if (typeof extensions[i] !== 'string') {
-                this.addError(`${path}.extensions[${i}]`, '扩展名必须是字符串类型');
+        for (const [key, value] of Object.entries(storage.config)) {
+            if (typeof value === "string") {
+                const error = checkEnvPlaceholder(key, value, storageId);
+                if (error) {
+                    errors.push(error);
+                }
             }
         }
     }
 
-    /**
-     * 验证文件过滤器
-     * @param filter - 过滤器配置
-     * @param path - 当前路径
-     */
-    private validateFilter(filter: unknown, path: string): void {
-        if (!filter || typeof filter !== 'object') {
-            this.addError(path, '过滤器必须是对象类型');
-            return;
-        }
-
-        const f = filter as Record<string, unknown>;
-
-        // 验证扩展名
-        if (f.extensions !== undefined) {
-            this.validateExtensions(f.extensions, path);
-        }
-
-        // 验证最大文件大小
-        if (f.maxSize !== undefined) {
-            this.validatePositiveNumber(f.maxSize as number, `${path}.maxSize`);
-        }
-
-        // 验证最小文件大小
-        if (f.minSize !== undefined) {
-            this.validatePositiveNumber(f.minSize as number, `${path}.minSize`);
-        }
-
-        // 验证自定义过滤函数
-        if (f.custom !== undefined && typeof f.custom !== 'function') {
-            this.addError(`${path}.custom`, '自定义过滤器必须是函数类型');
-        }
-    }
-
-    /**
-     * 验证 URL 格式
-     * @param url - URL 字符串
-     * @param path - 当前路径
-     */
-    private validateUrl(url: string, path: string): void {
-        if (typeof url !== 'string') {
-            this.addError(path, 'URL 必须是字符串类型');
-            return;
-        }
-
-        try {
-            const parsed = new URL(url);
-            if (!['http:', 'https:'].includes(parsed.protocol)) {
-                this.addError(path, 'URL 必须使用 http 或 https 协议');
-            }
-        } catch {
-            this.addError(path, '无效的 URL 格式');
-        }
-    }
-
-    /**
-     * 验证正数
-     * @param value - 数值
-     * @param path - 当前路径
-     */
-    private validatePositiveNumber(value: number, path: string): void {
-        if (typeof value !== 'number' || Number.isNaN(value)) {
-            this.addError(path, '必须是数字类型');
-            return;
-        }
-
-        if (value <= 0) {
-            this.addError(path, '必须是正数');
-        }
-    }
-
-    /**
-     * 验证正整数
-     * @param value - 数值
-     * @param path - 当前路径
-     */
-    private validatePositiveInteger(value: number, path: string): void {
-        if (typeof value !== 'number' || Number.isNaN(value)) {
-            this.addError(path, '必须是数字类型');
-            return;
-        }
-
-        if (!Number.isInteger(value) || value <= 0) {
-            this.addError(path, '必须是正整数');
-        }
-    }
-
-    /**
-     * 添加错误
-     * @param path - 错误路径
-     * @param message - 错误消息
-     */
-    private addError(path: string, message: string): void {
-        this.errors.push({ path, message });
-    }
-}
-
-/**
- * 创建配置验证器
- * @returns ConfigValidator 实例
- */
-export function createConfigValidator(): ConfigValidator {
-    return new ConfigValidator();
+    return errors;
 }
 
 /**
  * 验证配置
- * @param config - 传输配置
- * @returns 验证结果
+ * @param config - CMTX 配置
+ * @returns 验证错误列表
  */
-export function validateConfig(config: unknown): ConfigValidationResult {
-    const validator = createConfigValidator();
-    return validator.validate(config);
+export function validateConfig(config: CmtxConfig): ConfigValidationError[] {
+    const errors: ConfigValidationError[] = [];
+    errors.push(...validateVersion(config));
+    errors.push(...validateUpload(config));
+    errors.push(...validateResize(config));
+    errors.push(...validatePresignedUrls(config));
+    errors.push(...validateStorage(config));
+    return errors;
 }
 
 /**
- * 验证配置并抛出错误
- * @param config - 传输配置
- * @throws ValidationError 当验证失败时
+ * 配置验证器类
  */
-export function validateConfigOrThrow(config: unknown): void {
-    const result = validateConfig(config);
-    if (!result.valid) {
-        const firstError = result.errors[0];
-        throw new ValidationError(firstError.message, firstError.path);
+export class ConfigValidator {
+    /**
+     * 验证配置
+     * @param config - CMTX 配置
+     * @returns 验证错误列表
+     */
+    validate(config: CmtxConfig): ConfigValidationError[] {
+        return validateConfig(config);
     }
+
+    /**
+     * 验证配置并抛出错误（如果有错误）
+     * @param config - CMTX 配置
+     * @throws Error 当验证失败时
+     */
+    validateOrThrow(config: CmtxConfig): void {
+        const errors = this.validate(config);
+        const errorCount = errors.filter((e) => e.severity === "error").length;
+        if (errorCount > 0) {
+            throw new Error(
+                `Configuration validation failed with ${errorCount} error(s):\n` +
+                    errors
+                        .filter((e) => e.severity === "error")
+                        .map((e) => `  - ${e.path}: ${e.message}`)
+                        .join("\n"),
+            );
+        }
+    }
+
+    /**
+     * 检查配置是否有效
+     * @param config - CMTX 配置
+     * @returns 是否有效
+     */
+    isValid(config: CmtxConfig): boolean {
+        const errors = this.validate(config);
+        return errors.filter((e) => e.severity === "error").length === 0;
+    }
+}
+
+/**
+ * 格式化验证错误
+ * @param errors - 验证错误列表
+ * @returns 格式化后的错误字符串
+ */
+export function formatValidationErrors(errors: ConfigValidationError[]): string {
+    if (errors.length === 0) {
+        return "Configuration is valid";
+    }
+
+    const errorCount = errors.filter((e) => e.severity === "error").length;
+    const warningCount = errors.filter((e) => e.severity === "warning").length;
+
+    const lines = [
+        `Configuration validation: ${errorCount} errors, ${warningCount} warnings`,
+        ...errors.map((e) => `[${e.severity.toUpperCase()}] ${e.path}: ${e.message}`),
+    ];
+
+    return lines.join("\n");
+}
+
+/**
+ * 验证配置并抛出错误（如果有错误）
+ * @param config - CMTX 配置
+ * @throws Error 当验证失败时
+ */
+export function validateConfigOrThrow(config: CmtxConfig): void {
+    const errors = validateConfig(config);
+    const errorCount = errors.filter((e) => e.severity === "error").length;
+    if (errorCount > 0) {
+        const errorMessages = errors
+            .filter((e) => e.severity === "error")
+            .map((e) => `  - ${e.path}: ${e.message}`)
+            .join("\n");
+        throw new Error(
+            `Configuration validation failed with ${errorCount} error(s):\n${errorMessages}`,
+        );
+    }
+}
+
+/**
+ * 创建配置验证器实例
+ * @returns ConfigValidator 实例
+ */
+export function createConfigValidator(): ConfigValidator {
+    return new ConfigValidator();
 }

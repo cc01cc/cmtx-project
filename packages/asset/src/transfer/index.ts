@@ -60,8 +60,7 @@
  *   })
  *   .target(targetAdapter, {
  *     customDomain: "https://cdn.example.com",
- *     prefix: "images/",
- *     namingStrategy: "preserve"
+ *     prefix: "images/"
  *   })
  *   .options({
  *     concurrency: 5,
@@ -90,18 +89,15 @@ export {
     type ParsedUrl,
     UrlParser,
     type UrlParserConfig,
-} from '../utils/url-parser.js';
+} from "../utils/url-parser.js";
 // 核心功能
 export {
     createTransferManager,
     TransferManager,
     transferRemoteImages,
-} from './transfer-manager.js';
+} from "./transfer-manager.js";
 // 传输服务
-export {
-    createTransferService,
-    TransferService,
-} from './transfer-service.js';
+export { createTransferService, TransferService } from "./transfer-service.js";
 // 类型定义
 export type {
     CloudCredentials,
@@ -118,11 +114,8 @@ export type {
     TransferProgress,
     TransferResult,
     UrlMapping,
-} from './types.js';
+} from "./types.js";
 // 配置构建器
-export { TransferConfigBuilder } from './types.js';
+export { TransferConfigBuilder } from "./types.js";
 // URL 转换器
-export {
-    createUrlTransformer,
-    UrlTransformer,
-} from './url-transformer.js';
+export { createUrlTransformer, UrlTransformer } from "./url-transformer.js";

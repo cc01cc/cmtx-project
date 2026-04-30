@@ -31,10 +31,10 @@
  * @see {@link IStorageAdapter} - 存储适配器接口
  */
 
-import type { LocalImageMatchWithAbsPath, LoggerCallback } from '@cmtx/core';
-import { generateNameAndRemotePath as generateRemoteImageInfo } from './naming-handler.js';
-import type { StorageOptions } from './types.js';
-import type { UploadContext } from './upload-context.js';
+import type { LocalImageMatchWithAbsPath, Logger } from "@cmtx/core";
+import type { StorageConfig } from "./config.js";
+import { generateNameAndRemotePath as generateRemoteImageInfo } from "./naming-handler.js";
+import type { UploadContext } from "./upload-context.js";
 
 /**
  * 上传图片
@@ -52,9 +52,9 @@ import type { UploadContext } from './upload-context.js';
  */
 export async function uploadImages(
     localImagesWithAbs: LocalImageMatchWithAbsPath[],
-    storageOptions: StorageOptions,
+    storageOptions: StorageConfig,
     context: UploadContext,
-    logger?: LoggerCallback
+    logger?: Logger,
 ): Promise<{ uploadedCount: number }> {
     // 去重：提取唯一的 absLocalPath
     const uniquePaths = new Set<string>();
@@ -62,9 +62,8 @@ export async function uploadImages(
         uniquePaths.add(img.absLocalPath);
     }
 
-    logger?.(
-        'debug',
-        `[UploadService] Found ${uniquePaths.size} unique images to upload (from ${localImagesWithAbs.length} total)`
+    logger?.debug(
+        `[UploadService] Found ${uniquePaths.size} unique images to upload (from ${localImagesWithAbs.length} total)`,
     );
 
     let uploadedCount = 0;
@@ -75,10 +74,10 @@ export async function uploadImages(
             // 生成远程路径和文件名
             const { name, remotePath, nameTemplateVariables } = await generateRemoteImageInfo(
                 { absLocalPath: absPath } as LocalImageMatchWithAbsPath,
-                storageOptions
+                storageOptions,
             );
 
-            logger?.('debug', `[UploadService] Uploading ${absPath} -> ${remotePath}`);
+            logger?.debug(`[UploadService] Uploading ${absPath} -> ${remotePath}`);
 
             // 执行上传
             const uploadResult = await storageOptions.adapter.upload(absPath, remotePath);
@@ -92,14 +91,16 @@ export async function uploadImages(
             });
 
             uploadedCount++;
-            logger?.('info', `[UploadService] Success: ${absPath} -> ${uploadResult.url}`);
+            logger?.info(`[UploadService] Success: ${absPath} -> ${uploadResult.url}`);
         } catch (err) {
             const error = err instanceof Error ? err : new Error(String(err));
-            logger?.('error', `[UploadService] Failed to upload ${absPath}`, { error });
+            logger?.error(`[UploadService] Failed to upload ${absPath}`, {
+                error,
+            });
             // 继续处理其他图片，不中断流程
         }
     }
 
-    logger?.('info', `[UploadService] Uploaded ${uploadedCount}/${uniquePaths.size} images`);
+    logger?.info(`[UploadService] Uploaded ${uploadedCount}/${uniquePaths.size} images`);
     return { uploadedCount };
 }

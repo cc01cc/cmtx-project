@@ -32,7 +32,7 @@
  * @see {@link getUploadResult} - 查询上传结果
  */
 
-import type { ImageCloudMapBody } from './types.js';
+import type { ImageCloudMapBody } from "./types.js";
 
 export class UploadContext {
     /**

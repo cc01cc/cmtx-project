@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * move 命令 - 移动 Markdown 中的远程图片到目标存储
  *
@@ -9,16 +10,16 @@
  * - move: 移动图片，源文件删除
  */
 
-import type { Argv, CommandModule } from 'yargs';
-import type { MoveCommandOptions } from '../types/cli.js';
-import { formatError } from '../utils/formatter.js';
-import { createLogger } from '../utils/logger.js';
+import type { Argv, CommandModule } from "yargs";
+import type { MoveCommandOptions } from "../types/cli.js";
+import { formatError } from "../utils/formatter.js";
+import { createLogger } from "../utils/logger.js";
 
 // 复用 copy 命令的核心逻辑
-import { builder as copyBuilder, handler as copyHandler } from './copy.js';
+import { builder as copyBuilder, handler as copyHandler } from "./copy.js";
 
-export const command = 'move <filePath>';
-export const description = '移动 Markdown 文件中的远程图片到目标存储（源文件删除）';
+export const command = "move <filePath>";
+export const description = "移动 Markdown 文件中的远程图片到目标存储（源文件删除）";
 
 export function builder(yargs: Argv): Argv {
     // 继承 copy 命令的所有选项
@@ -26,14 +27,14 @@ export function builder(yargs: Argv): Argv {
 
     // 添加 move 特有的选项
     result = result
-        .option('keep-source', {
-            description: '保留源文件（等同于 copy）',
-            type: 'boolean',
+        .option("keep-source", {
+            description: "保留源文件（等同于 copy）",
+            type: "boolean",
             default: false,
         })
-        .option('delete-source', {
-            description: '删除源文件（默认 true，move 命令的默认行为）',
-            type: 'boolean',
+        .option("delete-source", {
+            description: "删除源文件（默认 true，move 命令的默认行为）",
+            type: "boolean",
             default: true,
         });
 
@@ -48,7 +49,7 @@ export async function handler(argv: MoveCommandOptions): Promise<void> {
     const deleteSource = argv.keepSource ? false : argv.deleteSource;
 
     if (!deleteSource) {
-        logger('info', '注意：--keep-source 已设置，源文件将保留（等同于 copy）');
+        logger.info("注意：--keep-source 已设置，源文件将保留（等同于 copy）");
     }
 
     try {

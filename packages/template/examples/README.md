@@ -7,22 +7,22 @@
 ### 基础用法
 
 1. **基本模板渲染** - `basic-template-rendering.ts`
-   - 展示如何使用 renderTemplate 进行基本变量替换
-   - 演示不同类型的变量处理
+    - 展示如何使用 renderTemplate 进行基本变量替换
+    - 演示不同类型的变量处理
 
 ### 高级用法
 
 3. **上下文管理** - `context-management.ts`
-   - 展示 ContextManager 的使用
-   - 演示复杂数据结构的处理
+    - 展示 ContextManager 的使用
+    - 演示复杂数据结构的处理
 
 4. **条件渲染** - `conditional-rendering.ts`
-   - 展示条件模板的使用
-   - 演示逻辑判断和分支处理
+    - 展示条件模板的使用
+    - 演示逻辑判断和分支处理
 
 5. **循环渲染** - `loop-rendering.ts`
-   - 展示列表数据的迭代处理
-   - 演示循环模板的使用
+    - 展示列表数据的迭代处理
+    - 演示循环模板的使用
 
 ## 运行示例
 

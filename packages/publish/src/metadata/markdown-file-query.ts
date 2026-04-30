@@ -1,5 +1,5 @@
-import type { ListOptions, MarkdownMetadata, QueryFilter } from '../types.js';
-import { MarkdownMetadataExtractor } from './markdown-metadata-extractor.js';
+import type { ListOptions, MarkdownMetadata, QueryFilter } from "../types.js";
+import { MarkdownMetadataExtractor } from "./markdown-metadata-extractor.js";
 
 /**
  * 文档查询器
@@ -22,7 +22,7 @@ export class MarkdownFileQuery {
      * @returns 文档列表
      */
     async list(options: ListOptions = {}): Promise<MarkdownMetadata[]> {
-        const { sortBy = 'date', descending = true } = options;
+        const { sortBy = "date", descending = true } = options;
 
         const documents = await this.documentManager.extractFromDirectory(this.basePath);
 
@@ -179,7 +179,7 @@ export class MarkdownFileQuery {
             ...(document.tags || []),
             ...(document.categories || []),
         ]
-            .join(' ')
+            .join(" ")
             .toLowerCase();
         return searchableText.includes(normalizedSearch);
     }
@@ -195,7 +195,7 @@ export class MarkdownFileQuery {
     private sortDocuments(
         documents: MarkdownMetadata[],
         field: string,
-        descending: boolean
+        descending: boolean,
     ): MarkdownMetadata[] {
         const comparator = this.createComparator(field, descending);
         return [...documents].sort(comparator);
@@ -210,20 +210,20 @@ export class MarkdownFileQuery {
      */
     private createComparator(
         field: string,
-        descending: boolean
+        descending: boolean,
     ): (a: MarkdownMetadata, b: MarkdownMetadata) => number {
         const comparator: (a: MarkdownMetadata, b: MarkdownMetadata) => number = (() => {
             switch (field) {
-                case 'date':
+                case "date":
                     return (a, b) => {
                         const dateA = a.date ? new Date(a.date).getTime() : 0;
                         const dateB = b.date ? new Date(b.date).getTime() : 0;
                         return dateA - dateB;
                     };
-                case 'title':
-                    return (a, b) => (a.title || '').localeCompare(b.title || '', 'zh-Hans-CN');
-                case 'id':
-                    return (a, b) => (a.id || '').localeCompare(b.id || '', 'zh-Hans-CN');
+                case "title":
+                    return (a, b) => (a.title || "").localeCompare(b.title || "", "zh-Hans-CN");
+                case "id":
+                    return (a, b) => (a.id || "").localeCompare(b.id || "", "zh-Hans-CN");
                 default:
                     return (a, b) => {
                         const dateA = a.date ? new Date(a.date).getTime() : 0;

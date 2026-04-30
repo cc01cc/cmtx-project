@@ -1,7 +1,33 @@
 {
     "name": "@cmtx/mcp-server",
     "version": "0.1.0",
+    "private": true,
     "description": "MCP-style stdio server for CMTX tools",
+    "keywords": [
+        "cmtx",
+        "image",
+        "markdown",
+        "mcp"
+    ],
+    "homepage": "https://github.com/cc01cc/cmtx-project/tree/main/packages/mcp-server",
+    "bugs": {
+        "url": "https://github.com/cc01cc/cmtx-project/issues"
+    },
+    "license": "Apache-2.0",
+    "author": "cc01cc",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cc01cc/cmtx-project.git",
+        "directory": "packages/mcp-server"
+    },
+    "bin": {
+        "cmtx-mcp": "./dist/server.mjs"
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "CHANGELOG.md"
+    ],
     "type": "module",
     "main": "./dist/index.cjs",
     "module": "./dist/index.mjs",
@@ -13,12 +39,9 @@
             "require": "./dist/index.cjs"
         }
     },
-    "bin": {
-        "cmtx-mcp": "./dist/server.mjs"
+    "publishConfig": {
+        "access": "public"
     },
-    "files": [
-        "dist"
-    ],
     "scripts": {
         "build": "tsdown",
         "dev": "tsdown --watch",
@@ -26,22 +49,20 @@
         "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
         "test": "vitest run",
         "test:watch": "vitest",
-        "lint": "biome check --write src tests",
         "clean": "rimraf dist"
     },
     "dependencies": {
-        "@cmtx/core": "workspace:*",
         "@cmtx/asset": "workspace:*",
+        "@cmtx/core": "workspace:*",
         "ali-oss": "catalog:"
     },
     "devDependencies": {
         "@types/ali-oss": "catalog:",
+        "@types/node": "catalog:",
         "typescript": "catalog:",
-        "vitest": "catalog:",
-        "@types/node": "catalog:"
+        "vitest": "catalog:"
     },
     "engines": {
         "node": ">=22.0.0"
-    },
-    "license": "Apache-2.0"
+    }
 }

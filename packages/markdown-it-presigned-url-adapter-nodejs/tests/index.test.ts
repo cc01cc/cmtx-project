@@ -2,31 +2,31 @@
  * 模块导出测试
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 import {
     type CacheManagerLogger,
     type Logger as SignerLogger,
     UrlCacheManager,
     UrlSigner,
-} from '../src/index.js';
+} from "../src/index.js";
 
-describe('模块导出', () => {
-    it('应该导出 UrlCacheManager', () => {
+describe("模块导出", () => {
+    it("应该导出 UrlCacheManager", () => {
         expect(UrlCacheManager).toBeDefined();
-        expect(typeof UrlCacheManager).toBe('function');
+        expect(typeof UrlCacheManager).toBe("function");
     });
 
-    it('应该导出 UrlSigner', () => {
+    it("应该导出 UrlSigner", () => {
         expect(UrlSigner).toBeDefined();
-        expect(typeof UrlSigner).toBe('function');
+        expect(typeof UrlSigner).toBe("function");
     });
 
-    it('应该能够创建 UrlCacheManager 实例', () => {
+    it("应该能够创建 UrlCacheManager 实例", () => {
         const manager = new UrlCacheManager();
         expect(manager).toBeInstanceOf(UrlCacheManager);
     });
 
-    it('应该能够创建带 logger 的 UrlCacheManager 实例', () => {
+    it("应该能够创建带 logger 的 UrlCacheManager 实例", () => {
         const logger: CacheManagerLogger = {
             debug: () => {},
             info: () => {},
@@ -37,15 +37,20 @@ describe('模块导出', () => {
         expect(manager).toBeInstanceOf(UrlCacheManager);
     });
 
-    it('应该能够创建 UrlSigner 实例', () => {
+    it("应该能够创建 UrlSigner 实例", () => {
         const cacheManager = new UrlCacheManager();
         const options = {
-            providerConfigs: [
+            storageConfigs: {
+                default: {
+                    provider: "aliyun-oss" as const,
+                    bucket: "test-bucket",
+                    region: "oss-cn-hangzhou",
+                },
+            },
+            domains: [
                 {
-                    provider: 'aliyun-oss' as const,
-                    bucket: 'test-bucket',
-                    region: 'oss-cn-hangzhou',
-                    domain: 'cdn.example.com',
+                    domain: "cdn.example.com",
+                    useStorage: "default",
                 },
             ],
             expire: 600,
@@ -55,7 +60,7 @@ describe('模块导出', () => {
         expect(signer).toBeInstanceOf(UrlSigner);
     });
 
-    it('应该能够创建带 logger 的 UrlSigner 实例', () => {
+    it("应该能够创建带 logger 的 UrlSigner 实例", () => {
         const cacheManager = new UrlCacheManager();
         const logger: SignerLogger = {
             debug: () => {},
@@ -64,12 +69,17 @@ describe('模块导出', () => {
             error: () => {},
         };
         const options = {
-            providerConfigs: [
+            storageConfigs: {
+                default: {
+                    provider: "aliyun-oss" as const,
+                    bucket: "test-bucket",
+                    region: "oss-cn-hangzhou",
+                },
+            },
+            domains: [
                 {
-                    provider: 'aliyun-oss' as const,
-                    bucket: 'test-bucket',
-                    region: 'oss-cn-hangzhou',
-                    domain: 'cdn.example.com',
+                    domain: "cdn.example.com",
+                    useStorage: "default",
                 },
             ],
             expire: 600,
@@ -81,11 +91,11 @@ describe('模块导出', () => {
     });
 });
 
-describe('类型导出', () => {
-    it('应该支持所有存储提供商类型', () => {
-        const providers = ['aliyun-oss', 'tencent-cos', 'aws'] as const;
-        expect(providers).toContain('aliyun-oss');
-        expect(providers).toContain('tencent-cos');
-        expect(providers).toContain('aws');
+describe("类型导出", () => {
+    it("应该支持所有存储提供商类型", () => {
+        const providers = ["aliyun-oss", "tencent-cos", "aws"] as const;
+        expect(providers).toContain("aliyun-oss");
+        expect(providers).toContain("tencent-cos");
+        expect(providers).toContain("aws");
     });
 });

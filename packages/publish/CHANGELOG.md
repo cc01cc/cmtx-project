@@ -1,15 +1,96 @@
 # @cmtx/publish 更新日志 / Changelog
 
+## [0.1.1-alpha.1] - 2026-04-30
+### Added
+
+- **createDefaultRuleEngine**: 新增默认规则引擎工厂函数，统一 CLI/MCP 的规则引擎入口
+- **Service 模式**: 新增 `AssetServiceWrapper`、`CoreServiceWrapper`、`ServiceRegistryImpl` 服务包装层
+- **CounterService**: 新增计数器服务，支持 Frontmatter ID 规则防止失败时错误递增
+- **Metadata 规则**: 新增 `frontmatter-date` 和 `frontmatter-updated` 字段管理规则
+- **图片调整规则**: 新增图片尺寸调整规则
+- **MemoryDocumentAccessor**: 新增内存文档访问器工具
+
+### Changed
+
+- **autocorrect**: 从 `@huacnlee/autocorrect` 迁移至 `@cmtx/autocorrect-wasm`
+- **配置加载**: 重构项目结构，移除 `loader.ts`、`parse.ts`、`validate.ts`、`apply.ts`（YAML 规则系统），统一配置加载架构
+- 替换 `fast-glob` 为 `tinyglobby`，提升 ESM/CJS 兼容性
+- **RuleContext 重构**: 移除 `storage`/`presignedUrls` 直接字段，替换为 `services: ServiceRegistry`。规则作者需通过 `services.storage` 和 `services.presignedUrls` 访问
+- **依赖更新**: 新增 `@cmtx/asset`（workspace:*）和 `@cmtx/storage`（0.1.1-alpha.0）依赖；`@cmtx/fpe-wasm` 从 `optionalDependencies` 移至 `dependencies`
+
+### Fixed
+
+- 修复无效的动态导入（`INEFFECTIVE_DYNAMIC_IMPORT` 警告）
+- 修复 TypeScript 编译错误
+
+### Removed
+
+- 移除废弃的示例脚本
+- **类型清理**: 移除 `AdaptRule`、`AdaptConfig`、`AdaptFileOptions`、`AdaptDirectoryOptions`、`AdaptPlatform`、`PlatformAdapter` 类型
+- **目录重命名**: `platform/` 目录重命名为 `preset/`，影响使用深度导入路径的消费者
+
+---
+
+### Added
+
+- **createDefaultRuleEngine**: New default rule engine factory function, unifying CLI/MCP rule engine entry points
+- **Service pattern**: Added `AssetServiceWrapper`, `CoreServiceWrapper`, `ServiceRegistryImpl` service wrapper layer
+- **CounterService**: Added counter service supporting Frontmatter ID rule to prevent incorrect increments on failure
+- **Metadata rules**: Added `frontmatter-date` and `frontmatter-updated` field management rules
+- **Image resize rules**: Added image dimension adjustment rules
+- **MemoryDocumentAccessor**: Added in-memory document accessor utility
+
+### Changed
+
+- **autocorrect**: Migrated from `@huacnlee/autocorrect` to `@cmtx/autocorrect-wasm`
+- **Config loading**: Restructured project, removed `loader.ts`, `parse.ts`, `validate.ts`, `apply.ts` (YAML rule system), unified config loading architecture
+- Replaced `fast-glob` with `tinyglobby` for improved ESM/CJS compatibility
+- **RuleContext redesign**: Removed `storage`/`presignedUrls` direct fields, replaced by `services: ServiceRegistry`. Rule authors should access via `services.storage` and `services.presignedUrls`
+- **Dependency changes**: Added `@cmtx/asset` (workspace:*) and `@cmtx/storage` (0.1.1-alpha.0) dependencies; moved `@cmtx/fpe-wasm` from `optionalDependencies` to `dependencies`
+
+### Fixed
+
+- Fixed ineffective dynamic imports (`INEFFECTIVE_DYNAMIC_IMPORT` warnings)
+- Fixed TypeScript compilation errors
+
+### Removed
+
+- Removed deprecated example scripts
+- **Type cleanup**: Removed `AdaptRule`, `AdaptConfig`, `AdaptFileOptions`, `AdaptDirectoryOptions`, `AdaptPlatform`, `PlatformAdapter` types
+- **Directory rename**: Renamed `platform/` directory to `preset/`, affecting consumers using deep import paths
+
+## 0.1.2-alpha.0
+
+### Breaking Changes
+
+- **frontmatterIdRule**: 移除 `idSource` 配置项，使用 `strategy` 替代
+
+### Migration Guide
+
+- 将 `idSource` 配置项替换为 `strategy`：
+
+    ```typescript
+    // 旧配置
+    {
+        idSource: "filepath";
+    }
+
+    // 新配置
+    {
+        strategy: "filepath";
+    }
+    ```
+
 ## 0.1.1-alpha.0
 
 ### Patch Changes
 
 - 7d85dec: changeset test
 - Updated dependencies [7d85dec]
-  - @cmtx/asset@0.1.1-alpha.0
-  - @cmtx/core@0.3.1-alpha.0
-  - @cmtx/fpe-wasm@0.1.1-alpha.0
-  - @cmtx/template@0.1.1-alpha.0
+    - @cmtx/asset@0.1.1-alpha.0
+    - @cmtx/core@0.3.1-alpha.0
+    - @cmtx/fpe-wasm@0.1.1-alpha.0
+    - @cmtx/template@0.1.1-alpha.0
 
 ## 0.1.0 - 2026-04-11
 

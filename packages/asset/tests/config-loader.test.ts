@@ -2,41 +2,32 @@
  * 配置加载器测试
  */
 
-import { describe, expect, it, vi } from 'vitest';
-import { ConfigLoader, createConfigLoader, loadConfigFromString } from '../src/config/loader.js';
-import { ValidationError } from '../src/config/validator.js';
+import { describe, expect, it } from "vitest";
+import { ConfigLoader, createConfigLoader, loadConfigFromString } from "../src/config/loader.js";
 
-describe('ConfigLoader', () => {
-    describe('loadFromString', () => {
-        it('should parse basic YAML config', () => {
+describe("ConfigLoader", () => {
+    describe("loadFromString", () => {
+        it("should parse basic YAML config", () => {
             const yaml = `
-source:
-  customDomain: https://source.example.com
-  credentials:
-    accessKeyId: "\${SOURCE_ACCESS_KEY_ID}"
-    accessKeySecret: "\${SOURCE_ACCESS_KEY_SECRET}"
-    region: "\${SOURCE_REGION}"
-    bucket: "\${SOURCE_BUCKET}"
-target:
-  customDomain: https://target.example.com
-  credentials:
-    accessKeyId: "\${TARGET_ACCESS_KEY_ID}"
-    accessKeySecret: "\${TARGET_ACCESS_KEY_SECRET}"
-    region: "\${TARGET_REGION}"
-    bucket: "\${TARGET_BUCKET}"
-  prefix: images/
-options:
-  concurrency: 5
+version: '1.0.0'
+storages:
+  default:
+    adapter: aliyun-oss
+    config:
+      accessKeyId: "\${ACCESS_KEY_ID}"
+      accessKeySecret: "\${ACCESS_KEY_SECRET}"
+      region: "\${REGION}"
+      bucket: "\${BUCKET}"
+upload:
+  batchLimit: 10
+  imageFormat: markdown
+  conflictStrategy: skip
 `;
             const envVars = {
-                SOURCE_ACCESS_KEY_ID: 'source-key-id',
-                SOURCE_ACCESS_KEY_SECRET: 'source-key-secret',
-                SOURCE_REGION: 'oss-cn-hangzhou',
-                SOURCE_BUCKET: 'source-bucket',
-                TARGET_ACCESS_KEY_ID: 'target-key-id',
-                TARGET_ACCESS_KEY_SECRET: 'target-key-secret',
-                TARGET_REGION: 'oss-cn-hangzhou',
-                TARGET_BUCKET: 'target-bucket',
+                ACCESS_KEY_ID: "test-key-id",
+                ACCESS_KEY_SECRET: "test-key-secret",
+                REGION: "oss-cn-hangzhou",
+                BUCKET: "test-bucket",
             };
 
             const loader = createConfigLoader({
@@ -44,44 +35,31 @@ options:
             });
             const config = loader.loadFromString(yaml);
 
-            expect(config.source.customDomain).toBe('https://source.example.com');
-            expect(
-                (config.source.credentials as import('@cmtx/storage').AliyunCredentials).accessKeyId
-            ).toBe('source-key-id');
-            expect(config.target.customDomain).toBe('https://target.example.com');
-            expect(config.target.prefix).toBe('images/');
-            expect(config.options?.concurrency).toBe(5);
+            expect(config.version).toBe("1.0.0");
+            expect(config.storages.default.adapter).toBe("aliyun-oss");
+            expect(config.storages.default.config.accessKeyId as string).toBe("test-key-id");
+            expect(config.upload?.batchLimit).toBe(10);
+            expect(config.upload?.imageFormat).toBe("markdown");
         });
 
-        it('should resolve environment variables', () => {
+        it("should resolve environment variables", () => {
             const envVars = {
-                SOURCE_ACCESS_KEY_ID: 'source-key-id',
-                SOURCE_ACCESS_KEY_SECRET: 'source-key-secret',
-                SOURCE_REGION: 'oss-cn-hangzhou',
-                SOURCE_BUCKET: 'source-bucket',
-                TARGET_ACCESS_KEY_ID: 'target-key-id',
-                TARGET_ACCESS_KEY_SECRET: 'target-key-secret',
-                TARGET_REGION: 'oss-cn-hangzhou',
-                TARGET_BUCKET: 'target-bucket',
-                SOURCE_DOMAIN: 'https://env-source.example.com',
-                TARGET_DOMAIN: 'https://env-target.example.com',
+                ACCESS_KEY_ID: "test-key-id",
+                ACCESS_KEY_SECRET: "test-key-secret",
+                REGION: "oss-cn-hangzhou",
+                BUCKET: "test-bucket",
             };
 
             const yaml = `
-source:
-  customDomain: "\${SOURCE_DOMAIN}"
-  credentials:
-    accessKeyId: "\${SOURCE_ACCESS_KEY_ID}"
-    accessKeySecret: "\${SOURCE_ACCESS_KEY_SECRET}"
-    region: "\${SOURCE_REGION}"
-    bucket: "\${SOURCE_BUCKET}"
-target:
-  customDomain: "\${TARGET_DOMAIN}"
-  credentials:
-    accessKeyId: "\${TARGET_ACCESS_KEY_ID}"
-    accessKeySecret: "\${TARGET_ACCESS_KEY_SECRET}"
-    region: "\${TARGET_REGION}"
-    bucket: "\${TARGET_BUCKET}"
+version: '1.0.0'
+storages:
+  default:
+    adapter: aliyun-oss
+    config:
+      accessKeyId: "\${ACCESS_KEY_ID}"
+      accessKeySecret: "\${ACCESS_KEY_SECRET}"
+      region: "\${REGION}"
+      bucket: "\${BUCKET}"
 `;
 
             const loader = createConfigLoader({
@@ -90,78 +68,62 @@ target:
 
             const config = loader.loadFromString(yaml);
 
-            expect(config.source.customDomain).toBe('https://env-source.example.com');
-            expect(config.target.customDomain).toBe('https://env-target.example.com');
-            expect(
-                (config.source.credentials as import('@cmtx/storage').AliyunCredentials).accessKeyId
-            ).toBe('source-key-id');
-            expect(
-                (config.target.credentials as import('@cmtx/storage').AliyunCredentials).accessKeyId
-            ).toBe('target-key-id');
+            expect(config.version).toBe("1.0.0");
+            expect(config.storages.default.adapter).toBe("aliyun-oss");
+            expect(config.storages.default.config.accessKeyId).toBe("test-key-id");
+            expect(config.storages.default.config.accessKeySecret).toBe("test-key-secret");
         });
 
-        it('should throw error when env variable not set', () => {
+        it("should throw error when env variable not set", () => {
             const yaml = `
-source:
-  customDomain: "\${UNSET_VAR}"
-  credentials:
-    accessKeyId: "\${SOURCE_ACCESS_KEY_ID}"
-    accessKeySecret: "\${SOURCE_ACCESS_KEY_SECRET}"
-    region: "\${SOURCE_REGION}"
-    bucket: "\${SOURCE_BUCKET}"
-target:
-  credentials:
-    accessKeyId: "\${TARGET_ACCESS_KEY_ID}"
-    accessKeySecret: "\${TARGET_ACCESS_KEY_SECRET}"
-    region: "\${TARGET_REGION}"
-    bucket: "\${TARGET_BUCKET}"
+version: '1.0.0'
+storages:
+  default:
+    adapter: aliyun-oss
+    config:
+      accessKeyId: "\${NON_EXISTENT_VAR}"
+      accessKeySecret: "test-secret"
+      region: "oss-cn-hangzhou"
+      bucket: "test-bucket"
 `;
 
             const loader = createConfigLoader();
-            expect(() => loader.loadFromString(yaml)).toThrow('环境变量未设置');
+            expect(() => loader.loadFromString(yaml)).toThrow("环境变量未设置");
         });
 
-        it('should throw error for plaintext sensitive credentials', () => {
+        it("should throw error for plaintext sensitive credentials", () => {
             const yaml = `
-source:
-  credentials:
-    accessKeyId: plaintext-key-id
-    accessKeySecret: "\${SOURCE_ACCESS_KEY_SECRET}"
-    region: "\${SOURCE_REGION}"
-    bucket: "\${SOURCE_BUCKET}"
-target:
-  credentials:
-    accessKeyId: "\${TARGET_ACCESS_KEY_ID}"
-    accessKeySecret: "\${TARGET_ACCESS_KEY_SECRET}"
-    region: "\${TARGET_REGION}"
-    bucket: "\${TARGET_BUCKET}"
+version: '1.0.0'
+storages:
+  default:
+    adapter: aliyun-oss
+    config:
+      accessKeyId: "plaintext-key-id"
+      accessKeySecret: "test-secret"
+      region: "oss-cn-hangzhou"
+      bucket: "test-bucket"
 `;
 
             const loader = createConfigLoader();
-            expect(() => loader.loadFromString(yaml)).toThrow('敏感字段不支持明文凭证');
+            expect(() => loader.loadFromString(yaml)).toThrow("敏感字段不支持明文凭证");
         });
 
-        it('should allow plaintext non-sensitive credentials', () => {
+        it("should allow plaintext non-sensitive credentials", () => {
             const envVars = {
-                SOURCE_ACCESS_KEY_ID: 'source-key-id',
-                SOURCE_ACCESS_KEY_SECRET: 'source-key-secret',
-                TARGET_ACCESS_KEY_ID: 'target-key-id',
-                TARGET_ACCESS_KEY_SECRET: 'target-key-secret',
+                ACCESS_KEY_ID: "test-key-id",
+                ACCESS_KEY_SECRET: "test-key-secret",
             };
 
             const yaml = `
-source:
-  credentials:
-    accessKeyId: "\${SOURCE_ACCESS_KEY_ID}"
-    accessKeySecret: "\${SOURCE_ACCESS_KEY_SECRET}"
-    region: oss-cn-hangzhou
-    bucket: source-bucket
-target:
-  credentials:
-    accessKeyId: "\${TARGET_ACCESS_KEY_ID}"
-    accessKeySecret: "\${TARGET_ACCESS_KEY_SECRET}"
-    region: oss-cn-beijing
-    bucket: target-bucket
+version: '1.0.0'
+storages:
+  default:
+    adapter: aliyun-oss
+    config:
+      accessKeyId: "\${ACCESS_KEY_ID}"
+      accessKeySecret: "\${ACCESS_KEY_SECRET}"
+      region: "oss-cn-hangzhou"
+      bucket: "test-bucket"
 `;
 
             const loader = createConfigLoader({
@@ -170,37 +132,33 @@ target:
 
             const config = loader.loadFromString(yaml);
 
-            expect(config.source.credentials.region).toBe('oss-cn-hangzhou');
-            expect(config.source.credentials.bucket).toBe('source-bucket');
-            expect(config.target.credentials.region).toBe('oss-cn-beijing');
-            expect(config.target.credentials.bucket).toBe('target-bucket');
+            expect(config.version).toBe("1.0.0");
+            expect(config.storages.default.config.accessKeyId).toBe("test-key-id");
+            expect(config.storages.default.config.region).toBe("oss-cn-hangzhou");
+            expect(config.storages.default.config.bucket).toBe("test-bucket");
         });
 
-        it('should handle credentials with environment variables', () => {
+        it("should handle credentials with environment variables", () => {
             const envVars = {
-                SOURCE_ACCESS_KEY_ID: 'source-key-id',
-                SOURCE_ACCESS_KEY_SECRET: 'source-key-secret',
-                SOURCE_REGION: 'oss-cn-hangzhou',
-                SOURCE_BUCKET: 'source-bucket',
-                TARGET_ACCESS_KEY_ID: 'target-key-id',
-                TARGET_ACCESS_KEY_SECRET: 'target-key-secret',
-                TARGET_REGION: 'oss-cn-beijing',
-                TARGET_BUCKET: 'target-bucket',
+                ACCESS_KEY_ID: "test-key-id",
+                ACCESS_KEY_SECRET: "test-key-secret",
+                REGION: "oss-cn-hangzhou",
+                BUCKET: "test-bucket",
             };
 
             const yaml = `
-source:
-  credentials:
-    accessKeyId: "\${SOURCE_ACCESS_KEY_ID}"
-    accessKeySecret: "\${SOURCE_ACCESS_KEY_SECRET}"
-    region: "\${SOURCE_REGION}"
-    bucket: "\${SOURCE_BUCKET}"
-target:
-  credentials:
-    accessKeyId: "\${TARGET_ACCESS_KEY_ID}"
-    accessKeySecret: "\${TARGET_ACCESS_KEY_SECRET}"
-    region: "\${TARGET_REGION}"
-    bucket: "\${TARGET_BUCKET}"
+version: '1.0.0'
+storages:
+  default:
+    adapter: aliyun-oss
+    config:
+      accessKeyId: "\${ACCESS_KEY_ID}"
+      accessKeySecret: "\${ACCESS_KEY_SECRET}"
+      region: "\${REGION}"
+      bucket: "\${BUCKET}"
+upload:
+  batchLimit: 5
+  imageFormat: html
 `;
 
             const loader = createConfigLoader({
@@ -209,54 +167,51 @@ target:
 
             const config = loader.loadFromString(yaml);
 
-            expect(
-                (config.source.credentials as import('@cmtx/storage').AliyunCredentials).accessKeyId
-            ).toBe('source-key-id');
-            expect(config.source.credentials.region).toBe('oss-cn-hangzhou');
-            expect(
-                (config.target.credentials as import('@cmtx/storage').AliyunCredentials).accessKeyId
-            ).toBe('target-key-id');
-            expect(config.target.credentials.region).toBe('oss-cn-beijing');
+            expect(config.version).toBe("1.0.0");
+            expect(config.storages.default.config.accessKeyId).toBe("test-key-id");
+            expect(config.upload?.batchLimit).toBe(5);
+            expect(config.upload?.imageFormat).toBe("html");
         });
     });
 
-    describe('loadConfigFromString', () => {
-        it('should be a convenience function', () => {
-            const envVars = {
-                SOURCE_ACCESS_KEY_ID: 'source-key-id',
-                SOURCE_ACCESS_KEY_SECRET: 'source-key-secret',
-                SOURCE_REGION: 'oss-cn-hangzhou',
-                SOURCE_BUCKET: 'source-bucket',
-                TARGET_ACCESS_KEY_ID: 'target-key-id',
-                TARGET_ACCESS_KEY_SECRET: 'target-key-secret',
-                TARGET_REGION: 'oss-cn-hangzhou',
-                TARGET_BUCKET: 'target-bucket',
-            };
-
+    describe("loadConfigFromString", () => {
+        it("should be a convenience function", () => {
             const yaml = `
-source:
-  credentials:
-    accessKeyId: "\${SOURCE_ACCESS_KEY_ID}"
-    accessKeySecret: "\${SOURCE_ACCESS_KEY_SECRET}"
-    region: "\${SOURCE_REGION}"
-    bucket: "\${SOURCE_BUCKET}"
-target:
-  credentials:
-    accessKeyId: "\${TARGET_ACCESS_KEY_ID}"
-    accessKeySecret: "\${TARGET_ACCESS_KEY_SECRET}"
-    region: "\${TARGET_REGION}"
-    bucket: "\${TARGET_BUCKET}"
+version: '1.0.0'
+storages:
+  default:
+    adapter: aliyun-oss
+    config:
+      accessKeyId: "\${ACCESS_KEY_ID}"
+      accessKeySecret: "\${ACCESS_KEY_SECRET}"
+      region: "oss-cn-hangzhou"
+      bucket: "test-bucket"
 `;
+            const envVars = {
+                ACCESS_KEY_ID: "test-key-id",
+                ACCESS_KEY_SECRET: "test-key-secret",
+            };
 
             const config = loadConfigFromString(yaml, {
                 envResolver: (name) => envVars[name as keyof typeof envVars],
             });
 
-            expect(config.source).toBeDefined();
-            expect(config.target).toBeDefined();
-            expect(
-                (config.source.credentials as import('@cmtx/storage').AliyunCredentials).accessKeyId
-            ).toBe('source-key-id');
+            expect(config.version).toBe("1.0.0");
+            expect(config.storages.default.adapter).toBe("aliyun-oss");
+        });
+    });
+
+    describe("ConfigLoader class", () => {
+        it("should create instance without options", () => {
+            const loader = new ConfigLoader();
+            expect(loader).toBeInstanceOf(ConfigLoader);
+        });
+
+        it("should create instance with options", () => {
+            const loader = new ConfigLoader({
+                envResolver: (name) => process.env[name],
+            });
+            expect(loader).toBeInstanceOf(ConfigLoader);
         });
     });
 });

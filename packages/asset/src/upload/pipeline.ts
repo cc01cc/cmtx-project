@@ -1,13 +1,17 @@
-import { createHash } from 'node:crypto';
-import { resolve as resolvePath } from 'node:path';
-import type { ImageMatch, LoggerCallback } from '@cmtx/core';
-import { filterImagesInText } from '@cmtx/core';
-import type { IStorageAdapter } from '@cmtx/storage';
+/* eslint-disable no-console */
+
+import { createHash } from "node:crypto";
+import { resolve as resolvePath } from "node:path";
+import type { ImageMatch, Logger } from "@cmtx/core";
+import { filterImagesInText } from "@cmtx/core";
+import type { IStorageAdapter } from "@cmtx/storage";
+import { renderTemplate } from "@cmtx/template";
+import { getCurrentStorageConfig } from "./config.js";
 import {
     generateNameAndRemotePath,
     generateRemoteImageName,
     type NameTemplateVariables,
-} from './naming-handler.js';
+} from "./naming-handler.js";
 import {
     type DeleteStrategy,
     type DocumentAccessor,
@@ -16,16 +20,21 @@ import {
     StorageUploadStrategy,
     type UploadSource,
     type UploadStrategy,
-} from './strategies.js';
-import { createContext, renderTemplateImage } from './template-renderer.js';
+} from "./strategies.js";
+import { createContext } from "./template-renderer.js";
 import type {
-    FailedItem,
+    ConflictAction,
+    ConflictResolutionStrategy,
+    DetailedUploadResult,
+    DownloadedItem,
+    FailedItemDetail,
     ImageCloudMapBody,
-    ReplaceOptions,
+    ReplaceConfig,
+    SkippedItem,
     UploadConfig,
-    UploadResult,
-} from './types.js';
-import { UploadContext } from './upload-context.js';
+    UploadedItem,
+} from "./types.js";
+import { UploadContext } from "./upload-context.js";
 
 interface ImageMatchWithOffset {
     match: ImageMatch;
@@ -50,28 +59,24 @@ export interface UploadPipelineInput {
     createReplacementText?: (args: {
         image: ImageMatch;
         cloudResult: ImageCloudMapBody;
-        replaceOptions: ReplaceOptions;
+        replaceOptions: ReplaceConfig;
     }) => string;
-    logger?: LoggerCallback;
+    logger?: Logger;
     /**
-     * 当文件已存在时的冲突处理回调
-     * @param fileName - 文件名
-     * @param remotePath - 远程路径
-     * @param remoteUrl - 预期的远程 URL
-     * @returns 'skip' | 'replace' | 'download' - 用户选择的操作
+     * 冲突处理策略
+     * @description
+     * 在上传开始前选择的冲突处理策略，避免多次回调。
      */
-    onFileExists?: (
-        fileName: string,
-        remotePath: string,
-        remoteUrl: string
-    ) => Promise<'skip' | 'replace' | 'download'>;
+    conflictStrategy?: ConflictResolutionStrategy;
 }
 
 interface UploadProcessingState {
     context: UploadContext;
-    failed: FailedItem[];
+    failed: FailedItemDetail[];
     replacementOps: ReplacementOp[];
     uploadedLocalPaths: Set<string>;
+    skippedItems: SkippedItem[];
+    downloadedItems: DownloadedItem[];
 }
 
 function computeImageOffsets(text: string, matches: ImageMatch[]): ImageMatchWithOffset[] {
@@ -99,14 +104,14 @@ function computeImageOffsets(text: string, matches: ImageMatch[]): ImageMatchWit
 
 function normalizePrefix(prefix?: string): string {
     if (!prefix) {
-        return '';
+        return "";
     }
-    return prefix.endsWith('/') ? prefix : `${prefix}/`;
+    return prefix.endsWith("/") ? prefix : `${prefix}/`;
 }
 
 function getBufferNameVariables(buffer: Buffer, ext: string): NameTemplateVariables {
     const now = new Date();
-    const md5 = createHash('md5').update(buffer).digest('hex');
+    const md5 = createHash("md5").update(buffer).digest("hex");
 
     return {
         name: md5.slice(0, 8),
@@ -115,8 +120,8 @@ function getBufferNameVariables(buffer: Buffer, ext: string): NameTemplateVariab
         date: now.toISOString().slice(0, 10),
         timestamp: Date.now().toString(),
         year: now.getFullYear().toString(),
-        month: (now.getMonth() + 1).toString().padStart(2, '0'),
-        day: now.getDate().toString().padStart(2, '0'),
+        month: (now.getMonth() + 1).toString().padStart(2, "0"),
+        day: now.getDate().toString().padStart(2, "0"),
         md5,
         md5_8: md5.slice(0, 8),
         md5_16: md5.slice(0, 16),
@@ -124,7 +129,7 @@ function getBufferNameVariables(buffer: Buffer, ext: string): NameTemplateVariab
 }
 
 function buildSourceForMatch(match: ImageMatch, baseDirectory: string): UploadSource | undefined {
-    if (match.src.startsWith('data:image/')) {
+    if (match.src.startsWith("data:image/")) {
         const dataUriRegex = /data:image\/([^;]+);base64,(.+)/;
         const base64Match = dataUriRegex.exec(match.src);
         if (!base64Match) {
@@ -133,8 +138,8 @@ function buildSourceForMatch(match: ImageMatch, baseDirectory: string): UploadSo
 
         const ext = `.${base64Match[1]}`;
         return {
-            kind: 'buffer',
-            buffer: Buffer.from(base64Match[2], 'base64'),
+            kind: "buffer",
+            buffer: Buffer.from(base64Match[2], "base64"),
             ext,
         };
     }
@@ -146,7 +151,7 @@ function buildSourceForMatch(match: ImageMatch, baseDirectory: string): UploadSo
 
     const absPath = resolvePath(baseDirectory, match.src);
     return {
-        kind: 'file',
+        kind: "file",
         absPath,
     };
 }
@@ -154,24 +159,25 @@ function buildSourceForMatch(match: ImageMatch, baseDirectory: string): UploadSo
 async function buildRemoteInfoForSource(
     source: UploadSource,
     src: string,
-    config: UploadConfig
+    config: UploadConfig,
 ): Promise<{
     name: string;
     remotePath: string;
     variables: NameTemplateVariables;
 }> {
-    if (source.kind === 'file') {
+    if (source.kind === "file") {
         const info = await generateNameAndRemotePath(
             {
-                type: 'local',
-                alt: '',
+                type: "local",
+                alt: "",
                 src,
                 absLocalPath: source.absPath,
-                raw: '',
-                syntax: 'md',
-                source: 'file',
+                raw: "",
+                syntax: "md",
+                source: "file",
             },
-            config.storage
+            getCurrentStorageConfig(config),
+            config.prefix,
         );
 
         return {
@@ -181,12 +187,12 @@ async function buildRemoteInfoForSource(
         };
     }
 
-    const namingTemplate = config.storage.namingTemplate ?? '{timestamp}{ext}';
+    const namingTemplate = getCurrentStorageConfig(config).namingTemplate ?? "{timestamp}{ext}";
     const variables = getBufferNameVariables(source.buffer, source.ext);
     const name = generateRemoteImageName(
         {
-            fullPath: '',
-            dirPath: '',
+            fullPath: "",
+            dirPath: "",
             fileName: variables.fileName,
             name: variables.name,
             ext: variables.ext,
@@ -194,14 +200,14 @@ async function buildRemoteInfoForSource(
         },
         source.buffer,
         {
-            ...config.storage,
+            ...getCurrentStorageConfig(config),
             namingTemplate,
-        }
+        },
     );
 
     return {
         name,
-        remotePath: `${normalizePrefix(config.storage.prefix)}${name}`,
+        remotePath: `${normalizePrefix(config.prefix)}${name}`,
         variables,
     };
 }
@@ -209,8 +215,8 @@ async function buildRemoteInfoForSource(
 function createDefaultReplacementText(args: {
     image: ImageMatch;
     cloudResult: ImageCloudMapBody;
-    replaceOptions: ReplaceOptions;
-    imageFormat?: 'markdown' | 'html';
+    replaceOptions: ReplaceConfig;
+    imageFormat?: "markdown" | "html";
 }): string {
     const { image, cloudResult, replaceOptions, imageFormat } = args;
     const renderContext = createContext(image.raw, {
@@ -225,20 +231,26 @@ function createDefaultReplacementText(args: {
 
     // Render field templates
     const newSrc = replaceOptions.fields.src
-        ? renderTemplateImage(replaceOptions.fields.src, renderContext)
+        ? renderTemplate(replaceOptions.fields.src, renderContext, {
+              emptyString: "preserve",
+          })
         : cloudResult.url;
     const newAlt = replaceOptions.fields.alt
-        ? renderTemplateImage(replaceOptions.fields.alt, renderContext)
+        ? renderTemplate(replaceOptions.fields.alt, renderContext, {
+              emptyString: "preserve",
+          })
         : image.alt;
     const newTitle = replaceOptions.fields.title
-        ? renderTemplateImage(replaceOptions.fields.title, renderContext)
+        ? renderTemplate(replaceOptions.fields.title, renderContext, {
+              emptyString: "preserve",
+          })
         : image.title;
 
     // Determine output format
-    const outputFormat = imageFormat ?? image.syntax ?? 'markdown';
+    const outputFormat = imageFormat ?? image.syntax ?? "markdown";
 
     // Generate replacement text based on format
-    if (outputFormat === 'html') {
+    if (outputFormat === "html") {
         // Build HTML img tag
         let htmlTag = `<img src="${newSrc}" alt="${newAlt}"`;
         if (newTitle) {
@@ -251,7 +263,7 @@ function createDefaultReplacementText(args: {
         if (image.height) {
             htmlTag += ` height="${image.height}"`;
         }
-        htmlTag += '>';
+        htmlTag += ">";
         return htmlTag;
     }
 
@@ -276,30 +288,30 @@ function resolveSelectionRanges(input: UploadPipelineInput): UploadPipelineSelec
 
 function isInSelectionRanges(
     entry: ImageMatchWithOffset,
-    ranges?: UploadPipelineSelection[]
+    ranges?: UploadPipelineSelection[],
 ): boolean {
     if (!ranges) {
         return true;
     }
 
     return ranges.some(
-        (range) => entry.startOffset >= range.startOffset && entry.endOffset <= range.endOffset
+        (range) => entry.startOffset >= range.startOffset && entry.endOffset <= range.endOffset,
     );
 }
 
-function getReplaceOptions(config: UploadConfig): ReplaceOptions {
+function getReplaceOptions(config: UploadConfig): ReplaceConfig {
     return (
         config.replace ?? {
-            fields: { src: '{cloudSrc}' },
+            fields: { src: "{cloudSrc}" },
         }
     );
 }
 
 function createReplacementText(
     input: UploadPipelineInput,
-    replaceOptions: ReplaceOptions,
+    replaceOptions: ReplaceConfig,
     image: ImageMatch,
-    cloudResult: ImageCloudMapBody
+    cloudResult: ImageCloudMapBody,
 ): string {
     if (input.createReplacementText) {
         return input.createReplacementText({
@@ -318,17 +330,17 @@ function createReplacementText(
 }
 
 function getDedupKey(source: UploadSource): string {
-    if (source.kind === 'file') {
+    if (source.kind === "file") {
         return source.absPath;
     }
 
-    return createHash('md5').update(source.buffer).digest('hex');
+    return createHash("md5").update(source.buffer).digest("hex");
 }
 
 function pushReplacementOp(
     state: UploadProcessingState,
     entry: ImageMatchWithOffset,
-    newText: string
+    newText: string,
 ): void {
     state.replacementOps.push({
         offset: entry.startOffset,
@@ -337,17 +349,20 @@ function pushReplacementOp(
     });
 }
 
+interface HandleCachedResultOptions {
+    state: UploadProcessingState;
+    entry: ImageMatchWithOffset;
+    match: ImageMatch;
+    cached: ImageCloudMapBody;
+    input: UploadPipelineInput;
+    replaceOptions: ReplaceConfig;
+}
+
 /**
  * 处理已缓存的上传结果
  */
-function handleCachedResult(
-    state: UploadProcessingState,
-    entry: ImageMatchWithOffset,
-    match: ImageMatch,
-    cached: ImageCloudMapBody,
-    input: UploadPipelineInput,
-    replaceOptions: ReplaceOptions
-): void {
+function handleCachedResult(options: HandleCachedResultOptions): void {
+    const { state, entry, match, cached, input, replaceOptions } = options;
     const newText = createReplacementText(input, replaceOptions, match, cached);
     pushReplacementOp(state, entry, newText);
 }
@@ -363,16 +378,40 @@ async function checkFileExists(adapter: IStorageAdapter, remotePath: string): Pr
 }
 
 /**
+ * 根据冲突策略解析动作
+ * @param strategy - 冲突处理策略
+ * @returns 冲突动作
+ */
+function resolveConflictAction(strategy?: ConflictResolutionStrategy): ConflictAction {
+    if (!strategy) {
+        return "skip"; // 默认跳过
+    }
+
+    switch (strategy.type) {
+        case "skip-all":
+            return "skip";
+        case "replace-all":
+            return "replace";
+        case "download-all":
+            return "download";
+        default:
+            throw new Error(`Unknown conflict strategy: ${String(strategy)}`);
+    }
+}
+
+/**
  * 处理单个图片匹配项
+ *
+ * @internal 此函数复杂度较高，涉及多个上传步骤的协调
  */
 async function processMatchEntry(args: {
     entry: ImageMatchWithOffset;
     input: UploadPipelineInput;
     state: UploadProcessingState;
     uploadStrategy: UploadStrategy;
-    replaceOptions: ReplaceOptions;
+    replaceOptions: ReplaceConfig;
     baseDirectory: string;
-    log?: LoggerCallback;
+    log?: Logger;
 }): Promise<void> {
     const { entry, input, state, uploadStrategy, replaceOptions, baseDirectory, log } = args;
     const match = entry.match;
@@ -389,13 +428,13 @@ async function processMatchEntry(args: {
     const dedupKey = getDedupKey(source);
     const cached = state.context.getUploadResult(dedupKey);
     if (cached) {
-        handleCachedResult(state, entry, match, cached, input, replaceOptions);
+        handleCachedResult({ state, entry, match, cached, input, replaceOptions });
         return;
     }
 
     try {
         const remoteInfo = await buildRemoteInfoForSource(source, match.src, input.config);
-        const adapter = input.config.storage.adapter;
+        const adapter = getCurrentStorageConfig(input.config).adapter;
 
         // Check if file already exists
         const fileExists = await checkFileExists(adapter, remoteInfo.remotePath);
@@ -408,30 +447,38 @@ async function processMatchEntry(args: {
         let uploadResult: ImageCloudMapBody;
 
         if (fileExists) {
-            log?.(
-                'info',
-                `[UploadPipeline] File already exists, skipping upload: ${remoteInfo.remotePath}`
-            );
+            log?.info(`[UploadPipeline] File already exists: ${remoteInfo.remotePath}`);
 
-            if (input.onFileExists) {
-                const action = await input.onFileExists(
-                    remoteInfo.name,
-                    remoteInfo.remotePath,
-                    remoteUrl
+            // 根据冲突处理策略决定动作
+            const action = resolveConflictAction(input.conflictStrategy);
+
+            if (action === "skip") {
+                log?.info(
+                    `[UploadPipeline] Strategy is skip-all, skipping: ${remoteInfo.remotePath}`,
                 );
-
-                if (action === 'skip') {
-                    log?.('info', `[UploadPipeline] User chose to skip: ${remoteInfo.remotePath}`);
-                    return;
-                } else if (action === 'download') {
-                    log?.(
-                        'info',
-                        `[UploadPipeline] User chose to download: ${remoteInfo.remotePath}`
-                    );
-                    return;
-                }
-                // action === 'replace' - continue with replacement
+                state.skippedItems.push({
+                    remotePath: remoteInfo.remotePath,
+                    reason: "file-exists",
+                });
+                return;
             }
+
+            if (action === "download") {
+                log?.info(
+                    `[UploadPipeline] Strategy is download-all, will download: ${remoteInfo.remotePath}`,
+                );
+                // 下载逻辑在 VS Code 层实现，这里只记录
+                state.downloadedItems.push({
+                    remotePath: remoteInfo.remotePath,
+                    localPath: "", // VS Code 层会填充实际路径
+                });
+                return;
+            }
+
+            // action === 'replace' - 继续上传，覆盖远程文件
+            log?.info(
+                `[UploadPipeline] Strategy is replace-all, will replace: ${remoteInfo.remotePath}`,
+            );
 
             uploadResult = {
                 name: remoteInfo.name,
@@ -443,7 +490,7 @@ async function processMatchEntry(args: {
             // Upload the file
             const upload = await uploadStrategy.upload(source, remoteInfo.remotePath, {
                 contentType:
-                    source.kind === 'buffer' ? `image/${source.ext.replace('.', '')}` : undefined,
+                    source.kind === "buffer" ? `image/${source.ext.replace(".", "")}` : undefined,
             });
 
             uploadResult = {
@@ -460,17 +507,17 @@ async function processMatchEntry(args: {
         const replacementText = createReplacementText(input, replaceOptions, match, uploadResult);
         pushReplacementOp(state, entry, replacementText);
 
-        if (source.kind === 'file' && !fileExists) {
+        if (source.kind === "file" && !fileExists) {
             state.uploadedLocalPaths.add(source.absPath);
         }
     } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
         state.failed.push({
-            localPath: source.kind === 'file' ? source.absPath : match.src,
-            stage: 'upload',
+            localPath: source.kind === "file" ? source.absPath : match.src,
+            stage: "upload",
             error: err.message,
         });
-        log?.('error', `[UploadPipeline] Failed to upload: ${match.src}`, {
+        log?.error(`[UploadPipeline] Failed to upload: ${match.src}`, {
             error: err,
         });
     }
@@ -479,7 +526,7 @@ async function processMatchEntry(args: {
 async function removeUploadedLocals(args: {
     deleteStrategy?: DeleteStrategy;
     uploadedLocalPaths: Set<string>;
-    failed: FailedItem[];
+    failed: FailedItemDetail[];
 }): Promise<number> {
     const { deleteStrategy, uploadedLocalPaths, failed } = args;
     if (!deleteStrategy || uploadedLocalPaths.size === 0) {
@@ -490,20 +537,20 @@ async function removeUploadedLocals(args: {
     for (const absPath of uploadedLocalPaths) {
         try {
             const result = await deleteStrategy.remove(absPath);
-            if (result.status === 'success') {
+            if (result.status === "success") {
                 deleted++;
             } else {
                 failed.push({
                     localPath: absPath,
-                    stage: 'delete',
-                    error: result.error ?? 'delete failed',
+                    stage: "delete",
+                    error: result.error ?? "delete failed",
                 });
             }
         } catch (error) {
             const err = error instanceof Error ? error : new Error(String(error));
             failed.push({
                 localPath: absPath,
-                stage: 'delete',
+                stage: "delete",
                 error: err.message,
             });
         }
@@ -512,10 +559,67 @@ async function removeUploadedLocals(args: {
     return deleted;
 }
 
-export async function executeUploadPipeline(input: UploadPipelineInput): Promise<UploadResult> {
+function applyReplacementOps(documentText: string, ops: ReplacementOp[]): string {
+    const sortedOps = [...ops].sort((a, b) => b.offset - a.offset);
+    let content = documentText;
+    for (const op of sortedOps) {
+        const before = content.slice(0, op.offset);
+        const after = content.slice(op.offset + op.length);
+        content = `${before}${op.newText}${after}`;
+    }
+    return content;
+}
+
+function buildPipelineResult(
+    state: UploadProcessingState,
+    deleted: number,
+    applied: boolean,
+    finalContent: string,
+    log?: Logger,
+): DetailedUploadResult {
+    const uploadedItems: UploadedItem[] = [];
+    for (const [dedupKey, cloudResult] of state.context.getCloudImageMap()) {
+        uploadedItems.push({
+            localPath: dedupKey,
+            remotePath: cloudResult.remotePath,
+            url: cloudResult.url,
+            action: "uploaded",
+        });
+    }
+
+    const uploadedCount = state.context.getCloudImageMap().size;
+    const replacedCount = applied ? state.replacementOps.length : 0;
+
+    const totalProcessed =
+        uploadedCount +
+        state.skippedItems.length +
+        state.downloadedItems.length +
+        state.failed.length;
+
+    log?.info(
+        `[UploadPipeline] Upload complete: total=${totalProcessed}, uploaded=${uploadedCount}, skipped=${state.skippedItems.length}, downloaded=${state.downloadedItems.length}, failed=${state.failed.length}`,
+    );
+
+    return {
+        success: uploadedCount > 0 || replacedCount > 0 || deleted > 0,
+        uploaded: uploadedCount,
+        replaced: replacedCount,
+        deleted,
+        content: finalContent,
+        uploadedItems,
+        skippedItems: state.skippedItems,
+        downloadedItems: state.downloadedItems,
+        failedItems: state.failed,
+    };
+}
+
+export async function executeUploadPipeline(
+    input: UploadPipelineInput,
+): Promise<DetailedUploadResult> {
     const log = input.logger ?? input.config.events?.logger;
     const uploadStrategy =
-        input.uploadStrategy ?? new StorageUploadStrategy(input.config.storage.adapter);
+        input.uploadStrategy ??
+        new StorageUploadStrategy(getCurrentStorageConfig(input.config).adapter);
 
     // 检查是否启用删除
     const deleteEnabled = input.config.delete?.enabled !== false;
@@ -530,13 +634,14 @@ export async function executeUploadPipeline(input: UploadPipelineInput): Promise
     const allMatches = filterImagesInText(documentText);
     const selectionRanges = resolveSelectionRanges(input);
     const matches = computeImageOffsets(documentText, allMatches).filter((entry) =>
-        isInSelectionRanges(entry, selectionRanges)
+        isInSelectionRanges(entry, selectionRanges),
     );
 
     if (matches.length === 0) {
-        log?.(
-            'warn',
-            `[UploadPipeline] No images found in selection. Selection ranges: ${JSON.stringify(selectionRanges)}, Total images in document: ${allMatches.length}`
+        log?.info(
+            `[UploadPipeline] No images found in selection. Selection ranges: ${JSON.stringify(
+                selectionRanges,
+            )}, Total images in document: ${allMatches.length}`,
         );
         return {
             success: true,
@@ -544,6 +649,10 @@ export async function executeUploadPipeline(input: UploadPipelineInput): Promise
             replaced: 0,
             deleted: 0,
             content: documentText,
+            uploadedItems: [],
+            skippedItems: [],
+            downloadedItems: [],
+            failedItems: [],
         };
     }
 
@@ -552,6 +661,8 @@ export async function executeUploadPipeline(input: UploadPipelineInput): Promise
         failed: [],
         replacementOps: [],
         uploadedLocalPaths: new Set<string>(),
+        skippedItems: [],
+        downloadedItems: [],
     };
     const baseDirectory = input.baseDirectory ?? process.cwd();
 
@@ -568,13 +679,7 @@ export async function executeUploadPipeline(input: UploadPipelineInput): Promise
     }
 
     // 计算替换后的内容
-    const sortedOps = [...state.replacementOps].sort((a, b) => b.offset - a.offset);
-    let finalContent = documentText;
-    for (const op of sortedOps) {
-        const before = finalContent.slice(0, op.offset);
-        const after = finalContent.slice(op.offset + op.length);
-        finalContent = `${before}${op.newText}${after}`;
-    }
+    const finalContent = applyReplacementOps(documentText, state.replacementOps);
 
     const applied = await input.documentAccessor.applyReplacements(state.replacementOps);
 
@@ -584,17 +689,5 @@ export async function executeUploadPipeline(input: UploadPipelineInput): Promise
         failed: state.failed,
     });
 
-    const result: UploadResult = {
-        success: state.context.getCloudImageMap().size > 0 || matches.length === 0,
-        uploaded: state.context.getCloudImageMap().size,
-        replaced: applied ? state.replacementOps.length : 0,
-        deleted,
-        content: finalContent,
-    };
-
-    if (state.failed.length > 0) {
-        result.failed = state.failed;
-    }
-
-    return result;
+    return buildPipelineResult(state, deleted, applied, finalContent, log);
 }

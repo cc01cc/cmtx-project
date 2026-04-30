@@ -6,7 +6,7 @@
  * 追踪传输任务的进度，提供统计信息和回调通知。
  */
 
-import type { TransferEvent, TransferEventType, TransferProgress } from '../transfer/types.js';
+import type { TransferEvent, TransferEventType, TransferProgress } from "../transfer/types.js";
 
 /**
  * 进度追踪器配置
@@ -45,10 +45,10 @@ export class ProgressTracker {
      * @param fileName - 文件名
      * @param status - 初始状态
      */
-    start(fileName: string, status: TransferProgress['status'] = 'downloading'): void {
+    start(fileName: string, status: TransferProgress["status"] = "downloading"): void {
         this.current++;
         this.notifyProgress(fileName, status);
-        this.notifyEvent('transfer:start', { originalUrl: fileName });
+        this.notifyEvent("transfer:start", { originalUrl: fileName });
     }
 
     /**
@@ -57,7 +57,7 @@ export class ProgressTracker {
      * @param status - 新状态
      * @param bytesDelta - 字节变化量
      */
-    update(fileName: string, status: TransferProgress['status'], bytesDelta = 0): void {
+    update(fileName: string, status: TransferProgress["status"], bytesDelta = 0): void {
         this.bytesTransferred += bytesDelta;
         this.notifyProgress(fileName, status);
     }
@@ -69,8 +69,8 @@ export class ProgressTracker {
      */
     complete(fileName: string, newUrl?: string): void {
         this.success++;
-        this.notifyProgress(fileName, 'completed');
-        this.notifyEvent('transfer:complete', { originalUrl: fileName, newUrl });
+        this.notifyProgress(fileName, "completed");
+        this.notifyEvent("transfer:complete", { originalUrl: fileName, newUrl });
     }
 
     /**
@@ -80,8 +80,8 @@ export class ProgressTracker {
      */
     fail(fileName: string, error: Error): void {
         this.failed++;
-        this.notifyProgress(fileName, 'failed');
-        this.notifyEvent('transfer:error', { originalUrl: fileName, error });
+        this.notifyProgress(fileName, "failed");
+        this.notifyEvent("transfer:error", { originalUrl: fileName, error });
     }
 
     /**
@@ -90,7 +90,10 @@ export class ProgressTracker {
      */
     skip(fileName: string): void {
         this.skipped++;
-        this.notifyEvent('transfer:complete', { originalUrl: fileName, skipped: true });
+        this.notifyEvent("transfer:complete", {
+            originalUrl: fileName,
+            skipped: true,
+        });
     }
 
     /**
@@ -99,7 +102,7 @@ export class ProgressTracker {
      * @param status - 当前状态
      * @returns 进度信息
      */
-    getProgress(fileName: string, status: TransferProgress['status']): TransferProgress {
+    getProgress(fileName: string, status: TransferProgress["status"]): TransferProgress {
         return {
             current: this.current,
             total: this.config.total,
@@ -139,7 +142,7 @@ export class ProgressTracker {
      * @param fileName - 文件名
      * @param status - 状态
      */
-    private notifyProgress(fileName: string, status: TransferProgress['status']): void {
+    private notifyProgress(fileName: string, status: TransferProgress["status"]): void {
         if (this.config.onProgress) {
             this.config.onProgress(this.getProgress(fileName, status));
         }
@@ -150,7 +153,7 @@ export class ProgressTracker {
      * @param type - 事件类型
      * @param data - 事件数据
      */
-    private notifyEvent(type: TransferEventType, data?: TransferEvent['data']): void {
+    private notifyEvent(type: TransferEventType, data?: TransferEvent["data"]): void {
         if (this.config.onEvent) {
             this.config.onEvent({
                 type,

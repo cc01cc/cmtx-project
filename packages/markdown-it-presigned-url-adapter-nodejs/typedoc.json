@@ -1,7 +1,6 @@
 {
     "extends": ["../../typedoc.base.json"],
     "entryPoints": ["src/index.ts"],
-    "out": "docs/api",
     "name": "@cmtx/markdown-it-presigned-url-adapter-nodejs",
     "includeVersion": true,
     "readme": "README.md"

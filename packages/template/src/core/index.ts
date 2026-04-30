@@ -40,21 +40,22 @@
 /**
  * @category 内置变量
  */
-export { BuiltinVariables, ContextManager } from './context.js';
+export { BuiltinVariables, ContextManager } from "./context.js";
+/**
+ * @category 类型定义
+ */
+export type { RenderTemplateOptions } from "./template-engine.js";
 /**
  * @category 模板渲染
  */
 /**
  * @category 模板验证
  */
-export { renderTemplate, validateTemplate } from './template-engine.js';
+export { renderTemplate, validateTemplate } from "./template-engine.js";
 /**
  * @category 类型定义
  */
 /**
  * @category 类型定义
  */
-/**
- * @category 类型定义
- */
-export type { TemplateContext, TemplateEngine, ValidationResult } from './types.js';
+export type { TemplateContext, TemplateEngine, ValidationResult } from "./types.js";

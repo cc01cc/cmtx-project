@@ -1,5 +1,39 @@
 # @cmtx/mcp-server 更新日志 / Changelog
 
+### Added
+
+- **错误处理**: 新增上传命令的错误处理和日志改进
+
+### Changed
+
+- **Rule Engine**: 集成 `@cmtx/publish` 的规则引擎，统一 CLI 和 MCP 命令
+- **RuleEngineAdapter**: 重构为异步工厂方法（`createAsync`）加载内置规则
+- **构建工具**: 从 `tsc` 迁移到 `tsdown`，新增 `tsdown.config.ts`
+- **Node.js 版本**: 引擎要求从 `>=18.0.0` 升级到 `>=22.0.0`
+
+### Fixed
+
+- 修复缺少 `createRuleEngine` 导入导致的 TypeScript 编译错误
+- 修复 DeleteConfig 类型错误
+
+---
+
+### Added
+
+- **Error Handling**: Added upload command error handling and logging improvements
+
+### Changed
+
+- **Rule Engine**: Integrated `@cmtx/publish` rule engine, unified CLI and MCP commands
+- **RuleEngineAdapter**: Refactored to async factory method (`createAsync`) for built-in rules
+- **Build Tool**: Migrated from `tsc` to `tsdown`, added `tsdown.config.ts`
+- **Node.js Version**: Engine requirement bumped from `>=18.0.0` to `>=22.0.0`
+
+### Fixed
+
+- Fixed missing `createRuleEngine` import causing TypeScript compilation error
+- Fixed `DeleteConfig` type error
+
 ## 0.1.0 - 2026-04-11
 
 ### 初始发布
@@ -7,16 +41,19 @@
 #### 功能特性
 
 **MCP 协议支持**
+
 - JSON-RPC 2.0 协议实现
 - 用于 AI 代理集成的标准输入/输出传输
 - 基于工具的 API 设计
 
 **可用工具**
+
 - `scan.analyze` - 分析 Markdown 文档中的图片
 - `upload.run` - 上传本地图片到云存储
 - `delete.safe` - 安全删除图片（带使用检查）
 
 **AI 代理集成**
+
 - 为 Claude 和其他 AI 助手设计
 - 结构化工具响应
 - 错误处理和验证
@@ -50,12 +87,12 @@ npx @cmtx/mcp-server
 
 ```json
 {
-  "mcpServers": {
-    "cmtx": {
-      "command": "npx",
-      "args": ["-y", "@cmtx/mcp-server"]
+    "mcpServers": {
+        "cmtx": {
+            "command": "npx",
+            "args": ["-y", "@cmtx/mcp-server"]
+        }
     }
-  }
 }
 ```
 
@@ -66,16 +103,19 @@ npx @cmtx/mcp-server
 #### Features
 
 **MCP Protocol Support**
+
 - JSON-RPC 2.0 protocol implementation
 - Stdio transport for AI agent integration
 - Tool-based API design
 
 **Available Tools**
+
 - `scan.analyze` - Analyze images in Markdown documents
 - `upload.run` - Upload local images to cloud storage
 - `delete.safe` - Safely delete images with usage checking
 
 **AI Agent Integration**
+
 - Designed for Claude and other AI assistants
 - Structured tool responses
 - Error handling and validation
@@ -109,11 +149,11 @@ This MCP server can be integrated with AI agents like Claude Desktop by adding t
 
 ```json
 {
-  "mcpServers": {
-    "cmtx": {
-      "command": "npx",
-      "args": ["-y", "@cmtx/mcp-server"]
+    "mcpServers": {
+        "cmtx": {
+            "command": "npx",
+            "args": ["-y", "@cmtx/mcp-server"]
+        }
     }
-  }
 }
 ```

@@ -1,183 +1,151 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { applyAdaptRules } from '@cmtx/publish';
-import { loadAdaptConfigFromFile } from '@cmtx/publish/node';
-import { describe, expect, it } from 'vitest';
-import { handler as adaptHandler } from '../src/commands/adapt.js';
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+import { registerPreset } from "@cmtx/publish";
+import { handler as adaptHandler } from "../src/commands/adapt.js";
 
 // ---------------------------------------------------------------------------
-// Unit tests: applyAdaptRules
+// Integration tests: handler (using Preset API)
 // ---------------------------------------------------------------------------
 
-describe('applyAdaptRules', () => {
-    it('applies a single rule globally', () => {
-        const rules = [{ match: '^## (.+)$', replace: '# $1', flags: 'gm' }];
-        const input = '## Hello\n\n## World';
-        expect(applyAdaptRules(input, rules).content).toBe('# Hello\n\n# World');
+const wechatPreset = [
+    "strip-frontmatter",
+    "promote-headings",
+    "add-section-numbers",
+    "convert-images",
+    "upload-images",
+    "frontmatter-id",
+    "frontmatter-date",
+];
+
+const wechatValidator = (markdown: string) => {
+    const issues: Array<{
+        code: string;
+        level: "warning";
+        message: string;
+        fixable: boolean;
+    }> = [];
+
+    if (/^---[\s\S]*?---\n+/g.test(markdown)) {
+        issues.push({
+            code: "wechat/frontmatter",
+            level: "warning",
+            message: "WeChat content should not include YAML frontmatter.",
+            fixable: true,
+        });
+    }
+
+    if (/^# .+$/gm.test(markdown)) {
+        issues.push({
+            code: "wechat/h1-body",
+            level: "warning",
+            message: "WeChat body content should start at H2 because the title is set separately.",
+            fixable: true,
+        });
+    }
+
+    return issues;
+};
+
+describe("adapt command handler", () => {
+    beforeAll(() => {
+        registerPreset("wechat", wechatPreset, wechatValidator);
     });
+    it("writes adapted file to --out path using platform preset", async () => {
+        const dir = await mkdtemp(join(tmpdir(), "cmtx-adapt-handler-"));
+        const inputFile = join(dir, "article.md");
+        const outFile = join(dir, "output", "article.md");
 
-    it('applies rules sequentially (order matters for heading promotion)', () => {
-        // Zhihu-style promotion: h2->h1 first, then h3->h2
-        const rules = [
-            { match: '^## (.+)$', replace: '# $1', flags: 'gm' },
-            { match: '^### (.+)$', replace: '## $1', flags: 'gm' },
-        ];
-        const input = '## Section\n### Sub\n#### Deep';
-        const result = applyAdaptRules(input, rules);
-        // h2 -> h1, h3 -> h2, h4 untouched by these two rules
-        expect(result.content).toBe('# Section\n## Sub\n#### Deep');
-    });
-
-    it('strips frontmatter', () => {
-        const rules = [{ match: String.raw`^---[\s\S]*?---\n+`, replace: '', flags: 'g' }];
-        const input = '---\ntitle: My Post\ndate: 2026-01-01\n---\n\n## Body';
-        expect(applyAdaptRules(input, rules).content).toBe('## Body');
-    });
-
-    it('returns unchanged content when rules array is empty', () => {
-        const content = '# Hello\n\nSome text.';
-        expect(applyAdaptRules(content, []).content).toBe(content);
-    });
-});
-
-// ---------------------------------------------------------------------------
-// Unit tests: loadAdaptConfig validation
-// ---------------------------------------------------------------------------
-
-describe('loadAdaptConfig', () => {
-    it('loads a valid YAML rule file', async () => {
-        const dir = await mkdtemp(join(tmpdir(), 'cmtx-adapt-'));
-        const ruleFile = join(dir, 'test.adapt.yaml');
-
+        // 创建包含 frontmatter 和 H1 的测试文件（wechat 平台会处理这些）
         await writeFile(
-            ruleFile,
+            inputFile,
             [
-                'version: v1',
-                'rules:',
-                '  - name: h2 to h1',
-                '    match: "^## (.+)$"',
-                '    replace: "# $1"',
-                '    flags: "gm"',
-            ].join('\n'),
-            'utf-8'
+                "---",
+                "title: Test",
+                "date: 2026-01-01",
+                "---",
+                "",
+                "# Main Title",
+                "",
+                "Some content",
+            ].join("\n"),
+            "utf-8",
         );
 
-        const config = await loadAdaptConfigFromFile(ruleFile);
-        expect(config.rules).toHaveLength(1);
-        expect(config.rules[0].match).toBe('^## (.+)$');
-        expect(config.rules[0].replace).toBe('# $1');
-
-        await rm(dir, { recursive: true, force: true });
-    });
-
-    it('throws when "rules" array is missing', async () => {
-        const dir = await mkdtemp(join(tmpdir(), 'cmtx-adapt-'));
-        const ruleFile = join(dir, 'bad.yaml');
-        await writeFile(ruleFile, 'version: v1\n', 'utf-8');
-
-        await expect(loadAdaptConfigFromFile(ruleFile)).rejects.toThrow(/rules/);
-
-        await rm(dir, { recursive: true, force: true });
-    });
-
-    it('throws when a rule has invalid regex', async () => {
-        const dir = await mkdtemp(join(tmpdir(), 'cmtx-adapt-'));
-        const ruleFile = join(dir, 'bad-regex.yaml');
-
-        await writeFile(
-            ruleFile,
-            ['rules:', '  - match: "[unclosed"', '    replace: "x"'].join('\n'),
-            'utf-8'
-        );
-
-        await expect(loadAdaptConfigFromFile(ruleFile)).rejects.toThrow(/invalid regex/i);
-
-        await rm(dir, { recursive: true, force: true });
-    });
-});
-
-// ---------------------------------------------------------------------------
-// Integration tests: handler
-// ---------------------------------------------------------------------------
-
-describe('adapt command handler', () => {
-    it('writes adapted file to --out path', async () => {
-        const dir = await mkdtemp(join(tmpdir(), 'cmtx-adapt-handler-'));
-        const inputFile = join(dir, 'article.md');
-        const ruleFile = join(dir, 'rules.yaml');
-        const outFile = join(dir, 'output', 'article.md');
-
-        await writeFile(inputFile, '## Section\n### Sub\n', 'utf-8');
-        await writeFile(
-            ruleFile,
-            ['rules:', '  - match: "^## (.+)$"', '    replace: "# $1"'].join('\n'),
-            'utf-8'
-        );
+        const { mkdir } = await import("node:fs/promises");
+        await mkdir(join(dir, "output"), { recursive: true });
 
         await adaptHandler({
             input: inputFile,
-            ruleFile,
+            platform: "wechat",
             out: outFile,
             dryRun: false,
             verbose: false,
-        });
+        } as never);
 
-        const result = await readFile(outFile, 'utf-8');
-        expect(result).toContain('# Section');
-        expect(result).toContain('### Sub'); // not touched by this rule
+        const result = await readFile(outFile, "utf-8");
+        // wechat preset 会：
+        // 1. strip-frontmatter: 删除原始 frontmatter（title: Test）
+        // 2. frontmatter-date: 添加新的 date frontmatter
+        // 3. promote-headings: H1 被移除（wechat 标题单独设置）
+        expect(result).not.toContain("title: Test"); // 原始 frontmatter 被删除
+        expect(result).not.toContain("# Main Title"); // H1 被移除
+        expect(result).toContain("date:"); // frontmatter-date 会添加新的 date frontmatter
 
         await rm(dir, { recursive: true, force: true });
     });
 
-    it('writes all .md files to --out-dir when input is a directory', async () => {
-        const dir = await mkdtemp(join(tmpdir(), 'cmtx-adapt-dir-'));
-        const inputDir = join(dir, 'src');
-        const outDir = join(dir, 'out');
-        const ruleFile = join(dir, 'rules.yaml');
+    it("writes all .md files to --out-dir when input is a directory", async () => {
+        const dir = await mkdtemp(join(tmpdir(), "cmtx-adapt-dir-"));
+        const inputDir = join(dir, "src");
+        const outDir = join(dir, "out");
 
-        const { mkdir } = await import('node:fs/promises');
+        const { mkdir } = await import("node:fs/promises");
         await mkdir(inputDir, { recursive: true });
 
-        await writeFile(join(inputDir, 'a.md'), '## Alpha\n', 'utf-8');
-        await writeFile(join(inputDir, 'b.md'), '## Beta\n', 'utf-8');
         await writeFile(
-            ruleFile,
-            ['rules:', '  - match: "^## (.+)$"', '    replace: "# $1"'].join('\n'),
-            'utf-8'
+            join(inputDir, "a.md"),
+            ["---", "title: A", "---", "", "# Title A", "", "Content A"].join("\n"),
+            "utf-8",
+        );
+        await writeFile(
+            join(inputDir, "b.md"),
+            ["---", "title: B", "---", "", "# Title B", "", "Content B"].join("\n"),
+            "utf-8",
         );
 
         await adaptHandler({
             input: inputDir,
-            ruleFile,
+            platform: "wechat",
             outDir,
             dryRun: false,
             verbose: false,
-        });
+        } as never);
 
-        const a = await readFile(join(outDir, 'a.md'), 'utf-8');
-        const b = await readFile(join(outDir, 'b.md'), 'utf-8');
-        expect(a).toBe('# Alpha\n');
-        expect(b).toBe('# Beta\n');
+        const a = await readFile(join(outDir, "a.md"), "utf-8");
+        const b = await readFile(join(outDir, "b.md"), "utf-8");
+        // wechat preset 会删除原始 frontmatter 并添加新的 date frontmatter
+        expect(a).not.toContain("title: A"); // 原始 frontmatter 被删除
+        expect(b).not.toContain("title: B"); // 原始 frontmatter 被删除
+        expect(a).toContain("date:"); // frontmatter-date 会添加新的 date frontmatter
+        expect(b).toContain("date:"); // frontmatter-date 会添加新的 date frontmatter
 
         await rm(dir, { recursive: true, force: true });
     });
 
-    // Note: Platform-based tests removed - builtin platform integration needs refactoring
-    // See: PLAN-005 for CLI refactoring plan
+    it("checks markdown against built-in platform validators", async () => {
+        const dir = await mkdtemp(join(tmpdir(), "cmtx-adapt-check-"));
+        const inputFile = join(dir, "article.md");
 
-    it('checks markdown against built-in platform validators', async () => {
-        const dir = await mkdtemp(join(tmpdir(), 'cmtx-adapt-check-'));
-        const inputFile = join(dir, 'article.md');
-
-        await writeFile(inputFile, '# Section\n', 'utf-8');
+        await writeFile(inputFile, "# Section\n", "utf-8");
 
         const originalExitCode = process.exitCode;
         process.exitCode = undefined;
 
         await adaptHandler({
             input: inputFile,
-            platform: 'wechat',
+            platform: "wechat",
             check: true,
             dryRun: false,
             verbose: false,
@@ -189,14 +157,11 @@ describe('adapt command handler', () => {
         await rm(dir, { recursive: true, force: true });
     });
 
-    // Note: Platform-based render tests removed - builtin platform integration needs refactoring
-    // See: PLAN-005 for CLI refactoring plan
+    it("fails when neither --rule-file nor --platform is provided", async () => {
+        const dir = await mkdtemp(join(tmpdir(), "cmtx-adapt-missing-mode-"));
+        const inputFile = join(dir, "article.md");
 
-    it('fails when neither --rule-file nor --platform is provided', async () => {
-        const dir = await mkdtemp(join(tmpdir(), 'cmtx-adapt-missing-mode-'));
-        const inputFile = join(dir, 'article.md');
-
-        await writeFile(inputFile, '## Section\n', 'utf-8');
+        await writeFile(inputFile, "## Section\n", "utf-8");
 
         const originalExitCode = process.exitCode;
         process.exitCode = undefined;

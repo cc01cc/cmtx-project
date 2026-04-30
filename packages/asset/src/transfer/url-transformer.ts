@@ -8,7 +8,6 @@
  * @remarks
  * ## 命名策略
  *
- * ### 模板命名（推荐）
  * 使用 `namingTemplate` 字段，支持与 Upload 相同的模板变量：
  * - `{name}` - 文件名（不含扩展名）
  * - `{ext}` - 文件扩展名
@@ -19,18 +18,13 @@
  * - `{md5}` - 完整 MD5 哈希（需要下载后计算）
  * - `{md5_8}` - MD5 前 8 位（需要下载后计算）
  * - `{md5_16}` - MD5 前 16 位（需要下载后计算）
- *
- * ### 旧策略（向后兼容）
- * - `preserve` - 保留原名
- * - `timestamp` - 时间戳
- * - `hash` - 基于 URL 的哈希
- * - `uuid` - UUID
  */
 
-import { createHash } from 'node:crypto';
-import * as path from 'node:path';
-import { extractExtensionFromUrl, extractFileNameFromUrl } from '../utils/url-parser.js';
-import type { UrlMapping } from './types.js';
+import { createHash } from "node:crypto";
+import * as path from "node:path";
+import { renderTemplate } from "@cmtx/template";
+import { extractExtensionFromUrl, extractFileNameFromUrl } from "../utils/url-parser.js";
+import type { UrlMapping } from "./types.js";
 
 /**
  * URL 转换器配置
@@ -38,7 +32,6 @@ import type { UrlMapping } from './types.js';
 interface UrlTransformerConfig {
     customDomain?: string;
     prefix?: string;
-    namingStrategy?: 'preserve' | 'timestamp' | 'hash' | 'uuid';
     namingTemplate?: string;
 }
 
@@ -46,6 +39,9 @@ interface UrlTransformerConfig {
  * 命名变量（用于模板渲染）
  */
 export interface TransferNamingVariables {
+    /** 允许任意额外属性以兼容 TemplateContext */
+    [key: string]: string | number | boolean | undefined;
+
     /** 文件名（不含扩展名） */
     name: string;
 
@@ -122,7 +118,7 @@ export class UrlTransformer {
     transformWithContent(
         originalUrl: string,
         _localFilePath: string,
-        fileContent?: Buffer
+        fileContent?: Buffer,
     ): UrlMapping {
         const fileName = this.generateFileNameWithTemplate(originalUrl, fileContent);
         const newRemotePath = this.buildRemotePath(fileName);
@@ -141,36 +137,32 @@ export class UrlTransformer {
      * 生成文件名
      */
     private generateFileName(originalUrl: string, _remotePath: string | null): string {
-        // 如果使用模板命名
-        if (this.targetConfig.namingTemplate) {
-            return this.generateFileNameWithTemplate(originalUrl, undefined);
-        }
-
-        // 使用旧策略（向后兼容）
-        return this.generateFileNameLegacy(originalUrl);
+        // 使用模板命名（默认使用 {name}{ext}）
+        // const _template = this.targetConfig.namingTemplate || '{name}{ext}';
+        return this.generateFileNameWithTemplate(originalUrl, undefined);
     }
 
     /**
      * 使用模板生成文件名
      */
     private generateFileNameWithTemplate(originalUrl: string, content?: Buffer): string {
-        const template = this.targetConfig.namingTemplate || '{name}{ext}';
+        const template = this.targetConfig.namingTemplate || "{name}{ext}";
         const originalFileName = extractFileNameFromUrl(originalUrl);
         const extension = extractExtensionFromUrl(originalUrl);
-        const lastDot = originalFileName.lastIndexOf('.');
+        const lastDot = originalFileName.lastIndexOf(".");
         const name = lastDot > 0 ? originalFileName.slice(0, lastDot) : originalFileName;
 
         const now = new Date();
         const year = now.getFullYear().toString();
-        const month = (now.getMonth() + 1).toString().padStart(2, '0');
-        const day = now.getDate().toString().padStart(2, '0');
+        const month = (now.getMonth() + 1).toString().padStart(2, "0");
+        const day = now.getDate().toString().padStart(2, "0");
         const date = `${year}-${month}-${day}`;
         const timestamp = now.getTime().toString();
 
         // 基础变量
         const variables: TransferNamingVariables = {
             name,
-            ext: extension ? `.${extension}` : '',
+            ext: extension ? `.${extension}` : "",
             fileName: originalFileName,
             date,
             timestamp,
@@ -181,76 +173,40 @@ export class UrlTransformer {
 
         // 如果有内容，计算 MD5
         if (content) {
-            const md5 = createHash('md5').update(content).digest('hex');
+            const md5 = createHash("md5").update(content).digest("hex");
             variables.md5 = md5;
             variables.md5_8 = md5.slice(0, 8);
             variables.md5_16 = md5.slice(0, 16);
-        } else if (template.includes('{md5')) {
+        } else if (template.includes("{md5")) {
             // 模板需要 MD5 但没有内容，使用占位符
-            variables.md5 = '00000000000000000000000000000000';
-            variables.md5_8 = '00000000';
-            variables.md5_16 = '0000000000000000';
+            variables.md5 = "00000000000000000000000000000000";
+            variables.md5_8 = "00000000";
+            variables.md5_16 = "0000000000000000";
         }
 
         return this.renderTemplate(template, variables);
     }
 
     /**
-     * 使用旧策略生成文件名（向后兼容）
-     */
-    private generateFileNameLegacy(originalUrl: string): string {
-        const strategy = this.targetConfig.namingStrategy ?? 'preserve';
-        const originalFileName = extractFileNameFromUrl(originalUrl);
-        const extension = extractExtensionFromUrl(originalUrl);
-
-        switch (strategy) {
-            case 'preserve':
-                return originalFileName;
-
-            case 'timestamp': {
-                const timestamp = Date.now();
-                return `${timestamp}.${extension}`;
-            }
-
-            case 'hash': {
-                const hash = this.hashString(originalUrl);
-                return `${hash}.${extension}`;
-            }
-
-            case 'uuid': {
-                const uuid = this.generateUUID();
-                return `${uuid}.${extension}`;
-            }
-
-            default:
-                return originalFileName;
-        }
-    }
-
-    /**
      * 渲染模板
+     *
+     * 使用 @cmtx/template/renderTemplate 进行模板渲染，支持所有模板变量。
+     * 自动处理路径分隔符规范化（移除连续的斜杠）。
      */
     private renderTemplate(template: string, variables: TransferNamingVariables): string {
-        let result = template;
+        if (!template) return "";
 
-        for (const [key, value] of Object.entries(variables)) {
-            if (value !== undefined) {
-                result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
-            }
-        }
-
-        // 移除多余的分隔符
-        result = result.replace(/\/+/g, '/');
-
-        return result;
+        return renderTemplate(template, variables, {
+            postProcess: (result) => result.replace(/\/+/g, "/"),
+        });
     }
 
     /**
      * 构建远程路径
      */
     private buildRemotePath(fileName: string): string {
-        const prefix = this.targetConfig.prefix ?? '';
-        return path.posix.join(prefix, fileName).replace(/^\//, '');
+        const prefix = this.targetConfig.prefix ?? "";
+        return path.posix.join(prefix, fileName).replace(/^\//, "");
     }
 
     /**
@@ -260,9 +216,9 @@ export class UrlTransformer {
         const customDomain = this.targetConfig.customDomain;
 
         if (customDomain) {
-            const baseUrl = customDomain.endsWith('/') ? customDomain.slice(0, -1) : customDomain;
+            const baseUrl = customDomain.endsWith("/") ? customDomain.slice(0, -1) : customDomain;
             // 自动添加 https:// 前缀
-            const url = baseUrl.startsWith('http') ? baseUrl : `https://${baseUrl}`;
+            const url = baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`;
             return `${url}/${remotePath}`;
         }
 
@@ -270,38 +226,14 @@ export class UrlTransformer {
     }
 
     /**
-     * 计算字符串哈希
-     */
-    private hashString(str: string): string {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            const char = str.charCodeAt(i);
-            hash = (hash << 5) - hash + char;
-            hash = hash & hash;
-        }
-        return Math.abs(hash).toString(36).substring(0, 10);
-    }
-
-    /**
-     * 生成 UUID
-     */
-    private generateUUID(): string {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-            const r = (Math.random() * 16) | 0;
-            const v = c === 'x' ? r : (r & 0x3) | 0x8;
-            return v.toString(16);
-        });
-    }
-
-    /**
      * 检查模板是否需要 MD5
      */
     needsMd5(): boolean {
-        const template = this.targetConfig.namingTemplate || '';
+        const template = this.targetConfig.namingTemplate || "";
         return (
-            template.includes('{md5}') ||
-            template.includes('{md5_8}') ||
-            template.includes('{md5_16}')
+            template.includes("{md5}") ||
+            template.includes("{md5_8}") ||
+            template.includes("{md5_16}")
         );
     }
 }

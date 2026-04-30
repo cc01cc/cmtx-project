@@ -59,15 +59,15 @@
  * - [阿里云 OSS 官方文档](https://www.alibabacloud.com/help/doc-detail/52834.htm)
  */
 
-import { createWriteStream, writeFileSync } from 'node:fs';
-import { pipeline } from 'node:stream/promises';
-import type OSS from 'ali-oss';
+import { createWriteStream, writeFileSync } from "node:fs";
+import { pipeline } from "node:stream/promises";
+import type OSS from "ali-oss";
 import type {
     AdapterUploadResult,
     IStorageAdapter,
     ObjectMeta,
     UploadBufferOptions,
-} from '../types.js';
+} from "../types.js";
 
 /**
  * 阿里云 OSS 客户端类型
@@ -135,7 +135,7 @@ export class AliOSSAdapter implements IStorageAdapter {
             const result = await this.client.put(remotePath, localPath);
 
             // 确保 URL 使用 HTTPS
-            const httpsUrl = result.url.replace(/^http:/, 'https:');
+            const httpsUrl = result.url.replace(/^http:/, "https:");
 
             return {
                 name: result.name,
@@ -143,8 +143,10 @@ export class AliOSSAdapter implements IStorageAdapter {
             } as AdapterUploadResult;
         } catch (error) {
             throw new Error(
-                `Failed to upload to OSS: ${error instanceof Error ? error.message : String(error)}`,
-                { cause: error }
+                `Failed to upload to OSS: ${
+                    error instanceof Error ? error.message : String(error)
+                }`,
+                { cause: error },
             );
         }
     }
@@ -176,30 +178,32 @@ export class AliOSSAdapter implements IStorageAdapter {
     async getSignedUrl(
         remotePath: string,
         expires: number,
-        options?: import('../types.js').GetSignedUrlOptions
+        options?: import("../types.js").GetSignedUrlOptions,
     ): Promise<string> {
         try {
             const signOptions: {
                 expires: number;
                 response?: {
-                    'content-disposition': string;
+                    "content-disposition": string;
                 };
             } = { expires };
 
             // 处理 content-disposition 参数
             if (options?.disposition) {
                 signOptions.response = {
-                    'content-disposition': options.disposition,
+                    "content-disposition": options.disposition,
                 };
             }
 
-            const signedUrl = await this.client.signatureUrl(remotePath, signOptions);
+            const signedUrl = this.client.signatureUrl(remotePath, signOptions);
             // 确保 URL 使用 HTTPS
-            return signedUrl.replace(/^http:/, 'https:');
+            return signedUrl.replace(/^http:/, "https:");
         } catch (error) {
             throw new Error(
-                `Failed to generate signed URL: ${error instanceof Error ? error.message : String(error)}`,
-                { cause: error }
+                `Failed to generate signed URL: ${
+                    error instanceof Error ? error.message : String(error)
+                }`,
+                { cause: error },
             );
         }
     }
@@ -223,7 +227,7 @@ export class AliOSSAdapter implements IStorageAdapter {
     async uploadBuffer(
         key: string,
         body: Buffer,
-        options?: UploadBufferOptions
+        options?: UploadBufferOptions,
     ): Promise<AdapterUploadResult> {
         try {
             const uploadOptions: OSS.PutObjectOptions = {
@@ -232,14 +236,14 @@ export class AliOSSAdapter implements IStorageAdapter {
 
             // 设置内容类型（通过 headers 设置）
             if (options?.contentType) {
-                (uploadOptions.headers as Record<string, string>)['Content-Type'] =
+                (uploadOptions.headers as Record<string, string>)["Content-Type"] =
                     options.contentType;
             }
 
             // 设置禁止覆盖头部
             if (options?.forbidOverwrite) {
-                (uploadOptions.headers as Record<string, string>)['x-oss-forbid-overwrite'] =
-                    'true';
+                (uploadOptions.headers as Record<string, string>)["x-oss-forbid-overwrite"] =
+                    "true";
             }
 
             // 设置自定义元数据（如果有）
@@ -250,7 +254,7 @@ export class AliOSSAdapter implements IStorageAdapter {
             const result = await this.client.put(key, body, uploadOptions);
 
             // 确保 URL 使用 HTTPS
-            const httpsUrl = result.url.replace(/^http:/, 'https:');
+            const httpsUrl = result.url.replace(/^http:/, "https:");
 
             return {
                 name: result.name,
@@ -258,8 +262,10 @@ export class AliOSSAdapter implements IStorageAdapter {
             } as AdapterUploadResult;
         } catch (error) {
             throw new Error(
-                `Failed to upload buffer to OSS: ${error instanceof Error ? error.message : String(error)}`,
-                { cause: error }
+                `Failed to upload buffer to OSS: ${
+                    error instanceof Error ? error.message : String(error)
+                }`,
+                { cause: error },
             );
         }
     }
@@ -291,17 +297,19 @@ export class AliOSSAdapter implements IStorageAdapter {
             }
 
             // 处理 Stream 类型
-            if (content && typeof content === 'object' && 'pipe' in content) {
+            if (content && typeof content === "object" && "pipe" in content) {
                 const writeStream = createWriteStream(localPath);
                 await pipeline(content as NodeJS.ReadableStream, writeStream);
                 return;
             }
 
-            throw new Error('Unexpected content type from OSS get response');
+            throw new Error("Unexpected content type from OSS get response");
         } catch (error) {
             throw new Error(
-                `Failed to download from OSS: ${error instanceof Error ? error.message : String(error)}`,
-                { cause: error }
+                `Failed to download from OSS: ${
+                    error instanceof Error ? error.message : String(error)
+                }`,
+                { cause: error },
             );
         }
     }
@@ -327,15 +335,17 @@ export class AliOSSAdapter implements IStorageAdapter {
             const result = await this.client.head(remotePath);
             const headers = result.res.headers as Record<string, string | undefined>;
             return {
-                size: Number(headers['content-length'] || 0),
-                lastModified: new Date(headers['last-modified'] || Date.now()),
-                contentType: headers['content-type'],
+                size: Number(headers["content-length"] || 0),
+                lastModified: new Date(headers["last-modified"] || Date.now()),
+                contentType: headers["content-type"],
                 etag: headers.etag,
             };
         } catch (error) {
             throw new Error(
-                `Failed to get object meta from OSS: ${error instanceof Error ? error.message : String(error)}`,
-                { cause: error }
+                `Failed to get object meta from OSS: ${
+                    error instanceof Error ? error.message : String(error)
+                }`,
+                { cause: error },
             );
         }
     }
@@ -362,12 +372,14 @@ export class AliOSSAdapter implements IStorageAdapter {
             return await this.client.head(remotePath).then(() => true);
         } catch (error) {
             // 如果是 404 错误，说明文件不存在
-            if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
+            if (error && typeof error === "object" && "status" in error && error.status === 404) {
                 return false;
             }
             throw new Error(
-                `Failed to check object existence in OSS: ${error instanceof Error ? error.message : String(error)}`,
-                { cause: error }
+                `Failed to check object existence in OSS: ${
+                    error instanceof Error ? error.message : String(error)
+                }`,
+                { cause: error },
             );
         }
     }
@@ -382,8 +394,8 @@ export class AliOSSAdapter implements IStorageAdapter {
         // Extract bucket and region from client configuration
         const clientConfig =
             (this.client as { options?: { bucket?: string; region?: string } }).options || {};
-        const bucket = clientConfig.bucket || '<bucket>';
-        const region = clientConfig.region || '<region>';
+        const bucket = clientConfig.bucket || "<bucket>";
+        const region = clientConfig.region || "<region>";
 
         // Format: https://{bucket}.{region}.aliyuncs.com/{path}
         return `https://${bucket}.${region}.aliyuncs.com/${remotePath}`;
@@ -408,8 +420,10 @@ export class AliOSSAdapter implements IStorageAdapter {
             await this.client.delete(remotePath);
         } catch (error) {
             throw new Error(
-                `Failed to delete object from OSS: ${error instanceof Error ? error.message : String(error)}`,
-                { cause: error }
+                `Failed to delete object from OSS: ${
+                    error instanceof Error ? error.message : String(error)
+                }`,
+                { cause: error },
             );
         }
     }

@@ -6,45 +6,39 @@
  * 提供统一的 Rule 接口和类型定义，支持文本替换、图片处理、元数据处理等多种操作。
  */
 
-/**
- * 存储配置
- */
-export interface StorageConfig {
-    /** 适配器类型 */
-    adapter: string;
-    /** 适配器配置 */
-    config: Record<string, string>;
-    /** 前缀 */
-    prefix?: string;
-    /** 命名模式 */
-    namingPattern?: string;
-}
+import type { ServiceRegistry } from "./service-registry.js";
 
-/**
- * 预签名 URL 配置
- */
-export interface PresignedUrlConfig {
-    /** 过期时间（秒） */
-    expire?: number;
-    /** 最大重试次数 */
-    maxRetryCount?: number;
-    /** 图片格式 */
-    imageFormat?: 'markdown' | 'html' | 'all';
-    /** 域名配置 */
-    domains?: Array<{
-        domain: string;
-        provider: string;
-        bucket?: string;
-        region?: string;
-        path?: string;
-        accessKeyId?: string;
-        accessKeySecret?: string;
-    }>;
-}
+// ==================== 外部类型（从 @cmtx/asset 导入非 Service 类型）====================
+export type { ConflictResolutionStrategy } from "@cmtx/asset/upload";
+export type { IStorageAdapter } from "@cmtx/storage";
+// 重新导出服务相关类型
+export type {
+    CallbackService,
+    CallbackServiceConfig,
+    CoreContext,
+    CounterService,
+    CounterServiceConfig,
+    PresignedUrlService,
+    PresignedUrlServiceConfig,
+    Service,
+    StorageServiceConfig,
+} from "./service-registry.js";
+// ==================== 内部 Service 类型（方案 D：从包装器导入）====================
+export type {
+    AssetService,
+    AssetServiceConfig,
+    TransferResult,
+    UploadResult,
+} from "./services/asset-service-wrapper.js";
+export type { CoreService, CoreServiceConfig } from "./services/core-service-wrapper.js";
 
 /**
  * Rule 执行上下文
  * 包含执行 Rule 所需的所有上下文信息
+ *
+ * 新设计：使用 ServiceRegistry 模式，通过 services 获取扩展能力
+ * 核心数据（document, filePath, baseDirectory）保持不变
+ * 扩展能力（storage, counter, callbacks 等）通过 services.get() 获取
  */
 export interface RuleContext {
     /** 当前文档内容 */
@@ -53,11 +47,17 @@ export interface RuleContext {
     /** 文件路径 */
     filePath: string;
 
-    /** 存储配置（用于图片上传） */
-    storage?: StorageConfig;
+    /** 基础目录（可选，未提供时使用 filePath 的目录） */
+    baseDirectory?: string;
 
-    /** 预签名 URL 配置 */
-    presignedUrls?: PresignedUrlConfig;
+    /**
+     * 服务注册表
+     * 通过 services.get<T>() 获取所需服务
+     * @example
+     * const storage = context.services.get<StorageService>('storage');
+     * const counter = context.services.get<CounterService>('counter');
+     */
+    services: ServiceRegistry;
 
     /** 其他配置项 */
     [key: string]: unknown;
@@ -217,3 +217,8 @@ export interface RuleRegistry {
     /** 获取所有 Rule ID */
     getAllIds(): string[];
 }
+
+/**
+ * 重新导出 ServiceRegistry 和 ServiceTypeMap
+ */
+export type { ServiceRegistry, ServiceTypeMap } from "./service-registry.js";

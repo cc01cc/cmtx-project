@@ -1,7 +1,17 @@
-import type { ValidationResult } from '@cmtx/core';
-
-// 重新导出 ValidationResult 以保持向后兼容
-export type { ValidationResult } from '@cmtx/core';
+/**
+ * 验证结果类型
+ *
+ * @remarks
+ * 用于表示模板验证的结果。
+ *
+ * @public
+ */
+export interface ValidationResult {
+    /** 验证是否通过 */
+    isValid: boolean;
+    /** 错误信息列表 */
+    errors: string[];
+}
 
 /**
  * 模板上下文接口

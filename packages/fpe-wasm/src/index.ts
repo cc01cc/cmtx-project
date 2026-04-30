@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+
 /**
  * FPE WASM 模块 - 自动加载实现
  *
@@ -32,10 +34,9 @@
  * ```
  */
 
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import init, { type InitInput, type InitOutput } from '../pkg/cmtx_fpe_wasm.js';
+import { readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
+import init, { type InitInput, type InitOutput } from "../pkg/cmtx_fpe_wasm.js";
 
 // WASM 加载状态（懒加载 + 单例）
 let wasmInitPromise: Promise<InitOutput> | null = null;
@@ -48,21 +49,18 @@ export interface ILoadWASMOptions {
 
 /**
  * 在 Node.js 环境中自动定位 WASM 文件
- * 使用 __dirname（CJS）或 import.meta.url（ESM）
+ *
+ * 使用 __dirname（tsdown shims 会为 ESM 注入）：
+ * - CJS: 原生 __dirname
+ * - ESM: tsdown 自动注入 shim
  */
 function locateWasmFile(): string | null {
     try {
-        // 尝试使用 __dirname（CommonJS 环境）
-        if (typeof __dirname !== 'undefined') {
-            return join(__dirname, '../pkg/cmtx_fpe_wasm_bg.wasm');
+        const wasmPath = join(__dirname, "../pkg/cmtx_fpe_wasm_bg.wasm");
+        if (existsSync(wasmPath)) {
+            return wasmPath;
         }
-
-        // 尝试使用 import.meta.url（ESM 环境）
-        if (typeof import.meta !== 'undefined' && import.meta.url) {
-            const __dirname = dirname(fileURLToPath(import.meta.url));
-            return join(__dirname, '../pkg/cmtx_fpe_wasm_bg.wasm');
-        }
-
+        console.warn(`[WARN] WASM file not found: ${wasmPath}`);
         return null;
     } catch {
         return null;
@@ -74,7 +72,7 @@ function locateWasmFile(): string | null {
 /**
  * @category WASM 加载
  */
-export type { InitInput, InitOutput } from '../pkg/cmtx_fpe_wasm.js';
+export type { InitInput, InitOutput } from "../pkg/cmtx_fpe_wasm.js";
 
 /**
  * 手动加载 WASM 模块（可选）
@@ -152,7 +150,7 @@ export {
     encrypt_string,
     /** @category FF1 加密器 */
     FF1Cipher,
-} from '../pkg/cmtx_fpe_wasm.js';
+} from "../pkg/cmtx_fpe_wasm.js";
 
 // ==================== 辅助函数 ====================
 
@@ -166,4 +164,4 @@ export {
     /** @category 辅助函数 */
     /** @category 辅助函数 */
     prepareFPEKey,
-} from './crypto.js';
+} from "./crypto.js";

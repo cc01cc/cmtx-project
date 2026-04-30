@@ -1,5 +1,5 @@
-import { BuiltinVariables, ContextManager } from '../core/context.js';
-import type { TemplateContext } from '../core/types.js';
+import { BuiltinVariables, ContextManager } from "../core/context.js";
+import type { TemplateContext } from "../core/types.js";
 
 /**
  * 基础模板 Builder 类
@@ -76,7 +76,7 @@ export abstract class BaseTemplateBuilder {
      * ```
      */
     withDate(): this {
-        this.contextManager.set('date', BuiltinVariables.getDate());
+        this.contextManager.set("date", BuiltinVariables.getDate());
         return this;
     }
 
@@ -98,7 +98,7 @@ export abstract class BaseTemplateBuilder {
      * ```
      */
     withTimestamp(): this {
-        this.contextManager.set('timestamp', BuiltinVariables.getTimestamp());
+        this.contextManager.set("timestamp", BuiltinVariables.getTimestamp());
         return this;
     }
 
@@ -121,7 +121,7 @@ export abstract class BaseTemplateBuilder {
      * ```
      */
     withUUID(): this {
-        this.contextManager.set('uuid', BuiltinVariables.getUUID());
+        this.contextManager.set("uuid", BuiltinVariables.getUUID());
         return this;
     }
 

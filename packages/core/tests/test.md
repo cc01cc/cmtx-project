@@ -4,7 +4,7 @@
 
 ## 网页图片测试
 
-![cc01cc.cn 图片](https://cc01cc.cn/logo.png '官网 logo')
+![cc01cc.cn 图片](https://cc01cc.cn/logo.png "官网 logo")
 ![blog.cc01cc.cn 图片](https://blog.cc01cc.cn/article/image.jpg)
 ![其他域名图片](https://example.com/other.png)
 ![协议相对图片](//cdn.cc01cc.cn/shared/img.gif)

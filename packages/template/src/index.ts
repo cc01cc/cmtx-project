@@ -66,19 +66,21 @@
 
 // ==================== Builder 模式 ====================
 
-export { BaseTemplateBuilder } from './builder/index.js';
+export { BaseTemplateBuilder } from "./builder/index.js";
 
 // ==================== 核心功能 ====================
 
 // 类型定义导出
 export type {
     /** @category 类型定义 */
+    RenderTemplateOptions,
+    /** @category 类型定义 */
     TemplateContext,
     /** @category 类型定义 */
     TemplateEngine,
     /** @category 类型定义 */
     ValidationResult,
-} from './core/index.js';
+} from "./core/index.js";
 export {
     /** @category 内置变量 */
     BuiltinVariables,
@@ -88,7 +90,7 @@ export {
     renderTemplate,
     /** @category 模板验证 */
     validateTemplate,
-} from './core/index.js';
+} from "./core/index.js";
 
 // 默认导出核心渲染函数
-export { renderTemplate as default } from './core/template-engine.js';
+export { renderTemplate as default } from "./core/template-engine.js";

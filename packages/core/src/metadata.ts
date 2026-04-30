@@ -45,9 +45,9 @@
  * @see {@link parseFrontmatter} - frontmatter 边界解析
  */
 
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import yaml from 'js-yaml';
+import * as fs from "node:fs";
+import * as path from "node:path";
+import yaml from "js-yaml";
 import type {
     DocumentMetadata,
     FrontmatterUpdateResult,
@@ -57,7 +57,7 @@ import type {
     SectionHeading,
     SectionHeadingExtractOptions,
     UpsertFrontmatterOptions,
-} from './types.js';
+} from "./types.js";
 
 /**
  * 从文件提取文档元数据
@@ -85,7 +85,7 @@ import type {
  */
 export function extractMetadata(
     filePath: string,
-    options: MetadataExtractOptions = {}
+    options: MetadataExtractOptions = {},
 ): DocumentMetadata {
     const { headingLevel = 1 } = options;
 
@@ -95,19 +95,19 @@ export function extractMetadata(
     // 读取文件内容
     let content: string;
     try {
-        content = fs.readFileSync(absolutePath, 'utf-8');
+        content = fs.readFileSync(absolutePath, "utf-8");
     } catch (error) {
         const err = error as NodeJS.ErrnoException;
-        if (err.code === 'ENOENT') {
+        if (err.code === "ENOENT") {
             throw new Error(`File not found: ${absolutePath}`, { cause: error });
         }
-        if (err.code === 'EACCES') {
+        if (err.code === "EACCES") {
             throw new Error(`Permission denied: ${absolutePath}`, { cause: error });
         }
         throw new Error(`Failed to read file: ${absolutePath}`, { cause: error });
     }
 
-    const metadata: DocumentMetadata = { title: '' };
+    const metadata: DocumentMetadata = { title: "" };
 
     // 1. 尝试从 Frontmatter 中提取元数据
     const { hasFrontmatter, data } = parseFrontmatter(content);
@@ -122,7 +122,7 @@ export function extractMetadata(
 
     // 2. 如果 Frontmatter 中没有标题，从指定等级的标题中提取
     if (!metadata.title) {
-        const headingRegex = new RegExp(String.raw`^${'#'.repeat(headingLevel)}\s+(.+)$`, 'm');
+        const headingRegex = new RegExp(String.raw`^${"#".repeat(headingLevel)}\s+(.+)$`, "m");
         const headingMatch = headingRegex.exec(content);
         if (headingMatch) {
             metadata.title = headingMatch[1].trim();
@@ -207,17 +207,17 @@ function isValidHeadingLevel(level: number, minLevel: number, maxLevel: number):
 
 export function extractSectionHeadings(
     markdown: string,
-    options: SectionHeadingExtractOptions = {}
+    options: SectionHeadingExtractOptions = {},
 ): Array<SectionHeading & { lineIndex: number }> {
     const minLevel = options.minLevel ?? 2;
     const maxLevel = options.maxLevel ?? 6;
 
     // 参数验证
     if (minLevel < 1 || maxLevel > 6) {
-        throw new Error('Heading levels must be between 1 and 6');
+        throw new Error("Heading levels must be between 1 and 6");
     }
     if (minLevel > maxLevel) {
-        throw new Error('minLevel must be less than or equal to maxLevel');
+        throw new Error("minLevel must be less than or equal to maxLevel");
     }
 
     const headings: Array<SectionHeading & { lineIndex: number }> = [];
@@ -287,18 +287,18 @@ export function extractSectionHeadings(
  */
 export function convertHeadingToFrontmatter(
     markdown: string,
-    options: HeadingConvertOptions = {}
+    options: HeadingConvertOptions = {},
 ): string {
-    const { format = 'yaml', headingLevel = 1 } = options;
+    const { format = "yaml", headingLevel = 1 } = options;
 
-    if (format !== 'yaml') {
+    if (format !== "yaml") {
         throw new Error(
-            `Unsupported frontmatter format: ${format}. Only YAML is currently supported.`
+            `Unsupported frontmatter format: ${String(format)}. Only YAML is currently supported.`,
         );
     }
 
     // 查找指定等级的标题
-    const headingRegex = new RegExp(String.raw`^${'#'.repeat(headingLevel)}\s+(.+)$`, 'm');
+    const headingRegex = new RegExp(String.raw`^${"#".repeat(headingLevel)}\s+(.+)$`, "m");
     const headingMatch = headingRegex.exec(markdown);
 
     if (!headingMatch) {
@@ -309,7 +309,7 @@ export function convertHeadingToFrontmatter(
     const titleText = headingMatch[1].trim();
 
     // 提取并更新 title，同时从正文中移除标题
-    const cleanMarkdown = markdown.replace(headingMatch[0], '').trimStart();
+    const cleanMarkdown = markdown.replace(headingMatch[0], "").trimStart();
 
     // 如果已经存在 Frontmatter，则使用 upsert 逻辑合并
     const { hasFrontmatter } = parseFrontmatter(markdown);
@@ -360,13 +360,13 @@ export function convertHeadingToFrontmatter(
 export function upsertFrontmatterFields(
     markdown: string,
     fields: Record<string, string | string[] | null>,
-    options: UpsertFrontmatterOptions = {}
+    options: UpsertFrontmatterOptions = {},
 ): FrontmatterUpdateResult {
-    const { format = 'yaml', createIfMissing = true } = options;
+    const { format = "yaml", createIfMissing = true } = options;
 
-    if (format !== 'yaml') {
+    if (format !== "yaml") {
         throw new Error(
-            `Unsupported frontmatter format: ${format}. Only YAML is currently supported.`
+            `Unsupported frontmatter format: ${String(format)}. Only YAML is currently supported.`,
         );
     }
 
@@ -407,7 +407,7 @@ export function upsertFrontmatterFields(
     }
 
     // 生成新 Frontmatter
-    let newFrontmatter = '';
+    let newFrontmatter = "";
 
     if (Object.keys(merged).length > 0) {
         newFrontmatter = generateFrontmatterYaml(merged);
@@ -513,20 +513,20 @@ export function parseFrontmatter(input: string): FrontmatterParseResult {
     const hasFrontmatter = stack.length >= 2;
 
     if (!hasFrontmatter) {
-        const allContent = [...contentLines, ...dataLines].join('\n');
-        return { hasFrontmatter: false, data: '', content: allContent };
+        const allContent = [...contentLines, ...dataLines].join("\n");
+        return { hasFrontmatter: false, data: "", content: allContent };
     }
 
     return {
         hasFrontmatter,
-        data: dataLines.join('\n'),
-        content: contentLines.join('\n'),
+        data: dataLines.join("\n"),
+        content: contentLines.join("\n"),
     };
 }
 
 function isDelimiter(line: string): boolean {
-    if (!line.startsWith('---')) return false;
-    if (line.length > 3 && line[3] === '-') return false;
+    if (!line.startsWith("---")) return false;
+    if (line.length > 3 && line[3] === "-") return false;
     return true;
 }
 
@@ -565,7 +565,7 @@ export function removeFrontmatter(markdown: string): string {
 export function parseYamlFrontmatter(content: string): Record<string, FrontmatterValue> {
     try {
         const parsed = yaml.load(content) as Record<string, unknown> | null;
-        if (!parsed || typeof parsed !== 'object') {
+        if (!parsed || typeof parsed !== "object") {
             return {};
         }
         return normalizeFrontmatterValues(parsed);
@@ -581,18 +581,18 @@ export function parseYamlFrontmatter(content: string): Record<string, Frontmatte
  * @returns 标准化后的对象，值类型为 string | string[] | null
  */
 function normalizeFrontmatterValues(
-    obj: Record<string, unknown>
+    obj: Record<string, unknown>,
 ): Record<string, FrontmatterValue> {
     const result: Record<string, FrontmatterValue> = {};
     for (const [key, value] of Object.entries(obj)) {
         if (value === null) {
             result[key] = null;
-        } else if (typeof value === 'string') {
+        } else if (typeof value === "string") {
             result[key] = value;
         } else if (Array.isArray(value)) {
             result[key] = value.map(String);
         } else if (value instanceof Date) {
-            result[key] = value.toISOString().split('T')[0];
+            result[key] = value.toISOString().split("T")[0];
         }
         // 忽略其他类型（boolean, number, object 等）
     }
@@ -612,12 +612,12 @@ export function generateFrontmatterYaml(obj: Record<string, FrontmatterValue>): 
     // 判断字符串是否需要引导
     const needsQuoting = (str: string) => {
         if (!str) return false;
-        if (str.includes('\n')) return true;
+        if (str.includes("\n")) return true;
 
         const trimmed = str.trim();
         return (
-            trimmed.includes(': ') ||
-            trimmed.includes('#') ||
+            trimmed.includes(": ") ||
+            trimmed.includes("#") ||
             /^[[\]{}&*!%@`|>"-]/.test(trimmed) ||
             /^\d+$/.test(trimmed)
         );
@@ -626,7 +626,7 @@ export function generateFrontmatterYaml(obj: Record<string, FrontmatterValue>): 
     const formatValue = (val: unknown) => {
         const str = String(val);
         if (needsQuoting(str)) {
-            const escaped = str.replaceAll('"', String.raw`\"`).replaceAll('\n', String.raw`\n`);
+            const escaped = str.replaceAll('"', String.raw`\"`).replaceAll("\n", String.raw`\n`);
             return `"${escaped}"`;
         }
         return str;
@@ -647,7 +647,7 @@ export function generateFrontmatterYaml(obj: Record<string, FrontmatterValue>): 
         }
     }
 
-    const content = lines.join('\n');
+    const content = lines.join("\n");
     return `---\n${content}\n---`;
 }
 
@@ -660,7 +660,7 @@ function processFieldUpdate(
     key: string,
     newValue: string | string[] | null,
     merged: Record<string, FrontmatterValue>,
-    result: FrontmatterUpdateResult
+    result: FrontmatterUpdateResult,
 ): void {
     if (key in merged) {
         // 比较值
@@ -775,7 +775,7 @@ export function extractTitleFromMarkdown(markdown: string): string | undefined {
                 if (Array.isArray(title)) {
                     return title[0];
                 }
-                if (typeof title === 'string') {
+                if (typeof title === "string") {
                     return title;
                 }
             }
@@ -792,4 +792,57 @@ export function extractTitleFromMarkdown(markdown: string): string | undefined {
 
     // 都不存在
     return undefined;
+}
+
+/**
+ * 从 Markdown 文档中提取 frontmatter 的指定字段值
+ *
+ * 使用 {@link parseFrontmatter} 和 {@link parseYamlFrontmatter} 函数解析 frontmatter，
+ * 然后返回指定字段的值。
+ *
+ * @param markdown - Markdown 文本
+ * @param fieldName - 要提取的字段名称
+ * @returns 字段值（字符串形式），如果字段不存在或 frontmatter 解析失败则返回 undefined
+ *
+ * @example
+ * ```typescript
+ * const md = `---
+ * title: "My Title"
+ * date: 2024-01-01
+ * tags:
+ *   - tag1
+ *   - tag2
+ * ---
+ *
+ * Content...`;
+ *
+ * extractFrontmatterField(md, 'title');  // "My Title"
+ * extractFrontmatterField(md, 'date');   // "2024-01-01"
+ * extractFrontmatterField(md, 'tags');   // "tag1, tag2"
+ * extractFrontmatterField(md, 'author'); // undefined
+ * ```
+ * @public
+ */
+export function extractFrontmatterField(markdown: string, fieldName: string): string | undefined {
+    const { data } = parseFrontmatter(markdown);
+    if (!data) {
+        return undefined;
+    }
+
+    const frontmatterObj = parseYamlFrontmatter(data);
+    const value = frontmatterObj[fieldName];
+
+    if (value === null || value === undefined) {
+        return undefined;
+    }
+
+    if (typeof value === "string") {
+        return value;
+    }
+
+    if (Array.isArray(value)) {
+        return value.join(", ");
+    }
+
+    return String(value);
 }

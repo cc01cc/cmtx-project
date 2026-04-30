@@ -1,4 +1,23 @@
-# @cmtx/markdown-it-presigned-url Changelog
+# @cmtx/markdown-it-presigned-url 更新日志 / Changelog
+
+## [0.1.1-alpha.1] - 2026-04-30
+### Fixed
+
+- **handleHtmlBlockImageRenderer**: HTML 块级图片在未匹配预签名域名时，正确回退到默认渲染器，避免生成无效预签名 Token
+
+### Changed
+
+- **package.json**: 新增 `keywords`、`homepage`、`bugs`、`repository`、`author`、`publishConfig`（`access: public`）等元数据字段
+
+---
+
+### Fixed
+
+- **handleHtmlBlockImageRenderer**: HTML block images now correctly fall through to the default renderer when no presigned domain matches, preventing invalid presigned token generation
+
+### Changed
+
+- **package.json**: Added metadata fields (`keywords`, `homepage`, `bugs`, `repository`, `author`, `publishConfig`)
 
 ## 0.1.1-alpha.0
 
@@ -8,33 +27,29 @@
 
 ## 0.1.0 - 2026-04-11
 
-### Initial Release
-
-#### 核心功能
+### 核心功能
 
 - **预签名 URL 插件** (`presignedUrlPlugin`)
-
-  - 为私有云存储（OSS、S3、COS）的图片 URL 生成预签名
-  - 支持 Markdown 图片格式：`![alt](url)`
-  - 支持 HTML 图片格式：`<img src="url" />`
-  - 异步 URL 签名与刷新回调机制
+    - 为私有云存储（OSS、S3、COS）的图片 URL 生成预签名
+    - 支持 Markdown 图片格式：`![alt](url)`
+    - 支持 HTML 图片格式：`<img src="url" />`
+    - 异步 URL 签名与刷新回调机制
 
 - **双模式处理**
-
-  - 同步模式：从缓存获取签名 URL
-  - 异步模式：按需生成签名 URL 并触发刷新
+    - 同步模式：从缓存获取签名 URL
+    - 异步模式：按需生成签名 URL 并触发刷新
 
 - **灵活的配置选项**
-  - 域名白名单过滤
-  - 图片格式选择（markdown/html/all）
-  - 可选的日志接口
+    - 域名白名单过滤
+    - 图片格式选择（markdown/html/all）
+    - 可选的日志接口
 
-#### API 接口
+### API 接口
 
 - `presignedUrlPlugin(md, options)` - Markdown-it 插件函数
 - `Logger` - 日志接口（debug/info/warn/error）
 
-#### 配置选项
+### 配置选项
 
 | 选项               | 类型                               | 必需 | 描述                      |
 | ------------------ | ---------------------------------- | ---- | ------------------------- |
@@ -45,38 +60,107 @@
 | `requestSignedUrl` | `(src: string) => Promise<string>` | 否   | 异步生成签名 URL          |
 | `onSignedUrlReady` | `() => void`                       | 否   | 异步签名完成时的回调      |
 
-#### 技术特性
+### 技术特性
 
 - **零 VS Code 依赖** - 适用于任何 markdown-it 应用
 - **异步签名机制** - 不阻塞渲染过程
 - **缓存友好** - 支持宿主应用自定义缓存策略
 - **TypeScript** - 完整的类型支持
 
-#### 测试覆盖
+### 测试覆盖
 
 - 16 个单元测试
 - 测试覆盖：
-  - 插件初始化
-  - URL 匹配逻辑
-  - 缓存机制
-  - 异步签名流程
-  - 日志功能
+    - 插件初始化
+    - URL 匹配逻辑
+    - 缓存机制
+    - 异步签名流程
+    - 日志功能
 
-#### 依赖
+### 依赖
 
 - **Peer Dependencies**:
-
-  - `markdown-it`: `^14.0.0`
+    - `markdown-it`: `^14.0.0`
 
 - **Dev Dependencies**:
-  - `@types/markdown-it`: `^14.1.2`
-  - `@vitest/coverage-v8`: `catalog:`
-  - `typedoc`: `catalog:`
-  - `typescript`: `catalog:`
-  - `vitest`: `catalog:`
+    - `@types/markdown-it`: `^14.1.2`
+    - `@vitest/coverage-v8`: `catalog:`
+    - `typedoc`: `catalog:`
+    - `typescript`: `catalog:`
+    - `vitest`: `catalog:`
 
-#### 文档
+### 文档
 
 - 中文 README：`README.md`
 - 英文 README：`README.en.md`
 - API 文档：运行 `pnpm run docs` 生成（位于 `docs/api/` 目录）
+
+---
+
+### Core Features
+
+- **Presigned URL Plugin** (`presignedUrlPlugin`)
+    - Generate presigned URLs for private cloud storage (OSS, S3, COS) image URLs
+    - Support Markdown image format: `![alt](url)`
+    - Support HTML image format: `<img src="url" />`
+    - Async URL signing and refresh callback mechanism
+
+- **Dual Mode Processing**
+    - Sync mode: Get signed URLs from cache
+    - Async mode: Generate signed URLs on demand and trigger refresh
+
+- **Flexible Configuration Options**
+    - Domain whitelist filtering
+    - Image format selection (markdown/html/all)
+    - Optional logger interface
+
+### API
+
+- `presignedUrlPlugin(md, options)` - Markdown-it plugin function
+- `Logger` - Logger interface (debug/info/warn/error)
+
+### Configuration Options
+
+| Option            | Type                              | Required | Description                             |
+| ----------------- | --------------------------------- | -------- | --------------------------------------- |
+| `domains`         | `string[]`                        | Yes      | Hostnames requiring signed URLs         |
+| `imageFormat`     | `'markdown' \| 'html' \| 'all'`   | Yes      | Image formats to process                |
+| `logger`          | `Logger`                          | No       | Optional logger interface               |
+| `getSignedUrl`    | `(src: string) => string \| null` | Yes      | Sync get cached signed URL              |
+| `requestSignedUrl`| `(src: string) => Promise<string>`| No       | Async generate signed URL               |
+| `onSignedUrlReady`| `() => void`                      | No       | Callback when async signing completes   |
+
+### Technical Features
+
+- **Zero VS Code Dependencies** - Works with any markdown-it application
+- **Async Signing Mechanism** - Does not block rendering
+- **Cache Friendly** - Supports custom caching strategies in the host application
+- **TypeScript** - Full type support
+
+### Test Coverage
+
+- 16 unit tests
+- Test coverage:
+    - Plugin initialization
+    - URL matching logic
+    - Cache mechanism
+    - Async signing flow
+    - Logger functionality
+
+### Dependencies
+
+- **Peer Dependencies**:
+    - `markdown-it`: `^14.0.0`
+
+- **Dev Dependencies**:
+    - `@types/markdown-it`: `^14.1.2`
+    - `@vitest/coverage-v8`: `catalog:`
+    - `typedoc`: `catalog:`
+    - `typescript`: `catalog:`
+    - `vitest`: `catalog:`
+
+### Documentation
+
+- Chinese README: `README.md`
+- English README: `README.en.md`
+- API docs: Run `pnpm run docs` to generate (located in `docs/api/`)

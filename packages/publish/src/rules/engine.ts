@@ -14,7 +14,8 @@ import type {
     RuleResult,
     RuleStepConfig,
     SimplePreset,
-} from './rule-types.js';
+} from "./rule-types.js";
+import { builtInRules } from "./built-in/index.js";
 
 /**
  * Rule 执行错误
@@ -23,10 +24,10 @@ export class RuleExecutionError extends Error {
     constructor(
         message: string,
         public readonly ruleId: string,
-        public readonly cause?: Error
+        public readonly cause?: Error,
     ) {
         super(message);
-        this.name = 'RuleExecutionError';
+        this.name = "RuleExecutionError";
     }
 }
 
@@ -80,7 +81,7 @@ export class RuleEngine {
     async executeRule(
         ruleId: string,
         context: RuleContext,
-        ruleConfig?: Record<string, unknown>
+        ruleConfig?: Record<string, unknown>,
     ): Promise<RuleResult> {
         const rule = this.rules.get(ruleId);
         if (!rule) {
@@ -102,7 +103,7 @@ export class RuleEngine {
             throw new RuleExecutionError(
                 `Rule execution failed: ${message}`,
                 ruleId,
-                error instanceof Error ? error : undefined
+                error instanceof Error ? error : undefined,
             );
         }
     }
@@ -113,7 +114,7 @@ export class RuleEngine {
     async executePreset(
         preset: PresetConfig | SimplePreset,
         context: RuleContext,
-        onProgress?: (ruleId: string, result: RuleResult) => void
+        onProgress?: (ruleId: string, result: RuleResult) => void,
     ): Promise<{
         content: string;
         results: Array<{ ruleId: string; result: RuleResult }>;
@@ -175,7 +176,7 @@ export class RuleEngine {
      */
     async previewPreset(
         preset: PresetConfig | SimplePreset,
-        context: RuleContext
+        context: RuleContext,
     ): Promise<{
         content: string;
         changes: Array<{
@@ -212,7 +213,7 @@ export class RuleEngine {
                 if (result.modified) {
                     currentContent = result.content;
                 }
-            } catch (_error) {
+            } catch {
                 changes.push({ ruleId: step.id, willModify: false });
             }
         }
@@ -257,11 +258,6 @@ export function createRuleEngine(): RuleEngine {
  */
 export function createDefaultRuleEngine(): RuleEngine {
     const engine = createRuleEngine();
-    // 延迟导入避免循环依赖
-    import('./built-in/index.js')
-        .then(({ builtInRules }) => {
-            engine.registerMany(builtInRules);
-        })
-        .catch(console.error);
+    engine.registerMany(builtInRules);
     return engine;
 }

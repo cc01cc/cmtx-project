@@ -1,4 +1,4 @@
-import type MarkdownIt from 'markdown-it';
+import type MarkdownIt from "markdown-it";
 
 export interface Logger {
     debug(message: string, ...args: unknown[]): void;
@@ -9,7 +9,7 @@ export interface Logger {
 
 export interface PresignedUrlPluginOptions {
     domains: string[];
-    imageFormat: 'markdown' | 'html' | 'all';
+    imageFormat: "markdown" | "html" | "all";
     logger?: Logger;
     getSignedUrl: (src: string) => string | null;
     requestSignedUrl?: (src: string) => Promise<string>;
@@ -18,21 +18,21 @@ export interface PresignedUrlPluginOptions {
 
 export type PresignedUrlPlugin = (md: MarkdownIt, options: PresignedUrlPluginOptions) => void;
 
-export type MarkdownToken = ReturnType<MarkdownIt['parse']>[number];
+export type MarkdownToken = ReturnType<MarkdownIt["parse"]>[number];
 export type MarkdownTokens = MarkdownToken[];
-export type MarkdownOptions = MarkdownIt['options'];
-export type MarkdownRenderer = MarkdownIt['renderer'];
+export type MarkdownOptions = MarkdownIt["options"];
+export type MarkdownRenderer = MarkdownIt["renderer"];
 export type MarkdownRenderRule = (
     tokens: MarkdownTokens,
     idx: number,
     options: MarkdownOptions,
     env: unknown,
-    self: MarkdownRenderer
+    self: MarkdownRenderer,
 ) => string;
 
 export interface InlineStateLike {
     src: string;
     pos: number;
     posMax: number;
-    push(type: string, tag: string, nesting: MarkdownToken['nesting']): MarkdownToken;
+    push(type: string, tag: string, nesting: MarkdownToken["nesting"]): MarkdownToken;
 }

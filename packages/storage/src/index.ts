@@ -84,6 +84,7 @@ export type {
     CloudStorageConfig,
     IStorageAdapter,
     ObjectMeta,
+    StorageServiceConfig,
     TencentCredentials,
     UploadBufferOptions,
-} from './types.js';
+} from "./types.js";

@@ -26,8 +26,8 @@ import type {
     StorageUrlDetectOptions,
     StorageUrlInfo,
     StorageUrlType,
-} from './storage-url-types.js';
-import { StorageUrlType as UrlTypeEnum } from './storage-url-types.js';
+} from "./storage-url-types.js";
+import { StorageUrlType as UrlTypeEnum } from "./storage-url-types.js";
 
 /**
  * 各云服务商签名 URL 的必需参数
@@ -52,9 +52,9 @@ import { StorageUrlType as UrlTypeEnum } from './storage-url-types.js';
  * - `X-Amz-Signature` - 签名值
  */
 const SIGNED_URL_PARAMS = {
-    ALIYUN: ['OSSAccessKeyId', 'Expires', 'Signature'],
-    TENCENT: ['q-sign-algorithm', 'q-ak', 'q-sign-time', 'q-signature'],
-    AWS: ['X-Amz-Algorithm', 'X-Amz-Credential', 'X-Amz-Signature'],
+    ALIYUN: ["OSSAccessKeyId", "Expires", "Signature"],
+    TENCENT: ["q-sign-algorithm", "q-ak", "q-sign-time", "q-signature"],
+    AWS: ["X-Amz-Algorithm", "X-Amz-Credential", "X-Amz-Signature"],
 } as const;
 
 /**
@@ -75,9 +75,9 @@ const SIGNED_URL_PARAMS = {
  * - 默认域名：`.amazonaws.com`
  */
 const PROVIDER_DOMAINS = {
-    ALIYUN: ['.aliyuncs.com', 'oss-accelerate.aliyuncs.com'],
-    TENCENT: ['.myqcloud.com', '.tencentcos.cn'],
-    AWS: ['.amazonaws.com'],
+    ALIYUN: [".aliyuncs.com", "oss-accelerate.aliyuncs.com"],
+    TENCENT: [".myqcloud.com", ".tencentcos.cn"],
+    AWS: [".amazonaws.com"],
 } as const;
 
 /**
@@ -90,13 +90,13 @@ const PROVIDER_DOMAINS = {
  */
 function detectSignedProvider(params: URLSearchParams): DetectedCloudProvider | null {
     if (hasParams(params, SIGNED_URL_PARAMS.ALIYUN)) {
-        return 'aliyun';
+        return "aliyun";
     }
     if (hasParams(params, SIGNED_URL_PARAMS.TENCENT)) {
-        return 'tencent';
+        return "tencent";
     }
     if (hasParams(params, SIGNED_URL_PARAMS.AWS)) {
-        return 'aws';
+        return "aws";
     }
     return null;
 }
@@ -113,13 +113,13 @@ function detectProviderByDomain(hostname: string): DetectedCloudProvider | null 
     const lowerHostname = hostname.toLowerCase();
 
     if (PROVIDER_DOMAINS.ALIYUN.some((d) => lowerHostname.endsWith(d))) {
-        return 'aliyun';
+        return "aliyun";
     }
     if (PROVIDER_DOMAINS.TENCENT.some((d) => lowerHostname.endsWith(d))) {
-        return 'tencent';
+        return "tencent";
     }
     if (PROVIDER_DOMAINS.AWS.some((d) => lowerHostname.endsWith(d))) {
-        return 'aws';
+        return "aws";
     }
     return null;
 }
@@ -147,11 +147,11 @@ function hasParams(params: URLSearchParams, requiredParams: readonly string[]): 
  */
 function getProviderUrlType(provider: DetectedCloudProvider): StorageUrlType {
     switch (provider) {
-        case 'aliyun':
+        case "aliyun":
             return UrlTypeEnum.ALIYUN_OSS;
-        case 'tencent':
+        case "tencent":
             return UrlTypeEnum.TENCENT_COS;
-        case 'aws':
+        case "aws":
             return UrlTypeEnum.AWS_S3;
         default:
             return UrlTypeEnum.OTHER;
@@ -168,11 +168,11 @@ function getProviderUrlType(provider: DetectedCloudProvider): StorageUrlType {
  */
 function getSignedUrlType(provider: DetectedCloudProvider): StorageUrlType {
     switch (provider) {
-        case 'aliyun':
+        case "aliyun":
             return UrlTypeEnum.ALIYUN_OSS_SIGNED;
-        case 'tencent':
+        case "tencent":
             return UrlTypeEnum.TENCENT_COS_SIGNED;
-        case 'aws':
+        case "aws":
             return UrlTypeEnum.AWS_S3_SIGNED;
         default:
             return UrlTypeEnum.OTHER;
@@ -192,17 +192,17 @@ function extractBucket(hostname: string, provider: DetectedCloudProvider): strin
     const lowerHostname = hostname.toLowerCase();
 
     switch (provider) {
-        case 'aliyun': {
+        case "aliyun": {
             // 格式：<bucket>.oss-<region>.aliyuncs.com
             const match = lowerHostname.match(/^([^.]+)\.oss-/i);
             return match ? match[1] : undefined;
         }
-        case 'tencent': {
+        case "tencent": {
             // 格式：<bucket>-<appid>.cos.<region>.myqcloud.com
             const match = lowerHostname.match(/^([^-]+)-\d+\.cos\./i);
             return match ? match[1] : undefined;
         }
-        case 'aws': {
+        case "aws": {
             // 格式：<bucket>.s3.<region>.amazonaws.com
             const match = lowerHostname.match(/^([^.]+)\.s3\./i);
             return match ? match[1] : undefined;
@@ -225,17 +225,17 @@ function extractRegion(hostname: string, provider: DetectedCloudProvider): strin
     const lowerHostname = hostname.toLowerCase();
 
     switch (provider) {
-        case 'aliyun': {
+        case "aliyun": {
             // 格式：<bucket>.oss-<region>.aliyuncs.com
             const match = lowerHostname.match(/\.oss-([^.]+)\./i);
             return match ? match[1] : undefined;
         }
-        case 'tencent': {
+        case "tencent": {
             // 格式：<bucket>-<appid>.cos.<region>.myqcloud.com
             const match = lowerHostname.match(/\.cos\.([^.]+)\./i);
             return match ? match[1] : undefined;
         }
-        case 'aws': {
+        case "aws": {
             // 格式：<bucket>.s3.<region>.amazonaws.com
             const match = lowerHostname.match(/\.s3\.([^.]+)\./i);
             return match ? match[1] : undefined;
@@ -254,11 +254,11 @@ function extractRegion(hostname: string, provider: DetectedCloudProvider): strin
  * @internal
  */
 function extractKey(pathname: string): string | undefined {
-    if (!pathname || pathname === '/') {
+    if (!pathname || pathname === "/") {
         return undefined;
     }
     // 去掉开头的 /
-    return pathname.startsWith('/') ? pathname.slice(1) : pathname;
+    return pathname.startsWith("/") ? pathname.slice(1) : pathname;
 }
 
 /**
@@ -371,7 +371,7 @@ export function detectStorageUrl(url: string, options?: StorageUrlDetectOptions)
     if (options?.customDomains && options.customDomains.length > 0) {
         const customDomain = matchCustomDomain(hostname, options.customDomains);
         if (customDomain) {
-            const mappedProvider = options.domainProviderMap?.[customDomain] || 'unknown';
+            const mappedProvider = options.domainProviderMap?.[customDomain] || "unknown";
             return {
                 originalUrl: url,
                 url: parsedUrl,
@@ -390,7 +390,7 @@ export function detectStorageUrl(url: string, options?: StorageUrlDetectOptions)
     return {
         originalUrl: url,
         url: parsedUrl,
-        provider: 'unknown',
+        provider: "unknown",
         urlType: UrlTypeEnum.OTHER,
         isSigned: false,
         key: extractKey(pathname),
@@ -473,7 +473,7 @@ export function isSignedUrl(url: string): boolean {
  */
 export function isStorageUrl(url: string, options?: StorageUrlDetectOptions): boolean {
     const result = detectStorageUrl(url, options);
-    return result.provider !== 'unknown' || result.urlType === UrlTypeEnum.CUSTOM_DOMAIN;
+    return result.provider !== "unknown" || result.urlType === UrlTypeEnum.CUSTOM_DOMAIN;
 }
 
 /**
@@ -505,7 +505,7 @@ export function isStorageUrl(url: string, options?: StorageUrlDetectOptions): bo
  */
 export function isAliyunOssUrl(url: string): boolean {
     const result = detectStorageUrl(url);
-    return result.provider === 'aliyun';
+    return result.provider === "aliyun";
 }
 
 /**
@@ -534,7 +534,7 @@ export function isAliyunOssUrl(url: string): boolean {
  */
 export function isTencentCosUrl(url: string): boolean {
     const result = detectStorageUrl(url);
-    return result.provider === 'tencent';
+    return result.provider === "tencent";
 }
 
 /**
@@ -563,5 +563,5 @@ export function isTencentCosUrl(url: string): boolean {
  */
 export function isAwsS3Url(url: string): boolean {
     const result = detectStorageUrl(url);
-    return result.provider === 'aws';
+    return result.provider === "aws";
 }

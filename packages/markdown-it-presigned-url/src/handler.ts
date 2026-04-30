@@ -1,16 +1,16 @@
-import type MarkdownIt from 'markdown-it';
+import type MarkdownIt from "markdown-it";
 
 import type {
     InlineStateLike,
     Logger,
     MarkdownRenderRule,
     PresignedUrlPluginOptions,
-} from './types.js';
-import { DomainMatcher } from './utils/domain-matcher.js';
-import { FormatValidator } from './utils/format-validator.js';
+} from "./types.js";
+import { DomainMatcher } from "./utils/domain-matcher.js";
+import { FormatValidator } from "./utils/format-validator.js";
 
 const TOKEN_TYPES = {
-    CMTX_PRESIGNED_IMAGE: 'cmtx_presigned_image',
+    CMTX_PRESIGNED_IMAGE: "cmtx_presigned_image",
 } as const;
 
 let previewRefreshScheduled = false;
@@ -50,11 +50,11 @@ export class PresignedUrlHandler {
     }
 
     private renderPresignedToken(
-        tokens: ReturnType<MarkdownIt['parse']>,
+        tokens: ReturnType<MarkdownIt["parse"]>,
         idx: number,
-        options: MarkdownIt['options'],
+        options: MarkdownIt["options"],
         env: unknown,
-        self: MarkdownIt['renderer']
+        self: MarkdownIt["renderer"],
     ): string {
         const customRule = this.md.renderer.rules[TOKEN_TYPES.CMTX_PRESIGNED_IMAGE];
         if (customRule) {
@@ -66,12 +66,12 @@ export class PresignedUrlHandler {
 
     handleInlineHtmlImageRule(state: InlineStateLike, silent: boolean): boolean {
         this.logger?.info(
-            `[DIAG] handleInlineHtmlImageRule 被调用, silent: ${silent}, pos: ${state.pos}`
+            `[DIAG] handleInlineHtmlImageRule 被调用, silent: ${silent}, pos: ${state.pos}`,
         );
         this.logger?.info(`[DIAG] state.src: ${state.src?.substring(state.pos, state.pos + 100)}`);
 
         if (!this.formatValidator.shouldProcessHtml()) {
-            this.logger?.info('[DIAG] shouldProcessHtml 返回 false');
+            this.logger?.info("[DIAG] shouldProcessHtml 返回 false");
             return false;
         }
 
@@ -79,18 +79,18 @@ export class PresignedUrlHandler {
         const max = state.posMax;
 
         if (isInComment(state.src, pos)) {
-            this.logger?.info('[DIAG] 在注释中，跳过');
+            this.logger?.info("[DIAG] 在注释中，跳过");
             return false;
         }
 
         if (pos + 4 >= max) {
-            this.logger?.info('[DIAG] 剩余长度不足');
+            this.logger?.info("[DIAG] 剩余长度不足");
             return false;
         }
 
         const tagStart = state.src.slice(pos, pos + 4).toLowerCase();
         this.logger?.info(`[DIAG] tagStart: ${tagStart}`);
-        if (tagStart !== '<img') {
+        if (tagStart !== "<img") {
             return false;
         }
 
@@ -99,7 +99,7 @@ export class PresignedUrlHandler {
             end++;
         }
         if (end >= max) {
-            this.logger?.info('[DIAG] 未找到结束符 >');
+            this.logger?.info("[DIAG] 未找到结束符 >");
             return false;
         }
 
@@ -108,19 +108,19 @@ export class PresignedUrlHandler {
 
         const imgMatch = tagContent.match(/^<img\s+[^>]*src=["']([^"']+)["'][^>]*>$/i);
         if (!imgMatch) {
-            this.logger?.info('[DIAG] 正则匹配失败');
+            this.logger?.info("[DIAG] 正则匹配失败");
             return false;
         }
 
         this.logger?.info(`[DIAG] 提取到 src: ${imgMatch[1]}`);
         if (!this.domainMatcher.matches(imgMatch[1])) {
-            this.logger?.info('[DIAG] 域名不匹配');
+            this.logger?.info("[DIAG] 域名不匹配");
             return false;
         }
 
         if (!silent) {
-            const token = state.push(TOKEN_TYPES.CMTX_PRESIGNED_IMAGE, '', 0);
-            token.attrPush(['src', imgMatch[1]]);
+            const token = state.push(TOKEN_TYPES.CMTX_PRESIGNED_IMAGE, "", 0);
+            token.attrPush(["src", imgMatch[1]]);
             token.content = tagContent;
             this.logger?.info(`[DIAG] 处理 inline HTML 图片，创建自定义 token: ${imgMatch[1]}`);
         }
@@ -129,18 +129,19 @@ export class PresignedUrlHandler {
         return true;
     }
 
+    // eslint-disable-next-line max-params
     handleMarkdownImageRenderer(
-        tokens: ReturnType<MarkdownIt['parse']>,
+        tokens: ReturnType<MarkdownIt["parse"]>,
         idx: number,
-        options: MarkdownIt['options'],
+        options: MarkdownIt["options"],
         env: unknown,
-        self: MarkdownIt['renderer'],
-        defaultImageRule: MarkdownRenderRule | undefined
+        self: MarkdownIt["renderer"],
+        defaultImageRule: MarkdownRenderRule | undefined,
     ): string {
         const token = tokens[idx];
         this.logger?.debug(`处理 Markdown 图片 token`);
 
-        const src = token.attrGet('src');
+        const src = token.attrGet("src");
         if (
             this.formatValidator.shouldProcessMarkdown() &&
             src &&
@@ -156,13 +157,14 @@ export class PresignedUrlHandler {
             : self.renderToken(tokens, idx, options);
     }
 
+    // eslint-disable-next-line max-params
     handleHtmlInlineImageRenderer(
-        tokens: ReturnType<MarkdownIt['parse']>,
+        tokens: ReturnType<MarkdownIt["parse"]>,
         idx: number,
-        options: MarkdownIt['options'],
+        options: MarkdownIt["options"],
         env: unknown,
-        self: MarkdownIt['renderer'],
-        defaultHtmlInlineRule: MarkdownRenderRule | undefined
+        self: MarkdownIt["renderer"],
+        defaultHtmlInlineRule: MarkdownRenderRule | undefined,
     ): string {
         const token = tokens[idx];
         this.logger?.info(`[DIAG] handleHtmlInlineImageRenderer 被调用`);
@@ -176,7 +178,7 @@ export class PresignedUrlHandler {
                 if (!token.attrs) {
                     token.attrs = [];
                 }
-                token.attrPush(['src', src]);
+                token.attrPush(["src", src]);
                 return this.renderPresignedToken(tokens, idx, options, env, self);
             }
         }
@@ -186,13 +188,14 @@ export class PresignedUrlHandler {
             : self.renderToken(tokens, idx, options);
     }
 
+    // eslint-disable-next-line max-params
     handleHtmlBlockImageRenderer(
-        tokens: ReturnType<MarkdownIt['parse']>,
+        tokens: ReturnType<MarkdownIt["parse"]>,
         idx: number,
-        options: MarkdownIt['options'],
+        options: MarkdownIt["options"],
         env: unknown,
-        self: MarkdownIt['renderer'],
-        defaultHtmlBlockRule: MarkdownRenderRule
+        self: MarkdownIt["renderer"],
+        defaultHtmlBlockRule: MarkdownRenderRule,
     ): string {
         const token = tokens[idx];
         this.logger?.info(`[DIAG] handleHtmlBlockImageRenderer 被调用`);
@@ -200,42 +203,42 @@ export class PresignedUrlHandler {
         this.logger?.info(`[DIAG] shouldProcessHtml: ${this.formatValidator.shouldProcessHtml()}`);
         this.logger?.info(`[DIAG] isImageTag: ${isImageTag(token.content)}`);
 
-        if (token.content.trim().includes('<!--') || token.content.trim().includes('-->')) {
-            this.logger?.info('[DIAG] 跳过注释中的 HTML 块');
+        if (token.content.trim().includes("<!--") || token.content.trim().includes("-->")) {
+            this.logger?.info("[DIAG] 跳过注释中的 HTML 块");
             return defaultHtmlBlockRule(tokens, idx, options, env, self);
         }
 
-        if (this.formatValidator.shouldProcessHtml() && isImageTag(token.content)) {
-            const imgTags = extractAllImgTags(token.content);
-            this.logger?.info(`[DIAG] 提取到 ${imgTags.length} 个图片标签`);
-            if (imgTags.length > 0) {
-                for (const imgTag of imgTags) {
-                    this.logger?.info(`[DIAG] 检查图片: ${imgTag.src}`);
-                    const matches = this.domainMatcher.matches(imgTag.src);
-                    this.logger?.info(`[DIAG] 域名匹配结果: ${matches}`);
-                    if (matches) {
-                        this.logger?.info(`[DIAG] HTML 块级图片需要处理，src: ${imgTag.src}`);
-                        if (!token.attrs) {
-                            token.attrs = [];
-                        }
-                        token.attrPush(['src', imgTag.src]);
-                    }
-                }
-            }
-
-            return this.renderPresignedToken(tokens, idx, options, env, self);
+        if (!this.formatValidator.shouldProcessHtml() || !isImageTag(token.content)) {
+            this.logger?.info("[DIAG] 不满足处理条件，使用默认规则");
+            return defaultHtmlBlockRule(tokens, idx, options, env, self);
         }
 
-        this.logger?.info('[DIAG] 不满足处理条件，使用默认规则');
-        return defaultHtmlBlockRule(tokens, idx, options, env, self);
+        const imgTags = extractAllImgTags(token.content);
+        this.logger?.info(`[DIAG] 提取到 ${imgTags.length} 个图片标签`);
+        if (imgTags.length > 0) {
+            for (const imgTag of imgTags) {
+                this.logger?.info(`[DIAG] 检查图片: ${imgTag.src}`);
+                const matches = this.domainMatcher.matches(imgTag.src);
+                this.logger?.info(`[DIAG] 域名匹配结果: ${matches}`);
+                if (matches) {
+                    this.logger?.info(`[DIAG] HTML 块级图片需要处理，src: ${imgTag.src}`);
+                    if (!token.attrs) {
+                        token.attrs = [];
+                    }
+                    token.attrPush(["src", imgTag.src]);
+                }
+            }
+        }
+
+        return this.renderPresignedToken(tokens, idx, options, env, self);
     }
 
     handleCustomImageRenderer(
-        tokens: ReturnType<MarkdownIt['parse']>,
+        tokens: ReturnType<MarkdownIt["parse"]>,
         idx: number,
-        options: MarkdownIt['options'],
+        options: MarkdownIt["options"],
         _env: unknown,
-        self: MarkdownIt['renderer']
+        self: MarkdownIt["renderer"],
     ): string {
         const token = tokens[idx];
         this.logger?.info(`[DIAG] handleCustomImageRenderer 被调用`);
@@ -253,7 +256,7 @@ export class PresignedUrlHandler {
                 this.logger?.info(`[DIAG] 处理图片: ${imgTag.src}`);
                 if (this.domainMatcher.matches(imgTag.src)) {
                     const signedUrl = this.getSignedUrl(imgTag.src);
-                    this.logger?.info(`[DIAG] signedUrl: ${signedUrl ? '有' : '无'}`);
+                    this.logger?.info(`[DIAG] signedUrl: ${signedUrl ? "有" : "无"}`);
                     if (signedUrl) {
                         result = replaceSrcInImgTag(result, imgTag.src, signedUrl);
                     }
@@ -264,11 +267,11 @@ export class PresignedUrlHandler {
         }
 
         // Handle Markdown images (single image)
-        const src = token.attrGet('src');
+        const src = token.attrGet("src");
         this.logger?.info(`[DIAG] Markdown 图片 src: ${src}`);
         const signedUrl = this.getSignedUrl(src);
         if (src && signedUrl) {
-            token.attrSet('src', signedUrl);
+            token.attrSet("src", signedUrl);
         }
 
         return self.renderToken(tokens, idx, options);
@@ -378,7 +381,7 @@ function isInComment(src: string, pos: number): boolean {
 
     let searchPos = pos;
     while (searchPos >= 3) {
-        if (src.slice(searchPos - 3, searchPos + 1) === '<!--') {
+        if (src.slice(searchPos - 3, searchPos + 1) === "<!--") {
             commentStart = searchPos - 3;
             break;
         }
@@ -391,7 +394,7 @@ function isInComment(src: string, pos: number): boolean {
 
     searchPos = pos;
     while (searchPos <= src.length - 3) {
-        if (src.slice(searchPos, searchPos + 3) === '-->') {
+        if (src.slice(searchPos, searchPos + 3) === "-->") {
             commentEnd = searchPos + 2;
             break;
         }
@@ -411,8 +414,8 @@ function isInComment(src: string, pos: number): boolean {
  */
 function replaceSrcInImgTag(content: string, originalSrc: string, newSrc: string): string {
     return content.replace(
-        new RegExp(`src=["'](${escapeRegExp(originalSrc)})["']`, 'g'),
-        `src="${newSrc}"`
+        new RegExp(`src=["'](${escapeRegExp(originalSrc)})["']`, "g"),
+        `src="${newSrc}"`,
     );
 }
 
@@ -423,5 +426,5 @@ function replaceSrcInImgTag(content: string, originalSrc: string, newSrc: string
  * @internal
  */
 function escapeRegExp(str: string): string {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

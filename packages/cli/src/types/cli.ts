@@ -1,7 +1,3 @@
-export type { AdaptConfig, AdaptPlatform, AdaptRule } from '@cmtx/publish';
-
-import type { AdaptPlatform } from '@cmtx/publish';
-
 /**
  * CLI 特定的类型定义
  */
@@ -20,7 +16,7 @@ export interface GlobalOptions {
 /**
  * 输出格式
  */
-export type OutputFormat = 'json' | 'table' | 'plain';
+export type OutputFormat = "json" | "table" | "plain";
 
 /**
  * Analyze 命令选项
@@ -37,13 +33,12 @@ export interface AnalyzeCommandOptions extends GlobalOptions {
  */
 export interface UploadCommandOptions extends GlobalOptions {
     filePath: string;
-    provider?: 'aliyun-oss' | 'tencent-cos';
+    provider?: "aliyun-oss" | "tencent-cos";
     prefix?: string;
-    namingPattern?: string;
+    namingPattern?: string; // CLI 选项 --naming-pattern 转换为 namingPattern
     enableDelete?: boolean;
-    deleteStrategy?: 'trash' | 'move' | 'hard-delete';
+    deleteStrategy?: "trash" | "move" | "hard-delete";
     trashDir?: string;
-    rootPath?: string;
 }
 
 /**
@@ -70,7 +65,7 @@ export interface DeleteCommandOptions extends GlobalOptions {
 export interface CopyCommandOptions extends GlobalOptions {
     filePath: string;
     config?: string;
-    provider?: 'aliyun-oss' | 'tencent-cos';
+    provider?: "aliyun-oss" | "tencent-cos";
     dryRun: boolean;
     concurrency: number;
     verbose: boolean;
@@ -98,7 +93,7 @@ export interface CopyCommandOptions extends GlobalOptions {
     overwrite: boolean;
     tempDir?: string;
     quiet: boolean;
-    format: 'json' | 'table' | 'plain';
+    format: "json" | "table" | "plain";
     /** 删除源文件（move 命令使用） */
     deleteSource?: boolean;
 }
@@ -117,7 +112,7 @@ export interface MoveCommandOptions extends CopyCommandOptions {
  * Config 命令选项
  */
 export interface ConfigCommandOptions extends GlobalOptions {
-    action: 'init' | 'list' | 'show';
+    action: "init" | "list" | "show";
     preset?: string;
     outputFile?: string;
     force?: boolean;
@@ -126,9 +121,9 @@ export interface ConfigCommandOptions extends GlobalOptions {
 /**
  * Format 命令选项
  */
-export interface FormatCommandOptions extends Omit<GlobalOptions, 'output'> {
+export interface FormatCommandOptions extends Omit<GlobalOptions, "output"> {
     filePath: string;
-    to: 'markdown' | 'html';
+    to: "markdown" | "html";
     output?: string;
     width?: string;
     height?: string;
@@ -159,9 +154,9 @@ export interface CmtxConfig {
 export interface AdaptCommandOptions extends GlobalOptions {
     input: string;
     ruleFile?: string;
-    platform?: AdaptPlatform;
+    platform?: string;
     check?: boolean;
-    render?: 'html';
+    render?: "html";
     out?: string;
     outDir?: string;
     dryRun: boolean;

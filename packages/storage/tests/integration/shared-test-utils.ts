@@ -4,15 +4,15 @@
  * @module @cmtx/storage/tests/integration/shared-test-utils
  */
 
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import OSS from 'ali-oss';
-import COS from 'cos-nodejs-sdk-v5';
-import { AliOSSAdapter } from '../../src/adapters/ali-oss.js';
-import type { CosClient } from '../../src/adapters/cos-types.js';
-import { TencentCOSAdapter } from '../../src/adapters/tencent-cos.js';
-import type { IStorageAdapter } from '../../src/types.js';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import OSS from "ali-oss";
+import COS from "cos-nodejs-sdk-v5";
+import { AliOSSAdapter } from "../../src/adapters/ali-oss.js";
+import type { CosClient } from "../../src/adapters/cos-types.js";
+import { TencentCOSAdapter } from "../../src/adapters/tencent-cos.js";
+import type { IStorageAdapter } from "../../src/types.js";
 
 export interface AliyunTestConfig {
     enabled: boolean;
@@ -37,17 +37,17 @@ export interface TestConfig {
     tencent: TencentTestConfig;
 }
 
-const CONFIG_FILE_PATH = join(__dirname, 'test-config.json');
+const CONFIG_FILE_PATH = join(__dirname, "test-config.json");
 
 export function loadTestConfig(): TestConfig {
     if (!existsSync(CONFIG_FILE_PATH)) {
         throw new Error(
             `Test config file not found: ${CONFIG_FILE_PATH}\n` +
-                `Please copy test-config.example.json to test-config.json and fill in your credentials.`
+                `Please copy test-config.example.json to test-config.json and fill in your credentials.`,
         );
     }
 
-    const configContent = readFileSync(CONFIG_FILE_PATH, 'utf-8');
+    const configContent = readFileSync(CONFIG_FILE_PATH, "utf-8");
     const config = JSON.parse(configContent) as TestConfig;
 
     validateConfig(config);
@@ -60,13 +60,13 @@ export function loadTestConfig(): TestConfig {
  */
 function validateAliyunConfig(config: AliyunTestConfig): void {
     if (!config.accessKeyId || !config.accessKeySecret) {
-        throw new Error('Aliyun OSS config missing accessKeyId or accessKeySecret');
+        throw new Error("Aliyun OSS config missing accessKeyId or accessKeySecret");
     }
     if (!config.bucket) {
-        throw new Error('Aliyun OSS config missing bucket');
+        throw new Error("Aliyun OSS config missing bucket");
     }
     if (!config.region) {
-        throw new Error('Aliyun OSS config missing region');
+        throw new Error("Aliyun OSS config missing region");
     }
 }
 
@@ -75,13 +75,13 @@ function validateAliyunConfig(config: AliyunTestConfig): void {
  */
 function validateTencentConfig(config: TencentTestConfig): void {
     if (!config.secretId || !config.secretKey) {
-        throw new Error('Tencent COS config missing secretId or secretKey');
+        throw new Error("Tencent COS config missing secretId or secretKey");
     }
     if (!config.bucket) {
-        throw new Error('Tencent COS config missing bucket');
+        throw new Error("Tencent COS config missing bucket");
     }
     if (!config.region) {
-        throw new Error('Tencent COS config missing region');
+        throw new Error("Tencent COS config missing region");
     }
 }
 
@@ -130,7 +130,7 @@ export function generateTestPath(basePrefix: string): string {
 export function createTempDir(): string {
     const tempDir = join(
         tmpdir(),
-        `storage-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        `storage-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     );
     mkdirSync(tempDir, { recursive: true });
     return tempDir;
@@ -155,31 +155,31 @@ export async function cleanupTestFiles(adapter: IStorageAdapter, testPath: strin
         // 删除所有测试上传的文件
         const testFiles = [
             // upload 测试
-            'sample-text.txt',
-            'sample-image.png',
-            'sample-binary.bin',
+            "sample-text.txt",
+            "sample-image.png",
+            "sample-binary.bin",
             // uploadBuffer 测试
-            'uploaded-buffer.txt',
-            'buffer-with-type.txt',
-            'buffer-with-meta.txt',
+            "uploaded-buffer.txt",
+            "buffer-with-type.txt",
+            "buffer-with-meta.txt",
             // getSignedUrl 测试
-            'presigned-test.txt',
-            'presigned-expiry.txt',
-            'presigned-inline.txt',
-            'presigned-attachment.txt',
+            "presigned-test.txt",
+            "presigned-expiry.txt",
+            "presigned-inline.txt",
+            "presigned-attachment.txt",
             // downloadToFile 测试
-            'download-test.txt',
-            'download-binary.bin',
+            "download-test.txt",
+            "download-binary.bin",
             // getObjectMeta 测试
-            'meta-test.txt',
-            'meta-image.png',
+            "meta-test.txt",
+            "meta-image.png",
             // exists 测试
-            'exists-test.txt',
-            'non-existing-file.txt',
+            "exists-test.txt",
+            "non-existing-file.txt",
             // delete 测试
-            'delete-test.txt',
+            "delete-test.txt",
             // full workflow 测试
-            'workflow-test.txt',
+            "workflow-test.txt",
         ];
 
         for (const file of testFiles) {
@@ -199,7 +199,7 @@ export async function cleanupTestFiles(adapter: IStorageAdapter, testPath: strin
 }
 
 export function getFixturePath(filename: string): string {
-    return join(__dirname, 'fixtures', filename);
+    return join(__dirname, "fixtures", filename);
 }
 
 export function readFixture(filename: string): Buffer {
@@ -219,14 +219,14 @@ export async function fetchUrl(url: string): Promise<{ status: number; data: Buf
 export async function downloadAndCompare(
     adapter: IStorageAdapter,
     remotePath: string,
-    expectedContent: Buffer
+    expectedContent: Buffer,
 ): Promise<boolean> {
     if (!adapter.downloadToFile) {
-        throw new Error('Adapter does not support downloadToFile');
+        throw new Error("Adapter does not support downloadToFile");
     }
 
     const tempDir = createTempDir();
-    const localPath = join(tempDir, 'downloaded-file');
+    const localPath = join(tempDir, "downloaded-file");
 
     try {
         await adapter.downloadToFile(remotePath, localPath);

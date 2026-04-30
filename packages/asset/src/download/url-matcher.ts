@@ -6,8 +6,8 @@
  * 从 Markdown 中提取图片 URL，并根据域名进行过滤。
  */
 
-import { filterImagesInText } from '@cmtx/core';
-import type { ParsedUrlInfo } from './types.js';
+import { filterImagesInText } from "@cmtx/core";
+import type { ParsedUrlInfo } from "./types.js";
 
 /**
  * URL 匹配器配置
@@ -42,8 +42,8 @@ export class UrlMatcher {
     extractUrls(markdown: string): ParsedUrlInfo[] {
         // 提取所有 web 图片
         const images = filterImagesInText(markdown, {
-            mode: 'sourceType',
-            value: 'web',
+            mode: "sourceType",
+            value: "web",
         });
 
         return images
@@ -61,19 +61,19 @@ export class UrlMatcher {
         try {
             const urlObj = new URL(url);
             const pathname = urlObj.pathname;
-            const lastSlash = pathname.lastIndexOf('/');
+            const lastSlash = pathname.lastIndexOf("/");
             const fileName = lastSlash >= 0 ? pathname.slice(lastSlash + 1) : pathname;
 
             // 分离文件名和扩展名
-            const lastDot = fileName.lastIndexOf('.');
-            const baseName = lastDot > 0 ? fileName.slice(0, lastDot) : fileName || 'image';
-            const ext = lastDot > 0 ? fileName.slice(lastDot) : '.bin';
+            const lastDot = fileName.lastIndexOf(".");
+            const baseName = lastDot > 0 ? fileName.slice(0, lastDot) : fileName || "image";
+            const ext = lastDot > 0 ? fileName.slice(lastDot) : ".bin";
 
             // 检查域名匹配
             const isMatch = this.matchDomain(urlObj.hostname);
 
             // 提取远程路径
-            const remotePath = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+            const remotePath = pathname.startsWith("/") ? pathname.slice(1) : pathname;
 
             return {
                 originalUrl: url,

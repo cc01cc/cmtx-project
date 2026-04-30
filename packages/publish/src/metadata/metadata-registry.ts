@@ -1,6 +1,8 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
-import type { DocumentState } from '../types.js';
+/* eslint-disable no-console */
+
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
+import type { DocumentState } from "../types.js";
 
 /**
  * 元数据注册表 (Metadata Registry)
@@ -30,13 +32,13 @@ export class MetadataRegistry {
      */
     async load(): Promise<void> {
         try {
-            const content = await readFile(this.registryPath, 'utf-8');
+            const content = await readFile(this.registryPath, "utf-8");
             const data = JSON.parse(content);
             this.states = new Map(Object.entries(data));
         } catch (error: unknown) {
-            if (typeof error === 'object' && error !== null && 'code' in error) {
+            if (typeof error === "object" && error !== null && "code" in error) {
                 const err = error as { code: string; message: string };
-                if (err.code !== 'ENOENT') {
+                if (err.code !== "ENOENT") {
                     console.error(`[WARN] Failed to load registry: ${err.message}`);
                 }
             }
@@ -54,7 +56,7 @@ export class MetadataRegistry {
             const dir = dirname(this.registryPath);
             await mkdir(dir, { recursive: true });
             const data = Object.fromEntries(this.states);
-            await writeFile(this.registryPath, JSON.stringify(data, null, 2), 'utf-8');
+            await writeFile(this.registryPath, JSON.stringify(data, null, 2), "utf-8");
         } catch (error: unknown) {
             console.error(`[FAIL] Failed to save registry: ${(error as Error).message}`);
         }

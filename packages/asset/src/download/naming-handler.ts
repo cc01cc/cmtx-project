@@ -20,24 +20,28 @@
  * ### Download 独有变量
  * - `{sequence}` - 序号（自动递增）
  *
- * @example
- * ```typescript
- * // 使用模板生成文件名
- * const fileName = renderNamingTemplate('{name}.{ext}', variables);
- * // => 'photo.png'
+ * ## 使用方式
  *
- * const fileName = renderNamingTemplate('{name}_{md5_8}.{ext}', variables);
- * // => 'photo_a1b2c3d4.png'
+ * 直接使用 `@cmtx/template/renderTemplate` 并传入 `postProcess` 选项：
+ *
+ * ```typescript
+ * import { renderTemplate } from '@cmtx/template';
+ *
+ * const variables = generateNamingVariables('photo', 'png', undefined, 1);
+ * const fileName = renderTemplate('{date}/{name}.{ext}', variables, {
+ *   postProcess: (result) => result.replace(/\/+/g, '/')
+ * });
+ * // => '2026-04-02/photo.png'
  * ```
  */
 
-import { generateMD5 } from '../shared/md5.js';
-import type { NamingVariables } from './types.js';
+import { generateMD5 } from "../shared/md5.js";
+import type { NamingVariables } from "./types.js";
 
 /**
  * 默认命名模板
  */
-export const DEFAULT_NAMING_TEMPLATE = '{name}.{ext}';
+export const DEFAULT_NAMING_TEMPLATE = "{name}.{ext}";
 
 /**
  * 生成命名变量
@@ -52,19 +56,19 @@ export function generateNamingVariables(
     baseName: string,
     ext: string,
     content?: Buffer,
-    sequence: number = 1
+    sequence: number = 1,
 ): NamingVariables {
     const now = new Date();
 
     // 计算日期相关变量
     const year = now.getFullYear().toString();
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const day = now.getDate().toString().padStart(2, '0');
+    const month = (now.getMonth() + 1).toString().padStart(2, "0");
+    const day = now.getDate().toString().padStart(2, "0");
     const date = `${year}-${month}-${day}`; // YYYY-MM-DD 格式
     const timestamp = now.getTime().toString();
 
     // 计算 MD5 相关变量
-    const md5 = content ? generateMD5(content, 32) : '00000000000000000000000000000000';
+    const md5 = content ? generateMD5(content, 32) : "00000000000000000000000000000000";
     const md5_8 = md5.slice(0, 8);
     const md5_16 = md5.slice(0, 16);
 
@@ -78,47 +82,8 @@ export function generateNamingVariables(
         md5_8,
         md5_16,
         // Download 独有变量
-        sequence: sequence.toString().padStart(3, '0'),
+        sequence: sequence.toString().padStart(3, "0"),
     };
-}
-
-/**
- * 渲染命名模板
- *
- * @param template - 命名模板
- * @param variables - 命名变量
- * @returns 渲染后的文件名
- *
- * @example
- * ```typescript
- * const variables = generateNamingVariables('photo', '.png', undefined, 1);
- * const fileName = renderNamingTemplate('{date}/{name}{ext}', variables);
- * // => '2026-04-02/photo.png'
- * ```
- *
- * @example
- * ```typescript
- * // 使用 MD5 哈希防冲突
- * const fileName = renderNamingTemplate('{name}_{md5_8}{ext}', variables);
- * // => 'photo_a1b2c3d4.png'
- * ```
- */
-export function renderNamingTemplate(template: string, variables: NamingVariables): string {
-    // 复用共享模块的统一渲染函数
-    // 注意：为了保持向后兼容，此函数保留，但内部逻辑已统一
-    if (!template) return '';
-
-    let result = template;
-
-    // 替换所有模板变量
-    for (const [key, value] of Object.entries(variables)) {
-        result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
-    }
-
-    // 移除多余的路径分隔符（如连续的斜杠）
-    result = result.replace(/\/+/g, '/');
-
-    return result;
 }
 
 /**
@@ -127,15 +92,18 @@ export function renderNamingTemplate(template: string, variables: NamingVariable
  * @param url - 图片 URL
  * @returns 文件名和扩展名（不含点）
  */
-export function parseUrlForNaming(url: string): { baseName: string; ext: string } {
+export function parseUrlForNaming(url: string): {
+    baseName: string;
+    ext: string;
+} {
     try {
         const urlObj = new URL(url);
         const pathname = urlObj.pathname;
-        const lastSlash = pathname.lastIndexOf('/');
+        const lastSlash = pathname.lastIndexOf("/");
         const fileName = lastSlash >= 0 ? pathname.slice(lastSlash + 1) : pathname;
 
         // 分离文件名和扩展名
-        const lastDot = fileName.lastIndexOf('.');
+        const lastDot = fileName.lastIndexOf(".");
         if (lastDot > 0) {
             return {
                 baseName: fileName.slice(0, lastDot),
@@ -144,13 +112,13 @@ export function parseUrlForNaming(url: string): { baseName: string; ext: string 
         }
 
         return {
-            baseName: fileName || 'image',
-            ext: 'bin',
+            baseName: fileName || "image",
+            ext: "bin",
         };
     } catch {
         return {
-            baseName: 'image',
-            ext: 'bin',
+            baseName: "image",
+            ext: "bin",
         };
     }
 }
@@ -168,9 +136,9 @@ export function generateUniqueFileName(desiredName: string, existingNames: Set<s
     }
 
     // 分离文件名和扩展名
-    const lastDot = desiredName.lastIndexOf('.');
+    const lastDot = desiredName.lastIndexOf(".");
     const baseName = lastDot > 0 ? desiredName.slice(0, lastDot) : desiredName;
-    const ext = lastDot > 0 ? `.${desiredName.slice(lastDot + 1)}` : '';
+    const ext = lastDot > 0 ? `.${desiredName.slice(lastDot + 1)}` : "";
 
     let counter = 1;
     while (existingNames.has(`${baseName}-${counter}${ext}`)) {

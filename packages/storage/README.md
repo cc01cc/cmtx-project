@@ -1,5 +1,8 @@
 # @cmtx/storage
 
+[![npm version](https://img.shields.io/npm/v/@cmtx/storage.svg)](https://www.npmjs.com/package/@cmtx/storage)
+[![License](https://img.shields.io/npm/l/@cmtx/storage.svg)](https://github.com/cc01cc/cmtx-project/blob/main/LICENSE)
+
 对象存储适配器，提供统一的存储服务接口和多种云存储实现。
 
 ## 1. 功能特性
@@ -57,21 +60,21 @@ pnpm add cos-nodejs-sdk-v5
 import { createAdapter } from "@cmtx/storage/adapters/factory";
 
 // 阿里云 OSS
-const ossAdapter = createAdapter({
-  provider: "aliyun-oss",
-  accessKeyId: "your-access-key-id",
-  accessKeySecret: "your-access-key-secret",
-  region: "oss-cn-hangzhou",
-  bucket: "your-bucket-name",
+const ossAdapter = await createAdapter({
+    provider: "aliyun-oss",
+    accessKeyId: "your-access-key-id",
+    accessKeySecret: "your-access-key-secret",
+    region: "oss-cn-hangzhou",
+    bucket: "your-bucket-name",
 });
 
 // 腾讯云 COS
-const cosAdapter = createAdapter({
-  provider: "tencent-cos",
-  secretId: "your-secret-id",
-  secretKey: "your-secret-key",
-  region: "ap-guangzhou",
-  bucket: "your-bucket-1250000000", // 格式：bucketname-appid
+const cosAdapter = await createAdapter({
+    provider: "tencent-cos",
+    secretId: "your-secret-id",
+    secretKey: "your-secret-key",
+    region: "ap-guangzhou",
+    bucket: "your-bucket-1250000000", // 格式：bucketname-appid
 });
 
 // 上传文件
@@ -87,10 +90,10 @@ import OSS from "ali-oss";
 
 // 1. 配置 OSS 客户端
 const client = new OSS({
-  region: "oss-cn-hangzhou",
-  accessKeyId: "your-access-key-id",
-  accessKeySecret: "your-access-key-secret",
-  bucket: "your-bucket-name",
+    region: "oss-cn-hangzhou",
+    accessKeyId: "your-access-key-id",
+    accessKeySecret: "your-access-key-secret",
+    bucket: "your-bucket-name",
 });
 
 // 2. 创建适配器
@@ -109,14 +112,14 @@ import COS from "cos-nodejs-sdk-v5";
 
 // 1. 配置 COS 客户端
 const cos = new COS({
-  SecretId: "your-secret-id",
-  SecretKey: "your-secret-key",
+    SecretId: "your-secret-id",
+    SecretKey: "your-secret-key",
 });
 
 // 2. 创建适配器（需要传入 Bucket 和 Region）
 const adapter = new TencentCOSAdapter(cos, {
-  Bucket: "your-bucket-1250000000", // 格式：bucketname-appid
-  Region: "ap-guangzhou",
+    Bucket: "your-bucket-1250000000", // 格式：bucketname-appid
+    Region: "ap-guangzhou",
 });
 
 // 3. 上传文件
@@ -137,8 +140,8 @@ console.log(signedUrl);
 ```typescript
 const buffer = fs.readFileSync("/path/to/file.png");
 const result = await adapter.uploadBuffer("images/file.png", buffer, {
-  contentType: "image/png",
-  forbidOverwrite: true,
+    contentType: "image/png",
+    forbidOverwrite: true,
 });
 ```
 
@@ -156,12 +159,12 @@ const result = await adapter.uploadBuffer("images/file.png", buffer, {
 
 ```typescript
 interface AliyunCredentials {
-  provider: "aliyun-oss";
-  accessKeyId: string;
-  accessKeySecret: string;
-  region: string;           // 如：oss-cn-hangzhou
-  bucket: string;
-  stsToken?: string;        // 可选：STS 临时凭证
+    provider: "aliyun-oss";
+    accessKeyId: string;
+    accessKeySecret: string;
+    region: string; // 如：oss-cn-hangzhou
+    bucket: string;
+    stsToken?: string; // 可选：STS 临时凭证
 }
 ```
 
@@ -177,12 +180,12 @@ interface AliyunCredentials {
 
 ```typescript
 interface TencentCredentials {
-  provider: "tencent-cos";
-  secretId: string;
-  secretKey: string;
-  region: string;           // 如：ap-guangzhou
-  bucket: string;           // 格式：bucketname-appid
-  sessionToken?: string;    // 可选：STS 临时凭证
+    provider: "tencent-cos";
+    secretId: string;
+    secretKey: string;
+    region: string; // 如：ap-guangzhou
+    bucket: string; // 格式：bucketname-appid
+    sessionToken?: string; // 可选：STS 临时凭证
 }
 ```
 
@@ -251,18 +254,18 @@ interface TencentCredentials {
 import type { IStorageAdapter, AdapterUploadResult } from "@cmtx/storage";
 
 class MyStorageAdapter implements IStorageAdapter {
-  async upload(localPath: string, remotePath: string): Promise<AdapterUploadResult> {
-    // 实现上传逻辑
-    return {
-      name: remotePath,
-      url: `https://my-cdn.com/${remotePath}`,
-    };
-  }
+    async upload(localPath: string, remotePath: string): Promise<AdapterUploadResult> {
+        // 实现上传逻辑
+        return {
+            name: remotePath,
+            url: `https://my-cdn.com/${remotePath}`,
+        };
+    }
 
-  async getSignedUrl(remotePath: string, expires: number): Promise<string> {
-    // 实现预签名 URL 生成
-    return `https://my-cdn.com/${remotePath}?token=xxx`;
-  }
+    async getSignedUrl(remotePath: string, expires: number): Promise<string> {
+        // 实现预签名 URL 生成
+        return `https://my-cdn.com/${remotePath}?token=xxx`;
+    }
 }
 ```
 
@@ -270,14 +273,14 @@ class MyStorageAdapter implements IStorageAdapter {
 
 ```typescript
 interface AdapterUploadResult {
-  name: string;  // 远程文件名
-  url: string;   // 可访问的 URL
+    name: string; // 远程文件名
+    url: string; // 可访问的 URL
 }
 
 interface UploadBufferOptions {
-  forbidOverwrite?: boolean;  // 禁止覆盖
-  contentType?: string;       // 内容类型
-  metadata?: Record<string, string>;  // 自定义元数据
+    forbidOverwrite?: boolean; // 禁止覆盖
+    contentType?: string; // 内容类型
+    metadata?: Record<string, string>; // 自定义元数据
 }
 
 type CloudCredentials = AliyunCredentials | TencentCredentials;
@@ -314,22 +317,22 @@ cp packages/storage/tests/integration/test-config.example.json \
 
 ```json
 {
-  "aliyun": {
-    "enabled": true,
-    "region": "oss-cn-hangzhou",
-    "accessKeyId": "YOUR_ACCESS_KEY_ID",
-    "accessKeySecret": "YOUR_ACCESS_KEY_SECRET",
-    "bucket": "your-test-bucket",
-    "testPrefix": "integration-test/"
-  },
-  "tencent": {
-    "enabled": true,
-    "secretId": "YOUR_SECRET_ID",
-    "secretKey": "YOUR_SECRET_KEY",
-    "region": "ap-guangzhou",
-    "bucket": "your-test-bucket-1250000000",
-    "testPrefix": "integration-test/"
-  }
+    "aliyun": {
+        "enabled": true,
+        "region": "oss-cn-hangzhou",
+        "accessKeyId": "YOUR_ACCESS_KEY_ID",
+        "accessKeySecret": "YOUR_ACCESS_KEY_SECRET",
+        "bucket": "your-test-bucket",
+        "testPrefix": "integration-test/"
+    },
+    "tencent": {
+        "enabled": true,
+        "secretId": "YOUR_SECRET_ID",
+        "secretKey": "YOUR_SECRET_KEY",
+        "region": "ap-guangzhou",
+        "bucket": "your-test-bucket-1250000000",
+        "testPrefix": "integration-test/"
+    }
 }
 ```
 

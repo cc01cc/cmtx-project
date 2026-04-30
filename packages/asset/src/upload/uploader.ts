@@ -28,52 +28,43 @@
  * @see {@link deleteImages} - 图片删除服务
  */
 
-import { dirname, resolve } from 'node:path';
-import type { LoggerCallback } from '@cmtx/core';
-import { executeUploadPipeline } from './pipeline.js';
-import { FileDocumentAccessor, SafeDeleteStrategy, StorageUploadStrategy } from './strategies.js';
-import type { UploadConfig, UploadOptions, UploadResult } from './types.js';
-
-// 导出 ImageCloudMapBody 以保持向后兼容
-export type { ImageCloudMapBody } from './types.js';
+import { dirname, resolve } from "node:path";
+import { getCurrentStorageConfig } from "./config.js";
+import { executeUploadPipeline } from "./pipeline.js";
+import { FileDocumentAccessor, SafeDeleteStrategy, StorageUploadStrategy } from "./strategies.js";
+import type { UploadConfig, UploadOptions, UploadResult } from "./types.js";
 
 /**
  * 上传单个 Markdown 文件中的图片
  *
  * @param markdownPath - Markdown 文件路径
  * @param config - 上传配置
- * @param optionsOrLogger - 上传选项或日志回调（向后兼容）
+ * @param options - 上传选项
  * @returns 上传结果（包含处理后的内容）
  * @public
  */
 export async function uploadLocalImageInMarkdown(
     markdownPath: string,
     config: UploadConfig,
-    optionsOrLogger?: UploadOptions | LoggerCallback
+    options?: UploadOptions,
 ): Promise<UploadResult> {
-    // 向后兼容：第三个参数可能是 LoggerCallback 或 UploadOptions
-    const options: UploadOptions =
-        typeof optionsOrLogger === 'function' ? {} : (optionsOrLogger ?? {});
-    const logger: LoggerCallback | undefined =
-        typeof optionsOrLogger === 'function' ? optionsOrLogger : config.events?.logger;
-
-    const log = logger;
+    const log = config.events?.logger;
     const markdownAbsPath = resolve(markdownPath);
 
-    log?.('info', `[Upload] Processing file: ${markdownAbsPath}`);
+    log?.info(`[Upload] Processing file: ${markdownAbsPath}`);
 
     const result = await executeUploadPipeline({
         documentAccessor: new FileDocumentAccessor(markdownAbsPath, {
-            writeEnabled: options.writeFile ?? false,
+            writeEnabled: options?.writeFile ?? false,
         }),
         config,
-        uploadStrategy: new StorageUploadStrategy(config.storage.adapter),
+        uploadStrategy: new StorageUploadStrategy(getCurrentStorageConfig(config).adapter),
         deleteStrategy: config.delete ? new SafeDeleteStrategy(config.delete) : undefined,
         baseDirectory: dirname(markdownAbsPath),
         shouldSkipSource: (src) => /^https?:\/\//i.test(src),
         logger: log,
     });
 
-    log?.('info', '[Upload] Completed successfully');
+    log?.info("[Upload] Completed successfully");
     return result;
 }

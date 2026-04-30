@@ -29,7 +29,7 @@
  *
  * @public
  */
-export type DetectedCloudProvider = 'aliyun' | 'tencent' | 'aws' | 'unknown';
+export type DetectedCloudProvider = "aliyun" | "tencent" | "aws" | "unknown";
 
 /**
  * 检测到的云服务商类型
@@ -67,21 +67,21 @@ export type DetectedCloudProvider = 'aliyun' | 'tencent' | 'aws' | 'unknown';
  */
 export enum StorageUrlType {
     /** 阿里云 OSS URL（未签名） */
-    ALIYUN_OSS = 'aliyun_oss',
+    ALIYUN_OSS = "aliyun_oss",
     /** 阿里云 OSS 签名 URL */
-    ALIYUN_OSS_SIGNED = 'aliyun_oss_signed',
+    ALIYUN_OSS_SIGNED = "aliyun_oss_signed",
     /** 腾讯云 COS URL（未签名） */
-    TENCENT_COS = 'tencent_cos',
+    TENCENT_COS = "tencent_cos",
     /** 腾讯云 COS 签名 URL */
-    TENCENT_COS_SIGNED = 'tencent_cos_signed',
+    TENCENT_COS_SIGNED = "tencent_cos_signed",
     /** AWS S3 URL（未签名） */
-    AWS_S3 = 'aws_s3',
+    AWS_S3 = "aws_s3",
     /** AWS S3 签名 URL */
-    AWS_S3_SIGNED = 'aws_s3_signed',
+    AWS_S3_SIGNED = "aws_s3_signed",
     /** 自定义域名（需要配置映射） */
-    CUSTOM_DOMAIN = 'custom_domain',
+    CUSTOM_DOMAIN = "custom_domain",
     /** 其他 URL（非云存储） */
-    OTHER = 'other',
+    OTHER = "other",
 }
 
 /**

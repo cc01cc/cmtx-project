@@ -46,10 +46,14 @@
  *
  * // 2. 构建上传配置
  * const config = new ConfigBuilder()
- *   .storage(adapter, {
- *     prefix: "blog/images/",
- *     namingTemplate: "{date}_{md5_8}{ext}"
+ *   .storages({
+ *     default: {
+ *       adapter,
+ *       namingTemplate: "{date}_{md5_8}{ext}"
+ *     }
  *   })
+ *   .useStorage('default')
+ *   .prefix("blog/images/")
  *   .replace({
  *     fields: {
  *       src: "{cloudSrc}?x-oss-process=image/resize,w_640",
@@ -58,7 +62,7 @@
  *   })
  *   .delete({
  *     strategy: "trash",
- *     rootPath: "/path/to/docs"
+ *     trashDir: "/path/to/trash"
  *   })
  *   .build();
  *
@@ -72,57 +76,60 @@
  *
  * @see {@link uploadLocalImageInMarkdown} - 主要上传函数
  * @see {@link ConfigBuilder} - 配置构建器
- * @see {@link renderTemplateImage} - 图片上传专用的模板渲染函数
  * @see {@link @cmtx/storage} - 存储适配器（独立包）
+ *
+ * @remarks
+ * ## 模板渲染
+ *
+ * 图片上传使用 `@cmtx/template/renderTemplate` 进行模板渲染，支持以下选项：
+ * - `emptyString: 'preserve'` - 保留空字符串占位符
+ * - `postProcess` - 后处理函数（如路径规范化）
+ *
+ * 如需自定义模板渲染，请直接使用 `@cmtx/template` 包。
  */
 
-// 配置类型（从 config.ts 导出）
-export type { UploadConfig } from './config.js';
+// 类型定义（统一从 config.js 和 types.js 导出）
 export type {
-    FileInfo,
-    NameTemplateVariables,
-} from './naming-handler.js';
+    DeleteConfig,
+    EventConfig,
+    ReplaceConfig,
+    StorageConfig,
+    UploadConfig,
+} from "./config.js";
+// 配置类型（从 config.ts 导出）
+export type { FileInfo, NameTemplateVariables } from "./naming-handler.js";
 // 命名处理函数
 export {
-    generateMD5,
     generateNameAndRemotePath,
     generateRemoteImageName,
     getFileInfo,
-} from './naming-handler.js';
-export type {
-    UploadPipelineInput,
-    UploadPipelineSelection,
-} from './pipeline.js';
-export { executeUploadPipeline } from './pipeline.js';
+} from "./naming-handler.js";
+// 重新导出 generateMD5（从 shared 模块）
+export { generateMD5 } from "../shared/md5.js";
+export type { UploadPipelineInput, UploadPipelineSelection } from "./pipeline.js";
+export { executeUploadPipeline } from "./pipeline.js";
 export type {
     DeleteStrategy,
     DocumentAccessor,
     ReplacementOp,
     UploadSource,
     UploadStrategy,
-} from './strategies.js';
-export {
-    FileDocumentAccessor,
-    SafeDeleteStrategy,
-    StorageUploadStrategy,
-} from './strategies.js';
-// 模板渲染
-export { renderTemplateImage } from './template-renderer.js';
-// 类型定义（统一从 config.ts 导出）
+} from "./strategies.js";
+export { FileDocumentAccessor, SafeDeleteStrategy, StorageUploadStrategy } from "./strategies.js";
 export type {
+    ConflictResolutionStrategy,
     DeduplicationInfo,
     DeleteOptions,
-    EventOptions,
+    DetailedUploadResult,
     FailedItem,
+    FailedItemDetail,
     ImageCloudMapBody,
-    ReplaceOptions,
-    StorageOptions,
     UploadEvent,
     UploadEventType,
     UploadOptions,
     UploadResult,
-} from './types.js';
+} from "./types.js";
 // 配置构建器
-export { ConfigBuilder } from './types.js';
+export { ConfigBuilder } from "./types.js";
 // 核心功能
-export { uploadLocalImageInMarkdown } from './uploader.js';
+export { uploadLocalImageInMarkdown } from "./uploader.js";

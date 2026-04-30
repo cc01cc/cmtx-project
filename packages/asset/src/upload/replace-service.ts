@@ -35,11 +35,12 @@
 import type {
     ReplaceOptions as CoreReplaceOptions,
     LocalImageMatchWithAbsPath,
-    LoggerCallback,
-} from '@cmtx/core';
-import { replaceImagesInFile } from '@cmtx/core';
-import { createContext, renderTemplateImage } from './template-renderer.js';
-import type { ImageCloudMapBody, ReplaceOptions } from './types.js';
+    Logger,
+} from "@cmtx/core";
+import { renderTemplate } from "@cmtx/template";
+import { FileService } from "../file/file-service.js";
+import { createContext } from "./template-renderer.js";
+import type { ImageCloudMapBody, ReplaceOptions } from "./types.js";
 
 /**
  * 处理字段替换
@@ -62,35 +63,39 @@ export async function processFieldReplacements(
         cloudResult: ImageCloudMapBody;
     }[],
     replaceOptions: ReplaceOptions,
-    logger?: LoggerCallback
+    logger?: Logger,
 ): Promise<{ replacedCount: number; filesModified: number }> {
-    logger?.('debug', `[ReplaceService] Processing ${uploadedImages.length} uploaded images`);
+    logger?.debug(`[ReplaceService] Processing ${uploadedImages.length} uploaded images`);
 
     if (uploadedImages.length === 0) {
         return { replacedCount: 0, filesModified: 0 };
     }
+
+    const fileService = new FileService();
 
     try {
         // 为每个图片构建替换操作，一次性替换多个字段
         const operations = buildReplaceOperations(uploadedImages, replaceOptions);
 
         if (operations.length === 0) {
-            logger?.('info', '[ReplaceService] No replacement operations needed');
+            logger?.info("[ReplaceService] No replacement operations needed");
             return { replacedCount: 0, filesModified: 0 };
         }
 
         // 一次性执行所有替换
-        const result = await replaceImagesInFile(markdownPath, operations, logger);
+        const result = await fileService.replaceImagesInFile(markdownPath, operations);
         const changes = result.result?.replacements.length || 0;
 
         if (changes > 0) {
-            logger?.('info', `[ReplaceService] Total replacements: ${changes}`);
+            logger?.info(`[ReplaceService] Total replacements: ${changes}`);
         }
 
         return { replacedCount: changes, filesModified: changes > 0 ? 1 : 0 };
     } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));
-        logger?.('error', '[ReplaceService] Error processing replacements', { error });
+        logger?.error("[ReplaceService] Error processing replacements", {
+            error,
+        });
         return { replacedCount: 0, filesModified: 0 };
     }
 }
@@ -105,7 +110,7 @@ function buildReplaceOperations(
         imageMatch: LocalImageMatchWithAbsPath;
         cloudResult: ImageCloudMapBody;
     }>,
-    replaceOptions: ReplaceOptions
+    replaceOptions: ReplaceOptions,
 ): CoreReplaceOptions[] {
     const operations: CoreReplaceOptions[] = [];
 
@@ -123,18 +128,24 @@ function buildReplaceOperations(
 
         // 渲染每个字段的新值
         const newSrc = replaceOptions.fields.src
-            ? renderTemplateImage(replaceOptions.fields.src, renderContext)
+            ? renderTemplate(replaceOptions.fields.src, renderContext, {
+                  emptyString: "preserve",
+              })
             : undefined;
         const newAlt = replaceOptions.fields.alt
-            ? renderTemplateImage(replaceOptions.fields.alt, renderContext)
+            ? renderTemplate(replaceOptions.fields.alt, renderContext, {
+                  emptyString: "preserve",
+              })
             : undefined;
         const newTitle = replaceOptions.fields.title
-            ? renderTemplateImage(replaceOptions.fields.title, renderContext)
+            ? renderTemplate(replaceOptions.fields.title, renderContext, {
+                  emptyString: "preserve",
+              })
             : undefined;
 
         // 使用 src 作为标识符，一次性替换多个字段
         operations.push({
-            field: 'src',
+            field: "src",
             pattern: imageMatch.src,
             newSrc,
             newAlt,

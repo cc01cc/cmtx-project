@@ -1,8 +1,32 @@
 {
     "name": "@cmtx/fpe-wasm",
-    "version": "0.1.1-alpha.0",
+    "version": "0.1.1-alpha.1",
     "description": "NIST SP 800-38G FF1 format-preserving encryption (WASM)",
+    "keywords": [
+        "cmtx",
+        "encryption",
+        "ff1",
+        "format-preserving",
+        "fpe",
+        "nist",
+        "wasm"
+    ],
+    "homepage": "https://github.com/cc01cc/cmtx-project/tree/main/packages/fpe-wasm",
+    "bugs": {
+        "url": "https://github.com/cc01cc/cmtx-project/issues"
+    },
     "license": "Apache-2.0",
+    "author": "cc01cc",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cc01cc/cmtx-project.git",
+        "directory": "packages/fpe-wasm"
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "CHANGELOG.md"
+    ],
     "type": "module",
     "main": "./dist/index.cjs",
     "module": "./dist/index.mjs",
@@ -14,15 +38,8 @@
             "require": "./dist/index.cjs"
         }
     },
-    "files": [
-        "dist",
-        "README.md",
-        "CHANGELOG.md"
-    ],
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/cc01cc/cmtx-project.git",
-        "directory": "packages/fpe-wasm"
+    "publishConfig": {
+        "access": "public"
     },
     "scripts": {
         "build:wasm": "wasm-pack build --target web --out-dir pkg",
@@ -36,8 +53,7 @@
         "docs:rust": "cargo doc --no-deps",
         "clean": "rm -rf dist",
         "typecheck": "tsc --noEmit -p tsconfig.json",
-        "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
-        "lint": "biome check --write src tests"
+        "typecheck:tests": "tsc --noEmit -p tsconfig.test.json"
     },
     "devDependencies": {
         "@types/node": "catalog:",
@@ -46,16 +62,5 @@
     },
     "engines": {
         "node": ">=22.0.0"
-    },
-    "keywords": [
-        "ff1",
-        "fpe",
-        "encryption",
-        "nist",
-        "wasm",
-        "format-preserving"
-    ],
-    "publishConfig": {
-        "access": "public"
     }
 }

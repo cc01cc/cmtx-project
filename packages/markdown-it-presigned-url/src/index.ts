@@ -1,10 +1,10 @@
 // ==================== 插件函数 ====================
 
-export { presignedUrlPlugin } from './plugin.js';
+export { presignedUrlPlugin } from "./plugin.js";
 
 // ==================== 处理器 ====================
 
-export { PresignedUrlHandler } from './handler.js';
+export { PresignedUrlHandler } from "./handler.js";
 
 // ==================== 类型定义 ====================
 
@@ -27,10 +27,10 @@ export type {
     PresignedUrlPlugin,
     /** @category 类型定义 */
     PresignedUrlPluginOptions,
-} from './types.js';
+} from "./types.js";
 
 // ==================== 工具函数 ====================
 
-export { DomainMatcher } from './utils/domain-matcher.js';
+export { DomainMatcher } from "./utils/domain-matcher.js";
 
-export { FormatValidator } from './utils/format-validator.js';
+export { FormatValidator } from "./utils/format-validator.js";

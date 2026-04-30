@@ -10,10 +10,10 @@
  *
  * ### 配置相关
  * - {@link UploadConfig} - 主配置接口
- * - {@link StorageOptions} - 存储配置
- * - {@link ReplaceOptions} - 替换配置
- * - {@link DeleteOptions} - 删除配置
- * - {@link EventOptions} - 事件配置
+ * - {@link StorageConfig} - 存储配置
+ * - {@link ReplaceConfig} - 替换配置
+ * - {@link DeleteConfig} - 删除配置
+ * - {@link EventConfig} - 事件配置
  *
  * ### 结果相关
  * - {@link UploadResult} - 上传结果
@@ -36,18 +36,22 @@
  * @see {@link @cmtx/storage} - 存储适配器（独立包）
  */
 
-import type { IStorageAdapter } from '@cmtx/storage';
-import type {
+import type { DeleteConfig, ReplaceConfig, UploadConfig } from "./config.js";
+
+// 重新导出配置类型和类，方便其他模块使用
+export type {
     DeleteConfig,
     EventConfig,
     ReplaceConfig,
     StorageConfig,
     UploadConfig,
-} from './config.js';
-import { DEFAULT_DELETE_CONFIG, DEFAULT_REPLACE_CONFIG } from './config.js';
+} from "./config.js";
 
-// 重新导出配置类型，方便其他模块使用
-export type { UploadConfig } from './config.js';
+export { ConfigBuilder } from "./config.js";
+
+// 类型别名，用于服务模块的导入
+export type DeleteOptions = DeleteConfig;
+export type ReplaceOptions = ReplaceConfig;
 
 /**
  * 云端图片映射信息
@@ -57,116 +61,6 @@ export interface ImageCloudMapBody {
     remotePath: string;
     url: string;
     nameTemplateVariables: Record<string, string>;
-}
-
-// ==================== 配置类型（统一使用 config.ts 定义） ====================
-// 为了向后兼容，保留类型别名
-export type StorageOptions = StorageConfig;
-export type ReplaceOptions = ReplaceConfig;
-export type DeleteOptions = DeleteConfig;
-export type EventOptions = EventConfig;
-
-// ==================== 配置构建器 ====================
-/**
- * 上传配置构建器
- * @public
- */
-export class ConfigBuilder {
-    private readonly config: Partial<UploadConfig> = {};
-
-    /**
-     * 设置存储配置
-     * @param adapter - 存储适配器
-     * @param options - 存储选项
-     * @returns this - 支持链式调用
-     */
-    storage(
-        adapter: IStorageAdapter,
-        options?: {
-            prefix?: string;
-            namingTemplate?: string;
-        }
-    ): this {
-        this.config.storage = {
-            adapter,
-            prefix: options?.prefix,
-            namingTemplate: options?.namingTemplate,
-        };
-        return this;
-    }
-
-    /**
-     * 设置完整的替换配置
-     * @param options - 替换选项
-     * @returns this - 支持链式调用
-     */
-    replace(options: ReplaceOptions): this {
-        this.config.replace = options;
-        return this;
-    }
-
-    /**
-     * 设置字段替换模板（快捷方法）
-     * @param patterns - 字段到模板的映射
-     * @returns this - 支持链式调用
-     * @example
-     * ```typescript
-     * builder.fieldTemplates({
-     *   src: '{cloudSrc}',
-     *   alt: '{originalAlt} - Updated'
-     * });
-     * ```
-     */
-    fieldTemplates(patterns: Record<string, string>): this {
-        this.config.replace = { fields: patterns };
-        return this;
-    }
-
-    /**
-     * 设置删除配置
-     * @param options - 删除选项（直接使用 core 的 DeleteFileOptions）
-     * @returns this - 支持链式调用
-     */
-    delete(options: DeleteOptions): this {
-        this.config.delete = options;
-        return this;
-    }
-
-    /**
-     * 设置事件回调
-     * @param onProgress - 进度回调函数
-     * @param logger - 日志回调函数
-     * @returns this - 支持链式调用
-     */
-    events(
-        onProgress?: (event: UploadEvent) => void,
-        logger?: import('@cmtx/core').LoggerCallback
-    ): this {
-        this.config.events = { onProgress, logger };
-        return this;
-    }
-
-    /**
-     * 构建最终配置
-     * @returns UploadConfig - 完整的上传配置
-     * @throws {Error} 当缺少必需的存储配置时
-     */
-    build(): UploadConfig {
-        if (!this.config.storage) {
-            throw new Error('Storage configuration is required');
-        }
-
-        // 提供合理的默认配置
-        const replaceConfig = this.config.replace ?? DEFAULT_REPLACE_CONFIG;
-        const deleteConfig = this.config.delete ?? DEFAULT_DELETE_CONFIG;
-
-        return {
-            storage: this.config.storage,
-            replace: replaceConfig,
-            delete: deleteConfig,
-            events: this.config.events,
-        };
-    }
 }
 
 // ==================== 上传结果类型 ====================
@@ -190,13 +84,13 @@ export interface UniqueImageResult {
 
 export type UploadEventType =
     /** 上传完成事件 */
-    | 'upload:complete'
+    | "upload:complete"
     /** 上传错误事件 */
-    | 'upload:error'
+    | "upload:error"
     /** 替换完成事件 */
-    | 'replace:complete'
+    | "replace:complete"
     /** 删除完成事件 */
-    | 'delete:complete';
+    | "delete:complete";
 
 export interface UploadEvent {
     /** 事件类型 */
@@ -240,7 +134,7 @@ export interface FailedItem {
     localPath: string;
 
     /** 失败发生的阶段 */
-    stage: 'upload' | 'replace' | 'delete';
+    stage: "upload" | "replace" | "delete";
 
     /** 失败原因 */
     error: string;
@@ -303,4 +197,122 @@ export interface ValidationError {
 
     /** 错误信息 */
     message: string;
+}
+
+// ==================== 冲突处理策略类型 ====================
+
+/**
+ * 冲突处理动作
+ * @public
+ */
+export type ConflictAction = "skip" | "replace" | "download";
+
+/**
+ * 冲突处理策略
+ * @public
+ * @description
+ * 定义文件冲突时的处理策略，在上传开始前一次性选择，避免多次回调。
+ */
+export type ConflictResolutionStrategy =
+    /** 全部跳过：保留远程版本，不上传本地文件 */
+    | { type: "skip-all" }
+    /** 全部替换：上传本地文件，覆盖远程版本 */
+    | { type: "replace-all" }
+    /** 全部下载：下载远程文件到指定目录 */
+    | {
+          type: "download-all";
+          downloadDir: string;
+          onFileExists: "skip" | "replace";
+      };
+
+/**
+ * 上传结果 - 成功上传的项
+ * @public
+ */
+export interface UploadedItem {
+    /** 本地图片的绝对路径 */
+    localPath: string;
+
+    /** 远程路径 */
+    remotePath: string;
+
+    /** 云端 URL */
+    url: string;
+
+    /** 动作类型 */
+    action: "uploaded" | "replaced";
+}
+
+/**
+ * 上传结果 - 跳过的项
+ * @public
+ */
+export interface SkippedItem {
+    /** 远程路径 */
+    remotePath: string;
+
+    /** 跳过原因 */
+    reason: "file-exists" | "configured-skip";
+}
+
+/**
+ * 上传结果 - 下载的项
+ * @public
+ */
+export interface DownloadedItem {
+    /** 远程路径 */
+    remotePath: string;
+
+    /** 下载到的本地路径 */
+    localPath: string;
+}
+
+/**
+ * 上传结果 - 失败的项
+ * @public
+ */
+export interface FailedItemDetail {
+    /** 本地图片的绝对路径 */
+    localPath: string;
+
+    /** 失败发生的阶段 */
+    stage: "upload" | "download" | "delete";
+
+    /** 失败原因 */
+    error: string;
+}
+
+/**
+ * 完整的上传结果（支持冲突处理）
+ * @public
+ * @description
+ * 包含详细的处理结果，用于生成日志报告。
+ */
+export interface DetailedUploadResult {
+    /** 是否成功（至少上传、替换或下载了一项） */
+    success: boolean;
+
+    /** 成功上传的图片数 */
+    uploaded: number;
+
+    /** 成功替换的图片数 */
+    replaced: number;
+
+    /** 成功删除的本地图片数 */
+    deleted: number;
+
+    /** 处理后的 Markdown 内容 */
+    content: string;
+
+    /** 成功上传的项列表 */
+    uploadedItems: UploadedItem[];
+
+    /** 跳过的项列表 */
+    skippedItems: SkippedItem[];
+
+    /** 下载的项列表 */
+    downloadedItems: DownloadedItem[];
+
+    /** 失败的项列表 */
+    failedItems: FailedItemDetail[];
 }

@@ -1,4 +1,4 @@
-import type { IUrlCacheManager, PresignedUrlCache } from './types.js';
+import type { IUrlCacheManager, PresignedUrlCache } from "./types.js";
 
 export interface Logger {
     debug: (message: string, ...args: unknown[]) => void;
@@ -52,7 +52,7 @@ export class UrlCacheManager implements IUrlCacheManager {
     clear(): void {
         this._cache = {};
         this._retryCounts = {};
-        this._logger?.debug('缓存已清空');
+        this._logger?.debug("缓存已清空");
     }
 
     canRetry(url: string, maxRetryCount: number): boolean {
@@ -101,6 +101,6 @@ export class UrlCacheManager implements IUrlCacheManager {
         this._logger?.debug(`等待 ${this._pendingRequests.size} 个待处理请求完成`);
         const promises = Array.from(this._pendingRequests.values());
         await Promise.all(promises);
-        this._logger?.debug('所有待处理请求已完成');
+        this._logger?.debug("所有待处理请求已完成");
     }
 }

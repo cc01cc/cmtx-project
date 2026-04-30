@@ -2,478 +2,372 @@
  * 配置验证器测试
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
+import type { CmtxConfig, ConfigValidationError } from "../src/config/types.js";
 import {
-    ConfigValidator,
     createConfigValidator,
-    ValidationError,
+    formatValidationErrors,
     validateConfig,
     validateConfigOrThrow,
-} from '../src/config/validator.js';
+} from "../src/config/validator.js";
 
-describe('ConfigValidator', () => {
-    describe('validate', () => {
-        it('should validate valid config with env var templates', () => {
-            const config = {
-                source: {
-                    credentials: {
-                        accessKeyId: '${SOURCE_ACCESS_KEY_ID}',
-                        accessKeySecret: '${SOURCE_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'source-bucket',
-                    },
-                    customDomain: 'https://source.example.com',
+describe("ConfigValidator", () => {
+    const createValidConfig = (): CmtxConfig => ({
+        version: "1.0.0",
+        storages: {
+            default: {
+                adapter: "aliyun-oss",
+                config: {
+                    accessKeyId: "${TEST_ACCESS_KEY_ID}",
+                    accessKeySecret: "${TEST_ACCESS_KEY_SECRET}",
+                    bucket: "test-bucket",
+                    region: "oss-cn-hangzhou",
                 },
-                target: {
-                    credentials: {
-                        accessKeyId: '${TARGET_ACCESS_KEY_ID}',
-                        accessKeySecret: '${TARGET_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'target-bucket',
-                    },
-                    customDomain: 'https://target.example.com',
-                    prefix: 'images/',
-                    namingStrategy: 'preserve',
-                    overwrite: false,
-                },
-                options: {
-                    concurrency: 5,
-                    tempDir: '/tmp/cmtx',
-                },
-            };
+            },
+        },
+        upload: {
+            batchLimit: 10,
+            imageFormat: "markdown",
+            conflictStrategy: "skip",
+        },
+    });
 
-            const validator = createConfigValidator();
-            const result = validator.validate(config);
-
-            expect(result.valid).toBe(true);
-            expect(result.errors).toHaveLength(0);
+    describe("validateConfig", () => {
+        it("should validate valid config", () => {
+            const config = createValidConfig();
+            const errors = validateConfig(config);
+            const errorCount = errors.filter((e) => e.severity === "error").length;
+            expect(errorCount).toBe(0);
         });
 
-        it('should fail when sensitive fields use plaintext', () => {
+        it("should fail when version is missing", () => {
             const config = {
-                source: {
-                    credentials: {
-                        accessKeyId: 'plaintext-key-id',
-                        accessKeySecret: '${SOURCE_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'source-bucket',
-                    },
-                },
-                target: {
-                    credentials: {
-                        accessKeyId: '${TARGET_ACCESS_KEY_ID}',
-                        accessKeySecret: '${TARGET_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'target-bucket',
-                    },
-                },
-            };
-
-            const result = validateConfig(config);
-
-            expect(result.valid).toBe(false);
-            expect(result.errors.some((e) => e.path === 'source.credentials.accessKeyId')).toBe(
-                true
-            );
-            expect(result.errors.some((e) => e.message.includes('敏感字段'))).toBe(true);
-        });
-
-        it('should fail when accessKeySecret uses plaintext', () => {
-            const config = {
-                source: {
-                    credentials: {
-                        accessKeyId: '${SOURCE_ACCESS_KEY_ID}',
-                        accessKeySecret: 'plaintext-secret',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'source-bucket',
-                    },
-                },
-                target: {
-                    credentials: {
-                        accessKeyId: '${TARGET_ACCESS_KEY_ID}',
-                        accessKeySecret: '${TARGET_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'target-bucket',
-                    },
-                },
-            };
-
-            const result = validateConfig(config);
-
-            expect(result.valid).toBe(false);
-            expect(result.errors.some((e) => e.path === 'source.credentials.accessKeySecret')).toBe(
-                true
-            );
-            expect(result.errors.some((e) => e.message.includes('敏感字段'))).toBe(true);
-        });
-
-        it('should allow plaintext for non-sensitive fields', () => {
-            const config = {
-                source: {
-                    credentials: {
-                        accessKeyId: '${SOURCE_ACCESS_KEY_ID}',
-                        accessKeySecret: '${SOURCE_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'source-bucket',
-                    },
-                },
-                target: {
-                    credentials: {
-                        accessKeyId: '${TARGET_ACCESS_KEY_ID}',
-                        accessKeySecret: '${TARGET_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-beijing',
-                        bucket: 'target-bucket',
-                    },
-                },
-            };
-
-            const result = validateConfig(config);
-
-            expect(result.valid).toBe(true);
-            expect(result.errors).toHaveLength(0);
-        });
-
-        it('should fail when source is missing', () => {
-            const config = {
-                target: {
-                    credentials: {
-                        accessKeyId: '${TARGET_ACCESS_KEY_ID}',
-                        accessKeySecret: '${TARGET_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'target-bucket',
-                    },
-                },
-            };
-
-            const result = validateConfig(config);
-
-            expect(result.valid).toBe(false);
-            expect(result.errors.some((e) => e.path === 'source')).toBe(true);
-        });
-
-        it('should fail when target is missing', () => {
-            const config = {
-                source: {
-                    credentials: {
-                        accessKeyId: '${SOURCE_ACCESS_KEY_ID}',
-                        accessKeySecret: '${SOURCE_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'source-bucket',
-                    },
-                },
-            };
-
-            const result = validateConfig(config);
-
-            expect(result.valid).toBe(false);
-            expect(result.errors.some((e) => e.path === 'target')).toBe(true);
-        });
-
-        it('should fail when source credentials is missing', () => {
-            const config = {
-                source: {
-                    customDomain: 'https://source.example.com',
-                },
-                target: {
-                    credentials: {
-                        accessKeyId: '${TARGET_ACCESS_KEY_ID}',
-                        accessKeySecret: '${TARGET_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'target-bucket',
-                    },
-                },
-            };
-
-            const result = validateConfig(config);
-
-            expect(result.valid).toBe(false);
-            expect(result.errors.some((e) => e.path === 'source.credentials')).toBe(true);
-        });
-
-        it('should fail with invalid URL format', () => {
-            const config = {
-                source: {
-                    credentials: {
-                        accessKeyId: '${SOURCE_ACCESS_KEY_ID}',
-                        accessKeySecret: '${SOURCE_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'source-bucket',
-                    },
-                    customDomain: 'not-a-valid-url',
-                },
-                target: {
-                    credentials: {
-                        accessKeyId: '${TARGET_ACCESS_KEY_ID}',
-                        accessKeySecret: '${TARGET_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'target-bucket',
-                    },
-                },
-            };
-
-            const result = validateConfig(config);
-
-            expect(result.valid).toBe(false);
-            expect(result.errors.some((e) => e.path === 'source.customDomain')).toBe(true);
-        });
-
-        it('should fail with invalid naming strategy', () => {
-            const config = {
-                source: {
-                    credentials: {
-                        accessKeyId: '${SOURCE_ACCESS_KEY_ID}',
-                        accessKeySecret: '${SOURCE_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'source-bucket',
-                    },
-                },
-                target: {
-                    credentials: {
-                        accessKeyId: '${TARGET_ACCESS_KEY_ID}',
-                        accessKeySecret: '${TARGET_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'target-bucket',
-                    },
-                    namingStrategy: 'invalid-strategy',
-                },
-            };
-
-            const result = validateConfig(config);
-
-            expect(result.valid).toBe(false);
-            expect(result.errors.some((e) => e.path === 'target.namingStrategy')).toBe(true);
-        });
-
-        it('should accept valid naming strategies', () => {
-            const validStrategies = ['preserve', 'timestamp', 'hash', 'uuid'];
-
-            for (const strategy of validStrategies) {
-                const config = {
-                    source: {
-                        credentials: {
-                            accessKeyId: '${SOURCE_ACCESS_KEY_ID}',
-                            accessKeySecret: '${SOURCE_ACCESS_KEY_SECRET}',
-                            region: 'oss-cn-hangzhou',
-                            bucket: 'source-bucket',
+                storages: {
+                    default: {
+                        adapter: "aliyun-oss",
+                        config: {
+                            accessKeyId: "${TEST_ACCESS_KEY_ID}",
+                            accessKeySecret: "${TEST_ACCESS_KEY_SECRET}",
+                            bucket: "test-bucket",
+                            region: "oss-cn-hangzhou",
                         },
                     },
-                    target: {
-                        credentials: {
-                            accessKeyId: '${TARGET_ACCESS_KEY_ID}',
-                            accessKeySecret: '${TARGET_ACCESS_KEY_SECRET}',
-                            region: 'oss-cn-hangzhou',
-                            bucket: 'target-bucket',
+                },
+            } as CmtxConfig;
+
+            const errors = validateConfig(config);
+            const versionErrors = errors.filter((e) => e.path === "version");
+            expect(versionErrors.length).toBeGreaterThan(0);
+        });
+
+        it("should fail when storages is missing", () => {
+            const config = {
+                version: "1.0.0",
+            } as CmtxConfig;
+
+            const errors = validateConfig(config);
+            const storageErrors = errors.filter((e) => e.path === "storages");
+            expect(storageErrors.length).toBeGreaterThan(0);
+        });
+
+        it("should fail when storage adapter is missing", () => {
+            const config = {
+                version: "1.0.0",
+                storages: {
+                    default: {
+                        config: {
+                            accessKeyId: "${TEST_ACCESS_KEY_ID}",
+                            accessKeySecret: "${TEST_ACCESS_KEY_SECRET}",
+                            bucket: "test-bucket",
+                            region: "oss-cn-hangzhou",
                         },
-                        namingStrategy: strategy,
                     },
-                };
+                },
+            } as CmtxConfig;
 
-                const result = validateConfig(config);
-                expect(result.errors.some((e) => e.path === 'target.namingStrategy')).toBe(false);
-            }
+            const errors = validateConfig(config);
+            const adapterErrors = errors.filter((e) => e.path === "storages.default.adapter");
+            expect(adapterErrors.length).toBeGreaterThan(0);
         });
 
-        it('should fail with invalid concurrency', () => {
+        it("should warn when environment variable is not set", () => {
             const config = {
-                source: {
-                    credentials: {
-                        accessKeyId: '${SOURCE_ACCESS_KEY_ID}',
-                        accessKeySecret: '${SOURCE_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'source-bucket',
+                version: "1.0.0",
+                storages: {
+                    default: {
+                        adapter: "aliyun-oss",
+                        config: {
+                            accessKeyId: "${NON_EXISTENT_VAR}",
+                            accessKeySecret: "${TEST_ACCESS_KEY_SECRET}",
+                            bucket: "test-bucket",
+                            region: "oss-cn-hangzhou",
+                        },
                     },
                 },
-                target: {
-                    credentials: {
-                        accessKeyId: '${TARGET_ACCESS_KEY_ID}',
-                        accessKeySecret: '${TARGET_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'target-bucket',
-                    },
-                },
-                options: {
-                    concurrency: -1,
-                },
-            };
+            } as CmtxConfig;
 
-            const result = validateConfig(config);
-
-            expect(result.valid).toBe(false);
-            expect(result.errors.some((e) => e.path === 'options.concurrency')).toBe(true);
+            const errors = validateConfig(config);
+            const warningErrors = errors.filter(
+                (e) => e.path === "storages.default.config.accessKeyId" && e.severity === "warning",
+            );
+            expect(warningErrors.length).toBeGreaterThan(0);
         });
 
-        it('should fail with non-integer concurrency', () => {
+        it("should fail when upload.batchLimit is invalid", () => {
             const config = {
-                source: {
-                    credentials: {
-                        accessKeyId: '${SOURCE_ACCESS_KEY_ID}',
-                        accessKeySecret: '${SOURCE_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'source-bucket',
+                version: "1.0.0",
+                storages: {
+                    default: {
+                        adapter: "aliyun-oss",
+                        config: {
+                            accessKeyId: "${TEST_ACCESS_KEY_ID}",
+                            accessKeySecret: "${TEST_ACCESS_KEY_SECRET}",
+                            bucket: "test-bucket",
+                            region: "oss-cn-hangzhou",
+                        },
                     },
                 },
-                target: {
-                    credentials: {
-                        accessKeyId: '${TARGET_ACCESS_KEY_ID}',
-                        accessKeySecret: '${TARGET_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'target-bucket',
-                    },
+                upload: {
+                    batchLimit: 0,
                 },
-                options: {
-                    concurrency: 3.5,
-                },
-            };
+            } as CmtxConfig;
 
-            const result = validateConfig(config);
-
-            expect(result.valid).toBe(false);
-            expect(result.errors.some((e) => e.path === 'options.concurrency')).toBe(true);
+            const errors = validateConfig(config);
+            const batchLimitErrors = errors.filter((e) => e.path === "upload.batchLimit");
+            expect(batchLimitErrors.length).toBeGreaterThan(0);
         });
 
-        it('should validate filter extensions', () => {
+        it("should fail when upload.imageFormat is invalid", () => {
             const config = {
-                source: {
-                    credentials: {
-                        accessKeyId: '${SOURCE_ACCESS_KEY_ID}',
-                        accessKeySecret: '${SOURCE_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'source-bucket',
+                version: "1.0.0",
+                storages: {
+                    default: {
+                        adapter: "aliyun-oss",
+                        config: {
+                            accessKeyId: "${TEST_ACCESS_KEY_ID}",
+                            accessKeySecret: "${TEST_ACCESS_KEY_SECRET}",
+                            bucket: "test-bucket",
+                            region: "oss-cn-hangzhou",
+                        },
                     },
                 },
-                target: {
-                    credentials: {
-                        accessKeyId: '${TARGET_ACCESS_KEY_ID}',
-                        accessKeySecret: '${TARGET_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'target-bucket',
-                    },
+                upload: {
+                    imageFormat: "invalid",
                 },
-                options: {
-                    filter: {
-                        extensions: ['.jpg', '.png', '.gif'],
-                        maxSize: 10485760,
-                        minSize: 1024,
-                    },
-                },
-            };
+            } as CmtxConfig;
 
-            const result = validateConfig(config);
-
-            expect(result.valid).toBe(true);
+            const errors = validateConfig(config);
+            const formatErrors = errors.filter((e) => e.path === "upload.imageFormat");
+            expect(formatErrors.length).toBeGreaterThan(0);
         });
 
-        it('should fail with invalid filter extensions', () => {
+        it("should fail when upload.conflictStrategy is invalid", () => {
             const config = {
-                source: {
-                    credentials: {
-                        accessKeyId: '${SOURCE_ACCESS_KEY_ID}',
-                        accessKeySecret: '${SOURCE_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'source-bucket',
+                version: "1.0.0",
+                storages: {
+                    default: {
+                        adapter: "aliyun-oss",
+                        config: {
+                            accessKeyId: "${TEST_ACCESS_KEY_ID}",
+                            accessKeySecret: "${TEST_ACCESS_KEY_SECRET}",
+                            bucket: "test-bucket",
+                            region: "oss-cn-hangzhou",
+                        },
                     },
                 },
-                target: {
-                    credentials: {
-                        accessKeyId: '${TARGET_ACCESS_KEY_ID}',
-                        accessKeySecret: '${TARGET_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'target-bucket',
-                    },
+                upload: {
+                    conflictStrategy: "invalid",
                 },
-                options: {
-                    filter: {
-                        extensions: 'not-an-array',
-                    },
-                },
-            };
+            } as CmtxConfig;
 
-            const result = validateConfig(config);
-
-            expect(result.valid).toBe(false);
-            expect(result.errors.some((e) => e.path === 'options.filter.extensions')).toBe(true);
+            const errors = validateConfig(config);
+            const strategyErrors = errors.filter((e) => e.path === "upload.conflictStrategy");
+            expect(strategyErrors.length).toBeGreaterThan(0);
         });
 
-        it('should fail with negative maxSize', () => {
+        it("should fail when resize.widths is invalid", () => {
             const config = {
-                source: {
-                    credentials: {
-                        accessKeyId: '${SOURCE_ACCESS_KEY_ID}',
-                        accessKeySecret: '${SOURCE_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'source-bucket',
+                version: "1.0.0",
+                storages: {
+                    default: {
+                        adapter: "aliyun-oss",
+                        config: {
+                            accessKeyId: "${TEST_ACCESS_KEY_ID}",
+                            accessKeySecret: "${TEST_ACCESS_KEY_SECRET}",
+                            bucket: "test-bucket",
+                            region: "oss-cn-hangzhou",
+                        },
                     },
                 },
-                target: {
-                    credentials: {
-                        accessKeyId: '${TARGET_ACCESS_KEY_ID}',
-                        accessKeySecret: '${TARGET_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'target-bucket',
-                    },
+                resize: {
+                    widths: "not-an-array" as unknown as number[],
                 },
-                options: {
-                    filter: {
-                        maxSize: -100,
-                    },
-                },
-            };
+            } as CmtxConfig;
 
-            const result = validateConfig(config);
+            const errors = validateConfig(config);
+            const widthErrors = errors.filter((e) => e.path === "resize.widths");
+            expect(widthErrors.length).toBeGreaterThan(0);
+        });
 
-            expect(result.valid).toBe(false);
-            expect(result.errors.some((e) => e.path === 'options.filter.maxSize')).toBe(true);
+        it("should fail when resize.widths contains negative numbers", () => {
+            const config = {
+                version: "1.0.0",
+                storages: {
+                    default: {
+                        adapter: "aliyun-oss",
+                        config: {
+                            accessKeyId: "${TEST_ACCESS_KEY_ID}",
+                            accessKeySecret: "${TEST_ACCESS_KEY_SECRET}",
+                            bucket: "test-bucket",
+                            region: "oss-cn-hangzhou",
+                        },
+                    },
+                },
+                resize: {
+                    widths: [100, -50, 200],
+                },
+            } as CmtxConfig;
+
+            const errors = validateConfig(config);
+            const widthErrors = errors.filter((e) => e.path === "resize.widths");
+            expect(widthErrors.length).toBeGreaterThan(0);
+        });
+
+        it("should fail when presignedUrls.expire is too small", () => {
+            const config = {
+                version: "1.0.0",
+                storages: {
+                    default: {
+                        adapter: "aliyun-oss",
+                        config: {
+                            accessKeyId: "${TEST_ACCESS_KEY_ID}",
+                            accessKeySecret: "${TEST_ACCESS_KEY_SECRET}",
+                            bucket: "test-bucket",
+                            region: "oss-cn-hangzhou",
+                        },
+                    },
+                },
+                presignedUrls: {
+                    expire: 30,
+                },
+            } as CmtxConfig;
+
+            const errors = validateConfig(config);
+            const expireErrors = errors.filter((e) => e.path === "presignedUrls.expire");
+            expect(expireErrors.length).toBeGreaterThan(0);
+        });
+
+        it("should fail when presignedUrls.maxRetryCount is negative", () => {
+            const config = {
+                version: "1.0.0",
+                storages: {
+                    default: {
+                        adapter: "aliyun-oss",
+                        config: {
+                            accessKeyId: "${TEST_ACCESS_KEY_ID}",
+                            accessKeySecret: "${TEST_ACCESS_KEY_SECRET}",
+                            bucket: "test-bucket",
+                            region: "oss-cn-hangzhou",
+                        },
+                    },
+                },
+                presignedUrls: {
+                    maxRetryCount: -1,
+                },
+            } as CmtxConfig;
+
+            const errors = validateConfig(config);
+            const retryErrors = errors.filter((e) => e.path === "presignedUrls.maxRetryCount");
+            expect(retryErrors.length).toBeGreaterThan(0);
+        });
+
+        it("should fail when presignedUrls.imageFormat is invalid", () => {
+            const config = {
+                version: "1.0.0",
+                storages: {
+                    default: {
+                        adapter: "aliyun-oss",
+                        config: {
+                            accessKeyId: "${TEST_ACCESS_KEY_ID}",
+                            accessKeySecret: "${TEST_ACCESS_KEY_SECRET}",
+                            bucket: "test-bucket",
+                            region: "oss-cn-hangzhou",
+                        },
+                    },
+                },
+                presignedUrls: {
+                    imageFormat: "invalid",
+                },
+            } as CmtxConfig;
+
+            const errors = validateConfig(config);
+            const formatErrors = errors.filter((e) => e.path === "presignedUrls.imageFormat");
+            expect(formatErrors.length).toBeGreaterThan(0);
         });
     });
 
-    describe('validateConfigOrThrow', () => {
-        it('should throw ValidationError for invalid config', () => {
+    describe("validateConfigOrThrow", () => {
+        it("should throw Error for invalid config", () => {
             const config = {
-                source: {
-                    credentials: {
-                        accessKeyId: '${SOURCE_ACCESS_KEY_ID}',
-                        accessKeySecret: '${SOURCE_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'source-bucket',
-                    },
-                },
-                // missing target
-            };
+                version: "1.0.0",
+            } as CmtxConfig;
 
-            expect(() => validateConfigOrThrow(config)).toThrow(ValidationError);
+            expect(() => validateConfigOrThrow(config)).toThrow(Error);
         });
 
-        it('should not throw for valid config', () => {
-            const config = {
-                source: {
-                    credentials: {
-                        accessKeyId: '${SOURCE_ACCESS_KEY_ID}',
-                        accessKeySecret: '${SOURCE_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'source-bucket',
-                    },
-                },
-                target: {
-                    credentials: {
-                        accessKeyId: '${TARGET_ACCESS_KEY_ID}',
-                        accessKeySecret: '${TARGET_ACCESS_KEY_SECRET}',
-                        region: 'oss-cn-hangzhou',
-                        bucket: 'target-bucket',
-                    },
-                },
-            };
-
+        it("should not throw for valid config", () => {
+            const config = createValidConfig();
             expect(() => validateConfigOrThrow(config)).not.toThrow();
         });
     });
 
-    describe('ValidationError', () => {
-        it('should have correct name and message', () => {
-            const error = new ValidationError('Test message', 'test.path');
+    describe("ConfigValidator class", () => {
+        it("should validate config", () => {
+            const validator = createConfigValidator();
+            const config = createValidConfig();
+            const errors = validator.validate(config);
+            const errorCount = errors.filter((e) => e.severity === "error").length;
+            expect(errorCount).toBe(0);
+        });
 
-            expect(error.name).toBe('ValidationError');
-            expect(error.message).toBe('Test message');
-            expect(error.path).toBe('test.path');
+        it("should validate or throw", () => {
+            const validator = createConfigValidator();
+            const config = createValidConfig();
+            expect(() => validator.validateOrThrow(config)).not.toThrow();
+        });
+
+        it("should check if config is valid", () => {
+            const validator = createConfigValidator();
+            const config = createValidConfig();
+            expect(validator.isValid(config)).toBe(true);
+        });
+
+        it("should return false for invalid config", () => {
+            const validator = createConfigValidator();
+            const config = { version: "1.0.0" } as CmtxConfig;
+            expect(validator.isValid(config)).toBe(false);
+        });
+    });
+
+    describe("formatValidationErrors", () => {
+        it("should return success message for empty errors", () => {
+            const result = formatValidationErrors([]);
+            expect(result).toBe("Configuration is valid");
+        });
+
+        it("should format errors correctly", () => {
+            const errors: ConfigValidationError[] = [
+                { path: "version", message: "Version is required", severity: "error" },
+                {
+                    path: "storages",
+                    message: "At least one storage is required",
+                    severity: "error",
+                },
+            ];
+            const result = formatValidationErrors(errors);
+            expect(result).toContain("2 errors");
+            expect(result).toContain("[ERROR] version: Version is required");
+            expect(result).toContain("[ERROR] storages: At least one storage is required");
         });
     });
 });

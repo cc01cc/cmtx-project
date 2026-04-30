@@ -112,12 +112,11 @@ export interface LogEntry {
     /** 时间戳 */
     timestamp: string;
     /** 日志级别 */
-    level: 'debug' | 'info' | 'warn' | 'error';
+    level: "debug" | "info" | "warn" | "error";
     /** 日志消息 */
     message: string;
     /** 额外元数据 */
-    // biome-ignore lint/suspicious/noExplicitAny: 元数据可以是任意类型
-    meta?: any;
+    meta?: unknown;
     /** 组件名称 */
     component: string;
 }
@@ -128,11 +127,11 @@ export interface LogEntry {
  */
 export interface LogConfig {
     /** 日志级别 */
-    level: 'debug' | 'info' | 'warn' | 'error';
+    level: "debug" | "info" | "warn" | "error";
     /** 日志格式 */
-    format: 'json' | 'text';
+    format: "json" | "text";
     /** 输出目标 */
-    outputs: ('console' | 'file' | 'vscode')[];
+    outputs: ("console" | "file" | "vscode")[];
     /** 最大文件数（可选） */
     maxFiles?: number;
     /** 最大文件大小（可选） */
@@ -165,8 +164,7 @@ export interface LogConfig {
  * @public
  */
 export class PerformanceMonitor {
-    // biome-ignore lint/suspicious/noExplicitAny: 指标值可以是任意类型
-    private metrics: Map<string, any[]> = new Map();
+    private metrics: Map<string, number[]> = new Map();
 
     /**
      * 记录性能指标
@@ -297,8 +295,7 @@ export class PerformanceMonitor {
  * @public
  */
 export class MetricsCollector {
-    // biome-ignore lint/suspicious/noExplicitAny: 指标值可以是任意类型
-    private metrics: Map<string, any> = new Map();
+    private metrics: Map<string, unknown> = new Map();
 
     /**
      * 收集指标
@@ -311,8 +308,7 @@ export class MetricsCollector {
      * collector.collect('userCount', 42);
      * ```
      */
-    // biome-ignore lint/suspicious/noExplicitAny: 指标值可以是任意类型
-    collect(name: string, value: any): void {
+    collect(name: string, value: unknown): void {
         this.metrics.set(name, value);
     }
 
@@ -322,8 +318,7 @@ export class MetricsCollector {
      * @param name - 指标名称
      * @returns 指标值，如果不存在返回 undefined
      */
-    // biome-ignore lint/suspicious/noExplicitAny: 返回值可以是任意类型
-    get(name: string): any {
+    get(name: string): unknown {
         return this.metrics.get(name);
     }
 
@@ -332,8 +327,7 @@ export class MetricsCollector {
      *
      * @returns 包含所有指标的对象
      */
-    // biome-ignore lint/suspicious/noExplicitAny: 返回值包含任意类型的值
-    getAll(): Record<string, any> {
+    getAll(): Record<string, unknown> {
         return Object.fromEntries(this.metrics);
     }
 

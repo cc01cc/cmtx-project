@@ -13,9 +13,9 @@
  * - 自动清理空目录
  */
 
-import { promises as fs } from 'node:fs';
-import * as os from 'node:os';
-import * as path from 'node:path';
+import { promises as fs } from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 
 /**
  * 临时文件管理器
@@ -29,7 +29,7 @@ export class TempManager {
      * @param baseDir - 基础临时目录（默认为系统临时目录）
      */
     constructor(baseDir?: string) {
-        this.baseDir = baseDir || path.join(os.tmpdir(), 'cmtx-asset-transfer');
+        this.baseDir = baseDir || path.join(os.tmpdir(), "cmtx-asset-transfer");
     }
 
     /**
@@ -56,8 +56,8 @@ export class TempManager {
         // 将路径中的分隔符替换为下划线，保留完整路径信息避免冲突
         // 例如: blog/2026-03/image.png → blog_2026-03_image.png
         const safeFileName = fileName
-            .replace(/[/\\]/g, '_') // 路径分隔符转为下划线
-            .replace(/[^a-zA-Z0-9._-]/g, '_'); // 其他非安全字符
+            .replace(/[/\\]/g, "_") // 路径分隔符转为下划线
+            .replace(/[^a-zA-Z0-9._-]/g, "_"); // 其他非安全字符
         return path.join(taskDir, safeFileName);
     }
 
@@ -101,7 +101,7 @@ export class TempManager {
             this.taskDirs.delete(taskDir);
         } catch (error) {
             // 目录可能不存在，忽略错误
-            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+            if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
                 throw error;
             }
         }
@@ -130,7 +130,7 @@ export class TempManager {
             // 使用唯一文件名避免并发冲突
             const testFile = path.join(
                 this.baseDir,
-                `.space-check-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
+                `.space-check-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
             );
             const testBuffer = Buffer.alloc(Math.min(requiredBytes, 1024 * 1024)); // 最多 1MB 测试
 
@@ -138,7 +138,7 @@ export class TempManager {
                 await fs.writeFile(testFile, testBuffer);
                 await fs.unlink(testFile);
                 return true;
-            } catch (_error) {
+            } catch {
                 return false;
             }
         } catch {
@@ -190,11 +190,11 @@ export class TempManager {
         try {
             const pathname = new URL(url).pathname;
             const ext = path.extname(pathname);
-            return ext || '.tmp';
+            return ext || ".tmp";
         } catch {
             // URL 解析失败，尝试从字符串提取
             const match = url.match(/\.[a-zA-Z0-9]+(?:[?#]|$)/);
-            return match ? match[0].replace(/[?#]$/, '') : '.tmp';
+            return match ? match[0].replace(/[?#]$/, "") : ".tmp";
         }
     }
 }

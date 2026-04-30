@@ -24,12 +24,12 @@
  * - {@link TransferEvent} - 事件类型
  */
 
-import type { CloudCredentials, IStorageAdapter } from '@cmtx/storage';
+import type { CloudCredentials, IStorageAdapter } from "@cmtx/storage";
 
 // ==================== 凭证配置 ====================
 
 // 重新导出凭证类型
-export type { CloudCredentials } from '@cmtx/storage';
+export type { CloudCredentials } from "@cmtx/storage";
 
 /**
 
@@ -104,11 +104,6 @@ export interface TargetConfig {
      */
     namingTemplate?: string;
 
-    /**
-     * 命名策略（已废弃，建议使用 namingTemplate）
-     */
-    namingStrategy?: 'preserve' | 'timestamp' | 'hash' | 'uuid';
-
     /** 是否覆盖已存在的文件 */
     overwrite?: boolean;
 }
@@ -117,7 +112,7 @@ export interface TargetConfig {
  * 内部源存储配置（包含适配器）
  * 用于运行时内部传递
  */
-export interface InternalSourceConfig extends Omit<SourceConfig, 'credentials'> {
+export interface InternalSourceConfig extends Omit<SourceConfig, "credentials"> {
     /** 存储适配器 */
     adapter: IStorageAdapter;
 }
@@ -126,7 +121,7 @@ export interface InternalSourceConfig extends Omit<SourceConfig, 'credentials'> 
  * 内部目标存储配置（包含适配器）
  * 用于运行时内部传递
  */
-export interface InternalTargetConfig extends Omit<TargetConfig, 'credentials'> {
+export interface InternalTargetConfig extends Omit<TargetConfig, "credentials"> {
     /** 存储适配器 */
     adapter: IStorageAdapter;
 }
@@ -265,7 +260,7 @@ export interface TransferProgress {
     totalBytes: number;
 
     /** 状态 */
-    status: 'downloading' | 'uploading' | 'completed' | 'failed';
+    status: "downloading" | "uploading" | "completed" | "failed";
 }
 
 // ==================== 事件类型 ====================
@@ -274,16 +269,16 @@ export interface TransferProgress {
  * 传输事件类型
  */
 export type TransferEventType =
-    | 'transfer:start'
-    | 'transfer:complete'
-    | 'transfer:error'
-    | 'download:start'
-    | 'download:complete'
-    | 'download:error'
-    | 'upload:start'
-    | 'upload:complete'
-    | 'upload:error'
-    | 'replace:complete';
+    | "transfer:start"
+    | "transfer:complete"
+    | "transfer:error"
+    | "download:start"
+    | "download:complete"
+    | "download:error"
+    | "upload:start"
+    | "upload:complete"
+    | "upload:error"
+    | "replace:complete";
 
 /**
  * 传输事件
@@ -339,8 +334,7 @@ export interface TransferEvent {
  *       region: 'oss-cn-hangzhou',
  *       bucket: 'target-bucket'
  *     },
- *     prefix: 'images/',
- *     namingStrategy: 'preserve'
+ *     prefix: 'images/'
  *   })
  *   .options({
  *     concurrency: 5,
@@ -382,14 +376,12 @@ export class TransferConfigBuilder {
         customDomain?: string;
         credentials: CloudCredentials;
         prefix?: string;
-        namingStrategy?: 'preserve' | 'timestamp' | 'hash' | 'uuid';
         overwrite?: boolean;
     }): this {
         this.config.target = {
             customDomain: options?.customDomain,
             credentials: options.credentials,
             prefix: options?.prefix,
-            namingStrategy: options?.namingStrategy ?? 'preserve',
             overwrite: options?.overwrite ?? false,
         };
         return this;
@@ -451,11 +443,11 @@ export class TransferConfigBuilder {
      */
     build(): TransferConfig {
         if (!this.config.source) {
-            throw new Error('Source storage configuration is required');
+            throw new Error("Source storage configuration is required");
         }
 
         if (!this.config.target) {
-            throw new Error('Target storage configuration is required');
+            throw new Error("Target storage configuration is required");
         }
 
         return {

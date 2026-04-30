@@ -1,20 +1,58 @@
-# CMTX CLI 配置文件 - blog-simple 预设
-# 生成时间: 2026-02-04T17:56:43.549Z
+# CMTX CLI 配置文件 - 存储池配置示例
+# 生成时间: 2026-04-22T10:00:00Z
+# 文档: https://github.com/cc01cc/cmtx/docs/config
 
-version: v1
-storage:
-  adapter: aliyun-oss
-  config:
-    region: oss-cn-hangzhou
-    accessKeyId: ${ALIYUN_OSS_ACCESS_KEY_ID}
-    accessKeySecret: ${ALIYUN_OSS_ACCESS_KEY_SECRET}
-    bucket: ${ALIYUN_OSS_BUCKET}
+version: v2
+
+# 存储池配置：支持多个存储实例
+storages:
+  # 默认存储实例
+  default:
+    adapter: aliyun-oss
+    config:
+      region: ${ALIYUN_OSS_REGION:-oss-cn-hangzhou}
+      accessKeyId: ${ALIYUN_OSS_ACCESS_KEY_ID}
+      accessKeySecret: ${ALIYUN_OSS_ACCESS_KEY_SECRET}
+      bucket: ${ALIYUN_OSS_BUCKET}
+  
+  # 可选：额外的存储实例
+  # secondary:
+  #   adapter: tencent-cos
+  #   config:
+  #     region: ${TENCENT_COS_REGION}
+  #     secretId: ${TENCENT_COS_SECRET_ID}
+  #     secretKey: ${TENCENT_COS_SECRET_KEY}
+  #     bucket: ${TENCENT_COS_BUCKET}
+
+# 上传配置
+upload:
+  # 使用哪个 storage 实例（参考 storages 中的 key）
+  useStorage: default
+  
+  # 上传前缀路径
   prefix: blog/
-  namingPattern: "{date}_{md5_8}{ext}"
+  
+  # 文件命名模板
+  namingTemplate: "{date}_{md5_8}{ext}"
+  
+  # 批处理限制
+  batchLimit: 5
+  
+  # 图片输出格式
+  imageFormat: markdown
+
+# 替换配置：上传后替换 Markdown 中的图片引用
 replace:
-  enabled: true
+  # 字段替换模板
+  # 可用变量: {cloudSrc} - 云存储 URL，{originalAlt} - 原始 alt 文本
   fields:
     src: "{cloudSrc}"
     alt: "{originalAlt}"
+
+# 删除配置：上传后是否删除本地图片
 delete:
+  # 是否删除本地图片
   enabled: false
+  
+  # 删除策略: trash(回收站) / move(移到指定目录) / hard-delete(永久删除)
+  strategy: trash

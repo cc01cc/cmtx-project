@@ -9,14 +9,14 @@
 扫描 Markdown 文件，统计本地图片引用和文件大小。
 
 ```typescript
-import { analyzeImages } from '@cmtx/upload';
+import { analyzeImages } from "@cmtx/upload";
 
 const analysis = await analyzeImages({
-  projectRoot: '/project',
-  searchDir: '/project/docs',
-  uploadPrefix: 'images/',
-  maxFileSize: 10 * 1024 * 1024,  // 10MB
-  allowedExtensions: ['.jpg', '.png', '.gif', '.svg', '.webp']
+    projectRoot: "/project",
+    searchDir: "/project/docs",
+    uploadPrefix: "images/",
+    maxFileSize: 10 * 1024 * 1024, // 10MB
+    allowedExtensions: [".jpg", ".png", ".gif", ".svg", ".webp"],
 });
 
 console.log(analysis);
@@ -34,37 +34,37 @@ console.log(analysis);
 
 **参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| projectRoot | string | 是 | 项目根目录 |
-| searchDir | string | 是 | 搜索目录 |
-| localPrefixes | string[] | - | 本地路径前缀过滤 |
-| uploadPrefix | string | - | 上传到 OSS 的路径前缀 |
-| namingStrategy | NamingStrategy | - | 文件重命名策略 |
-| maxFileSize | number | - | 最大文件大小（字节） |
-| allowedExtensions | string[] | - | 允许的文件扩展名 |
-| logger | LoggerCallback | - | 日志回调函数 |
+| 参数              | 类型           | 必填 | 说明                  |
+| ----------------- | -------------- | ---- | --------------------- |
+| projectRoot       | string         | 是   | 项目根目录            |
+| searchDir         | string         | 是   | 搜索目录              |
+| localPrefixes     | string[]       | -    | 本地路径前缀过滤      |
+| uploadPrefix      | string         | -    | 上传到 OSS 的路径前缀 |
+| namingStrategy    | NamingStrategy | -    | 文件重命名策略        |
+| maxFileSize       | number         | -    | 最大文件大小（字节）  |
+| allowedExtensions | string[]       | -    | 允许的文件扩展名      |
+| logger            | LoggerCallback | -    | 日志回调函数          |
 
 ### 2. 上传单个图片 (uploadImage)
 
 上传单个图片并返回远程 URL。
 
 ```typescript
-import { uploadImage } from '@cmtx/upload';
-import { AliOSSAdapter } from '@cmtx/upload/adapters/ali-oss';
+import { uploadImage } from "@cmtx/upload";
+import { AliOSSAdapter } from "@cmtx/upload/adapters/ali-oss";
 
 const adapter = new AliOSSAdapter({
-  region: 'oss-cn-hangzhou',
-  bucket: 'my-bucket',
-  accessKeyId: process.env.ALIYUN_OSS_ACCESS_KEY_ID,
-  accessKeySecret: process.env.ALIYUN_OSS_ACCESS_KEY_SECRET
+    region: "oss-cn-hangzhou",
+    bucket: "my-bucket",
+    accessKeyId: process.env.ALIYUN_OSS_ACCESS_KEY_ID,
+    accessKeySecret: process.env.ALIYUN_OSS_ACCESS_KEY_SECRET,
 });
 
 const result = await uploadImage({
-  localPath: 'docs/image.jpg',
-  projectRoot: '/project',
-  adapter,
-  uploadPrefix: 'images/'
+    localPath: "docs/image.jpg",
+    projectRoot: "/project",
+    adapter,
+    uploadPrefix: "images/",
 });
 
 console.log(result);
@@ -80,20 +80,23 @@ console.log(result);
 批量上传所有本地图片，并自动更新 Markdown 引用。
 
 ```typescript
-import { uploadAndReplace } from '@cmtx/upload';
+import { uploadAndReplace } from "@cmtx/upload";
 
-const result = await uploadAndReplace({
-  projectRoot: '/project',
-  searchDir: '/project/docs',
-  adapter,
-  uploadPrefix: 'images/',
-  namingStrategy: 'original+timestamp+hash',
-  deletionStrategy: 'trash'
-}, {
-  onEvent: (event) => {
-    console.log(`[${event.type}]`, event.data);
-  }
-});
+const result = await uploadAndReplace(
+    {
+        projectRoot: "/project",
+        searchDir: "/project/docs",
+        adapter,
+        uploadPrefix: "images/",
+        namingStrategy: "original+timestamp+hash",
+        deletionStrategy: "trash",
+    },
+    {
+        onEvent: (event) => {
+            console.log(`[${event.type}]`, event.data);
+        },
+    },
+);
 
 console.log(result);
 // {
@@ -112,20 +115,20 @@ console.log(result);
 
 **参数（UploadOptions）：**
 
-| 参数 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| projectRoot | string | 是 | 项目根目录 |
-| searchDir | string | 是 | 扫描目录 |
-| adapter | IStorageAdapter | 是 | 存储适配器 |
-| uploadPrefix | string | - | OSS 路径前缀 |
-| maxFileSize | number | - | 文件大小限制（字节），默认 10MB |
-| allowedExtensions | string[] | - | 允许的扩展名 |
-| namingStrategy | NamingStrategy | - | 命名策略，默认 original+timestamp+hash |
-| deletionStrategy | DeletionStrategy | - | 删除策略，默认 trash |
-| trashDir | string | - | 回收目录 |
-| maxDeletionRetries | number | - | 删除最大重试次数，默认 3 |
-| onEvent | UploadEventCallback | - | 事件回调 |
-| logger | LoggerCallback | - | 日志回调 |
+| 参数               | 类型                | 必填 | 说明                                   |
+| ------------------ | ------------------- | ---- | -------------------------------------- |
+| projectRoot        | string              | 是   | 项目根目录                             |
+| searchDir          | string              | 是   | 扫描目录                               |
+| adapter            | IStorageAdapter     | 是   | 存储适配器                             |
+| uploadPrefix       | string              | -    | OSS 路径前缀                           |
+| maxFileSize        | number              | -    | 文件大小限制（字节），默认 10MB        |
+| allowedExtensions  | string[]            | -    | 允许的扩展名                           |
+| namingStrategy     | NamingStrategy      | -    | 命名策略，默认 original+timestamp+hash |
+| deletionStrategy   | DeletionStrategy    | -    | 删除策略，默认 trash                   |
+| trashDir           | string              | -    | 回收目录                               |
+| maxDeletionRetries | number              | -    | 删除最大重试次数，默认 3               |
+| onEvent            | UploadEventCallback | -    | 事件回调                               |
+| logger             | LoggerCallback      | -    | 日志回调                               |
 
 ## 命名策略
 
@@ -173,7 +176,7 @@ docs/image.jpg → images/image-20260126-120000-a1b2c3d4.jpg
 
 ```typescript
 {
-  deletionStrategy: 'trash'
+    deletionStrategy: "trash";
 }
 ```
 
@@ -194,7 +197,7 @@ docs/image.jpg → images/image-20260126-120000-a1b2c3d4.jpg
 
 ```typescript
 {
-  deletionStrategy: 'hard-delete'
+    deletionStrategy: "hard-delete";
 }
 ```
 
@@ -203,13 +206,13 @@ docs/image.jpg → images/image-20260126-120000-a1b2c3d4.jpg
 ### 阿里云 OSS 适配器
 
 ```typescript
-import { AliOSSAdapter } from '@cmtx/upload/adapters/ali-oss';
+import { AliOSSAdapter } from "@cmtx/upload/adapters/ali-oss";
 
 const adapter = new AliOSSAdapter({
-  region: 'oss-cn-hangzhou',
-  bucket: 'my-bucket',
-  accessKeyId: process.env.ALIYUN_OSS_ACCESS_KEY_ID,
-  accessKeySecret: process.env.ALIYUN_OSS_ACCESS_KEY_SECRET
+    region: "oss-cn-hangzhou",
+    bucket: "my-bucket",
+    accessKeyId: process.env.ALIYUN_OSS_ACCESS_KEY_ID,
+    accessKeySecret: process.env.ALIYUN_OSS_ACCESS_KEY_SECRET,
 });
 ```
 
@@ -218,13 +221,13 @@ const adapter = new AliOSSAdapter({
 实现 `IStorageAdapter` 接口：
 
 ```typescript
-import type { IStorageAdapter } from '@cmtx/upload';
+import type { IStorageAdapter } from "@cmtx/upload";
 
 class S3Adapter implements IStorageAdapter {
-  async upload(localPath: string, remotePath: string): Promise<string> {
-    // 上传逻辑
-    return 'https://bucket.s3.amazonaws.com/path/to/file.jpg';
-  }
+    async upload(localPath: string, remotePath: string): Promise<string> {
+        // 上传逻辑
+        return "https://bucket.s3.amazonaws.com/path/to/file.jpg";
+    }
 }
 
 const adapter = new S3Adapter();
@@ -236,37 +239,37 @@ const adapter = new S3Adapter();
 
 ```typescript
 const result = await uploadAndReplace(options, {
-  onEvent: (event) => {
-    switch (event.type) {
-      case 'scan':
-        console.log(`扫描完成: ${event.data.count} 个文件`);
-        break;
-      case 'upload':
-        console.log(`上传: ${event.data.file}`);
-        break;
-      case 'replace':
-        console.log(`替换: ${event.data.file} 中的引用`);
-        break;
-      case 'delete':
-        console.log(`删除: ${event.data.file}`);
-        break;
-      case 'complete':
-        console.log(`完成: 上传 ${event.data.uploaded} 个文件`);
-        break;
-    }
-  }
+    onEvent: (event) => {
+        switch (event.type) {
+            case "scan":
+                console.log(`扫描完成: ${event.data.count} 个文件`);
+                break;
+            case "upload":
+                console.log(`上传: ${event.data.file}`);
+                break;
+            case "replace":
+                console.log(`替换: ${event.data.file} 中的引用`);
+                break;
+            case "delete":
+                console.log(`删除: ${event.data.file}`);
+                break;
+            case "complete":
+                console.log(`完成: 上传 ${event.data.uploaded} 个文件`);
+                break;
+        }
+    },
 });
 ```
 
 **事件类型：**
 
-| 类型 | 数据 | 说明 |
-| --- | --- | --- |
-| scan | { count: number } | 扫描完成 |
-| upload | { file: string; index: number; total: number } | 单个文件上传 |
-| replace | { file: string } | 引用替换 |
-| delete | { file: string; strategy: string } | 文件删除 |
-| complete | { uploaded: number; deleted: number } | 操作完成 |
+| 类型     | 数据                                           | 说明         |
+| -------- | ---------------------------------------------- | ------------ |
+| scan     | { count: number }                              | 扫描完成     |
+| upload   | { file: string; index: number; total: number } | 单个文件上传 |
+| replace  | { file: string }                               | 引用替换     |
+| delete   | { file: string; strategy: string }             | 文件删除     |
+| complete | { uploaded: number; deleted: number }          | 操作完成     |
 
 ## 日志回调
 
@@ -274,9 +277,9 @@ const result = await uploadAndReplace(options, {
 
 ```typescript
 const result = await uploadAndReplace(options, {
-  logger: (level, message, data) => {
-    console.log(`[${level}] ${message}`, data);
-  }
+    logger: (level, message, data) => {
+        console.log(`[${level}] ${message}`, data);
+    },
 });
 ```
 
@@ -312,18 +315,18 @@ const result = await uploadAndReplace(options, {
 
 ```typescript
 interface UploadOptions {
-  projectRoot: string;
-  searchDir: string;
-  adapter: IStorageAdapter;
-  uploadPrefix?: string;
-  maxFileSize?: number;
-  allowedExtensions?: string[];
-  namingStrategy?: NamingStrategy;
-  deletionStrategy?: DeletionStrategy;
-  trashDir?: string;
-  maxDeletionRetries?: number;
-  onEvent?: UploadEventCallback;
-  logger?: LoggerCallback;
+    projectRoot: string;
+    searchDir: string;
+    adapter: IStorageAdapter;
+    uploadPrefix?: string;
+    maxFileSize?: number;
+    allowedExtensions?: string[];
+    namingStrategy?: NamingStrategy;
+    deletionStrategy?: DeletionStrategy;
+    trashDir?: string;
+    maxDeletionRetries?: number;
+    onEvent?: UploadEventCallback;
+    logger?: LoggerCallback;
 }
 ```
 
@@ -331,11 +334,11 @@ interface UploadOptions {
 
 ```typescript
 interface UploadResult {
-  localPath: string;
-  remotePath: string;
-  updated: string[];
-  deleted: boolean;
-  error?: string;
+    localPath: string;
+    remotePath: string;
+    updated: string[];
+    deleted: boolean;
+    error?: string;
 }
 ```
 
@@ -343,17 +346,17 @@ interface UploadResult {
 
 ```typescript
 interface UploadAnalysis {
-  images: Array<{
-    localPath: string;
-    fileSize: number;
-    referencedIn: string[];
-  }>;
-  skipped: Array<{
-    path: string;
-    reason: string;
-  }>;
-  totalSize: number;
-  totalCount: number;
+    images: Array<{
+        localPath: string;
+        fileSize: number;
+        referencedIn: string[];
+    }>;
+    skipped: Array<{
+        path: string;
+        reason: string;
+    }>;
+    totalSize: number;
+    totalCount: number;
 }
 ```
 
@@ -363,11 +366,11 @@ interface UploadAnalysis {
 
 ```typescript
 try {
-  const result = await uploadAndReplace(options);
-  console.log('成功上传', result.results.length, '个文件');
+    const result = await uploadAndReplace(options);
+    console.log("成功上传", result.results.length, "个文件");
 } catch (error) {
-  console.error('上传失败:', error.message);
-  // 根据错误类型处理
+    console.error("上传失败:", error.message);
+    // 根据错误类型处理
 }
 ```
 

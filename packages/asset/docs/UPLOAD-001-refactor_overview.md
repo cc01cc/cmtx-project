@@ -13,19 +13,19 @@
 旧版 `UploadOptions` 结构存在以下问题：
 
 1. **职责混合严重**
-   - 存储配置、替换配置、删除配置、事件配置混杂在一个接口中
-   
+    - 存储配置、替换配置、删除配置、事件配置混杂在一个接口中
+
 2. **扩展性差**
-   - 每增加一个替换字段都需要修改接口
-   - 难以支持条件替换、复杂模板等高级功能
+    - 每增加一个替换字段都需要修改接口
+    - 难以支持条件替换、复杂模板等高级功能
 
 3. **冗余配置**
-   - `deleteLocal` + `deleteRootPath` 需要同时配置才有意义
-   - 各种 Template 字段分散，不够集中管理
+    - `deleteLocal` + `deleteRootPath` 需要同时配置才有意义
+    - 各种 Template 字段分散，不够集中管理
 
 4. **缺乏类型安全**
-   - 字符串模板容易出错
-   - 缺少配置验证机制
+    - 字符串模板容易出错
+    - 缺少配置验证机制
 
 ### 1.2 重构目标
 
@@ -41,6 +41,7 @@
 ### 2.1 配置结构对比
 
 **旧结构（问题）**：
+
 ```typescript
 {
   adapter: ossAdapter,
@@ -57,23 +58,24 @@
 ```
 
 **新结构（优势）**：
+
 ```typescript
 interface UploadConfig {
-  storage: StorageOptions;    // 存储配置模块
-  replace: ReplaceOptions;    // 替换配置模块  
-  delete: DeleteOptions;      // 删除配置模块
-  events: EventOptions;       // 事件配置模块
+    storage: StorageOptions; // 存储配置模块
+    replace: ReplaceOptions; // 替换配置模块
+    delete: DeleteOptions; // 删除配置模块
+    events: EventOptions; // 事件配置模块
 }
 
 // 使用构建器模式
 const config = new ConfigBuilder()
-  .storage(adapter, { prefix: 'images/' })
-  .fieldPatterns({
-    src: '{cloudSrc}?quality=80',
-    alt: '{originalValue} - 已更新'
-  })
-  .delete('/path/to/docs')
-  .build();
+    .storage(adapter, { prefix: "images/" })
+    .fieldPatterns({
+        src: "{cloudSrc}?quality=80",
+        alt: "{originalValue} - 已更新",
+    })
+    .delete("/path/to/docs")
+    .build();
 ```
 
 ### 2.2 核心模块
@@ -101,18 +103,20 @@ src/
 ### 3.1 模式驱动配置
 
 ```typescript
-// 使用 pattern 而不是 template
+// 使用 namingTemplate 配置命名模板
 const config = new ConfigBuilder()
-  .storage(adapter, {
-    prefix: 'blog/images/',
-    namingPattern: '{date}_{md5_8}{ext}'
-  })
-  .fieldPatterns({
-    src: '{cloudSrc}?quality=80',
-    alt: '{originalValue} - 来自我的博客'
-  })
-  .delete('/path/to/docs')
-  .build();
+    .storage(adapter, {
+        prefix: "blog/images/",
+    })
+    .namingTemplate("{date}_{md5_8}{ext}")
+    .replace({
+        fields: {
+            src: "{cloudSrc}?quality=80",
+            alt: "{originalAlt} - 来自我的博客",
+        },
+    })
+    .delete("/path/to/docs")
+    .build();
 ```
 
 ### 3.2 条件替换支持
@@ -150,34 +154,34 @@ replace: {
 
 ### 4.1 代码质量提升
 
-| 方面 | 改进程度 | 说明 |
-|------|----------|------|
-| 代码结构 | ⭐⭐⭐⭐⭐ | 模块化设计，职责清晰 |
-| 命名一致性 | ⭐⭐⭐⭐⭐ | 与 core 包完全一致 |
-| 扩展性 | ⭐⭐⭐⭐⭐ | 易于添加新功能 |
-| 使用体验 | ⭐⭐⭐⭐⭐ | 构建器模式，API 流畅 |
-| 维护性 | ⭐⭐⭐⭐⭐ | 类型安全，错误信息明确 |
+| 方面       | 改进程度   | 说明                   |
+| ---------- | ---------- | ---------------------- |
+| 代码结构   | ⭐⭐⭐⭐⭐ | 模块化设计，职责清晰   |
+| 命名一致性 | ⭐⭐⭐⭐⭐ | 与 core 包完全一致     |
+| 扩展性     | ⭐⭐⭐⭐⭐ | 易于添加新功能         |
+| 使用体验   | ⭐⭐⭐⭐⭐ | 构建器模式，API 流畅   |
+| 维护性     | ⭐⭐⭐⭐⭐ | 类型安全，错误信息明确 |
 
 ### 4.2 核心改进点
 
 1. **职责分离**
-   - 存储、替换、删除、事件各司其职
-   - 配置结构清晰易懂
+    - 存储、替换、删除、事件各司其职
+    - 配置结构清晰易懂
 
 2. **扩展性增强**
-   - 动态字段支持（可轻松添加新字段）
-   - 条件替换支持
-   - 复杂模板支持
+    - 动态字段支持（可轻松添加新字段）
+    - 条件替换支持
+    - 复杂模板支持
 
 3. **使用体验优化**
-   - 构建器模式提供流畅 API
-   - 默认值合理设置
-   - 配置验证机制
+    - 构建器模式提供流畅 API
+    - 默认值合理设置
+    - 配置验证机制
 
 4. **维护性提升**
-   - 模块化设计便于测试
-   - 类型安全增强
-   - 文档友好
+    - 模块化设计便于测试
+    - 类型安全增强
+    - 文档友好
 
 ---
 
@@ -202,18 +206,21 @@ Test Files  2 passed (2)
 ## 6. 实施阶段
 
 ### 第一阶段：架构重构
+
 - [x] 实现基于 `pattern` 的现代化配置架构
 - [x] 建立模块化的配置结构
 - [x] 实现字段分离的替换引擎
 - [x] 创建模式渲染器
 
 ### 第二阶段：测试体系
+
 - [x] 创建 test 目录并迁移测试文件
 - [x] 配置 vitest 测试框架
 - [x] 编写核心功能测试用例
 - [x] 编写集成测试用例
 
 ### 第三阶段：代码质量
+
 - [x] 修复 TypeScript 编译错误
 - [x] 解决类型定义冲突
 - [x] 建立清晰的模块边界
@@ -224,11 +231,13 @@ Test Files  2 passed (2)
 ## 7. 待办事项
 
 ### 短期目标
+
 - [ ] 恢复完整的上传/删除功能模块
 - [ ] 完善端到端的真实文件测试
 - [ ] 补充更多边界情况测试
 
 ### 长期规划
+
 - [ ] 性能优化和基准测试
 - [ ] 更丰富的插件生态系统
 - [ ] 详细的用户文档和教程

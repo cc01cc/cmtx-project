@@ -1,4 +1,13 @@
-import type { AdaptPlatform, ValidationIssue } from './platform/types.js';
+export type ValidationLevel = "error" | "warning" | "info";
+
+export interface ValidationIssue {
+    code: string;
+    level: ValidationLevel;
+    message: string;
+    line?: number;
+    column?: number;
+    fixable?: boolean;
+}
 
 // ==================== 元数据相关类型 (来自 normalize) ====================
 
@@ -95,7 +104,7 @@ export interface ListOptions {
     /** 是否递归搜索 */
     recursive?: boolean;
     /** 排序字段 */
-    sortBy?: 'date' | 'title' | 'id';
+    sortBy?: "date" | "title" | "id";
     /** 是否降序 */
     descending?: boolean;
 }
@@ -179,28 +188,6 @@ export interface EncryptedIdValidationResult {
 // ==================== 规则引擎类型 ====================
 
 /**
- * 单条文本适配规则。
- */
-export interface AdaptRule {
-    /** 可读描述，不影响执行。 */
-    name?: string;
-    /** JavaScript 正则表达式字符串。 */
-    match: string;
-    /** 替换字符串，支持 $1、$2 等捕获组引用。 */
-    replace: string;
-    /** 正则标志，默认值为 "gm"。 */
-    flags?: string;
-}
-
-/**
- * 规则配置文件结构。
- */
-export interface AdaptConfig {
-    version?: string;
-    rules: AdaptRule[];
-}
-
-/**
  * 文本适配执行结果。
  */
 export interface AdaptResult {
@@ -214,7 +201,7 @@ export interface AdaptResult {
  */
 export interface RenderResult {
     content: string;
-    format: 'html' | 'markdown';
+    format: "html" | "markdown";
     platform: string;
 }
 
@@ -265,35 +252,17 @@ export interface RenderDirectoryResult {
 }
 
 /**
- * 单文件 Node 处理选项。
- */
-export interface AdaptFileOptions {
-    outFile?: string;
-    dryRun?: boolean;
-    rules: AdaptRule[];
-}
-
-/**
- * 目录 Node 处理选项。
- */
-export interface AdaptDirectoryOptions {
-    outDir?: string;
-    dryRun?: boolean;
-    rules: AdaptRule[];
-}
-
-/**
  * 单文件校验选项。
  */
 export interface ValidateFileOptions {
-    platform: AdaptPlatform;
+    platform: string;
 }
 
 /**
  * 目录校验选项。
  */
 export interface ValidateDirectoryOptions {
-    platform: AdaptPlatform;
+    platform: string;
 }
 
 /**
@@ -302,7 +271,7 @@ export interface ValidateDirectoryOptions {
 export interface RenderFileOptions {
     outFile?: string;
     dryRun?: boolean;
-    platform: AdaptPlatform;
+    platform: string;
 }
 
 /**
@@ -311,19 +280,12 @@ export interface RenderFileOptions {
 export interface RenderDirectoryOptions {
     outDir?: string;
     dryRun?: boolean;
-    platform: AdaptPlatform;
+    platform: string;
 }
-
-export type {
-    AdaptPlatform,
-    PlatformAdapter,
-    ValidationIssue,
-    ValidationLevel,
-} from './platform/types.js';
 
 // ==================== 图片处理类型 ====================
 
-import type { UploadConfig } from '@cmtx/asset/upload';
+import type { UploadConfig } from "@cmtx/asset/upload";
 
 /**
  * 图片处理选项

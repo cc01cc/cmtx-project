@@ -3,13 +3,11 @@
  *
  * @module logger
  * @description
- * 提供日志记录功能，基于 winston 实现。
+ * 提供统一的日志记录接口（Logger interface）和默认的 no-op 实现（dummyLogger）。
  *
  * @remarks
- * ## 功能概述
- *
- * 提供统一的日志记录接口，支持控制台和文件输出。
- * 文件日志支持按日轮转，自动清理过期日志。
+ * 本模块**只定义接口**，不包含任何第三方日志库依赖。
+ * 具体的日志输出实现由应用层（如 @cmtx/cli）负责。
  *
  * ## 核心功能
  *
@@ -19,233 +17,108 @@
  * - `warn` - 警告信息
  * - `error` - 错误信息
  *
- * ### 输出目标
- * - 控制台输出（带颜色）
- * - 文件输出（按日轮转，保留 14 天）
+ * ### 使用方式
  *
- * ### 日志格式
+ * 库包中的类/函数通过可选参数接受 Logger，默认使用 dummyLogger（静默）：
+ *
+ * ```typescript
+ * import { type Logger, dummyLogger } from '@cmtx/core';
+ *
+ * class MyService {
+ *   constructor(private logger: Logger = dummyLogger) {}
+ *
+ *   doWork() {
+ *     this.logger.info('work started');
+ *   }
+ * }
  * ```
- * 2024-01-01 12:00:00 INFO [ModuleName] Message
+ *
+ * 应用层传入自己的实现：
+ *
+ * ```typescript
+ * // 直接使用 console（形状兼容）
+ * const service = new MyService(console);
+ *
+ * // 使用 winston
+ * const service = new MyService(winston.createLogger({ ... }));
  * ```
+ *
+ * @see {@link dummyLogger} - no-op 默认实现
+ * @see {@link consoleLogger} - 基于 console 的简易实现（供测试用）
+ *
+ * @public
+ */
+
+/**
+ * 日志记录器接口
+ *
+ * @remarks
+ * 定义统一的日志记录方法，覆盖常用的 4 个日志级别。
+ * 方法与 console 形状一致，console 本身就是有效的 Logger 实现。
  *
  * @example
  * ```typescript
- * import { initLogger, getLogger } from '@cmtx/core';
- *
- * // 初始化日志（应用层调用，传入配置）
- * initLogger({
- *     level: 'debug',
- *     logDir: '/var/log/myapp',
- * });
- *
- * const logger = getLogger('MyModule');
- * logger.info('Application started');
- * logger.error('Something went wrong');
+ * const logger: Logger = {
+ *   debug: (msg, ...args) => console.debug(msg, ...args),
+ *   info: (msg, ...args) => console.log(msg, ...args),
+ *   warn: (msg, ...args) => console.warn(msg, ...args),
+ *   error: (msg, ...args) => console.error(msg, ...args),
+ * };
  * ```
  *
- * @see {@link initLogger} - 初始化日志系统
- * @see {@link getLogger} - 获取 logger 实例
- */
-
-import * as fs from 'node:fs';
-import * as os from 'node:os';
-import * as path from 'node:path';
-
-import winston from 'winston';
-import DailyRotateFile from 'winston-daily-rotate-file';
-
-let loggerInstance: winston.Logger | null = null;
-let _loggerOptions: LoggerOptions = {};
-
-/**
- * 日志配置选项
  * @public
  */
-export interface LoggerOptions {
-    /**
-     * 日志级别
-     * @default 'info'
-     */
-    level?: string;
-
-    /**
-     * 日志目录
-     * @default 临时目录下的 'cmtx-logs'
-     */
-    logDir?: string;
-
-    /**
-     * 是否静默（禁用控制台输出）
-     * @default true
-     */
-    silent?: boolean;
-
-    /**
-     * 是否禁用文件日志
-     * @default false
-     */
-    disableFile?: boolean;
+export interface Logger {
+    debug(message: string, ...args: unknown[]): void;
+    info(message: string, ...args: unknown[]): void;
+    warn(message: string, ...args: unknown[]): void;
+    error(message: string, ...args: unknown[]): void;
 }
 
 /**
- * 初始化日志系统
+ * No-op 日志记录器
  *
- * @param options - 日志配置选项
+ * @remarks
+ * 所有方法均为空函数体，调用时不产生任何输出。
+ * 作为库包构造函数/函数参数的默认值使用。
  *
  * @example
  * ```typescript
- * // 基本使用
- * initLogger({
- *     level: 'debug',
- *     logDir: '/var/log/myapp',
- * });
- *
- * // 静默模式（仅文件日志）
- * initLogger({
- *     level: 'info',
- *     silent: true,
- * });
- *
- * // 禁用文件日志（仅控制台）
- * initLogger({
- *     level: 'debug',
- *     disableFile: true,
- * });
+ * class MyService {
+ *   constructor(private logger: Logger = dummyLogger) {}
+ * }
  * ```
+ *
  * @public
  */
-export function initLogger(options: LoggerOptions = {}): void {
-    _loggerOptions = options;
-
-    // 默认 silent = true，需要显式启用 Console 输出
-    const { level = 'info', logDir, silent = true, disableFile = false } = options;
-
-    const transports: winston.transport[] = [];
-
-    // 只有明确设置 silent: false 时才添加 Console
-    if (!silent) {
-        transports.push(new winston.transports.Console());
-    }
-
-    if (!disableFile) {
-        const fileTransport = createFileTransportSafe(logDir);
-        if (fileTransport) {
-            transports.push(fileTransport);
-        }
-    }
-
-    // 如果已存在 logger，清除并重新配置
-    if (loggerInstance) {
-        loggerInstance.clear();
-        transports.forEach((t) => {
-            if (loggerInstance) {
-                loggerInstance.add(t);
-            }
-        });
-        loggerInstance.level = level;
-    } else {
-        loggerInstance = winston.createLogger({
-            level,
-            format: createFormat(),
-            transports,
-            exitOnError: false,
-        });
-    }
-}
+export const dummyLogger: Logger = {
+    debug: () => {},
+    info: () => {},
+    warn: () => {},
+    error: () => {},
+};
 
 /**
- * 获取 logger 实例
+ * 基于 console 的日志记录器
  *
- * @param moduleName - 可选的模块名称，用于标识日志来源
- * @returns winston logger 实例
+ * @remarks
+ * 简易实现，将日志直接输出到控制台。
+ * 适合快速测试或简单场景使用。
  *
  * @example
  * ```typescript
- * const logger = getLogger('MyModule');
- * logger.info('Message');
- *
- * // 或者不带模块名称
- * const globalLogger = getLogger();
+ * const service = new MyService(consoleLogger);
  * ```
+ *
  * @public
  */
-export function getLogger(moduleName?: string): winston.Logger {
-    if (!loggerInstance) {
-        // 默认创建静默的 logger（不输出到 Console，只输出到文件）
-        const transports: winston.transport[] = [];
-
-        // 只添加文件 transport，不添加 Console
-        const fileTransport = createFileTransportSafe(undefined);
-        if (fileTransport) {
-            transports.push(fileTransport);
-        }
-
-        loggerInstance = winston.createLogger({
-            level: 'info',
-            format: createFormat(),
-            transports,
-            exitOnError: false,
-        });
-    }
-
-    if (moduleName) {
-        return loggerInstance.child({ module: moduleName });
-    }
-
-    return loggerInstance;
-}
-
-/**
- * 创建日志格式化器
- *
- * @internal
- */
-function createFormat(): winston.Logform.Format {
-    const timestamp = winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' });
-    const printf = winston.format.printf(({ level, message, timestamp, module, ...meta }) => {
-        const mod = module ? `[${module}]` : '';
-        const metaStr = Object.keys(meta).length > 0 ? ` ${JSON.stringify(meta, null, 2)}` : '';
-        return `${timestamp} ${level.toUpperCase()} ${mod} ${message}${metaStr}`;
-    });
-
-    return winston.format.combine(timestamp, winston.format.errors({ stack: true }), printf);
-}
-
-/**
- * 安全创建文件日志传输目标
- *
- * @internal
- */
-function createFileTransportSafe(logDir?: string): DailyRotateFile | null {
-    try {
-        const dir = logDir || getDefaultLogDir();
-        fs.mkdirSync(dir, { recursive: true });
-
-        return new DailyRotateFile({
-            filename: path.join(dir, '%DATE%.log'),
-            datePattern: 'YYYY-MM-DD',
-            zippedArchive: true,
-            maxFiles: '14d',
-        });
-    } catch (error) {
-        const reason = error instanceof Error ? error.message : String(error);
-        console.warn(`[cmtx/core] Disable file logging: ${reason}`);
-        return null;
-    }
-}
-
-/**
- * 获取默认日志目录
- *
- * @internal
- */
-function getDefaultLogDir(): string {
-    return path.join(os.tmpdir(), 'cmtx-logs');
-}
-
-// 自定义 Logger 类型，避免直接引用 winston 的 Logger 类型导致的文档警告
-/**
- * CMTX Logger 类型
- * @public
- */
-export type CmtxLogger = winston.Logger;
+export const consoleLogger: Logger = {
+    // eslint-disable-next-line no-console
+    debug: (message, ...args) => console.debug(message, ...args),
+    // eslint-disable-next-line no-console
+    info: (message, ...args) => console.log(message, ...args),
+    // eslint-disable-next-line no-console
+    warn: (message, ...args) => console.warn(message, ...args),
+    // eslint-disable-next-line no-console
+    error: (message, ...args) => console.error(message, ...args),
+};

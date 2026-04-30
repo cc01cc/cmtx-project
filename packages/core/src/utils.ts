@@ -45,7 +45,7 @@
  * @see {@link LocalImageMatchWithAbsPath} - 带绝对路径的本地图片类型
  */
 
-import { isAbsolute, normalize, relative } from 'node:path';
+import { isAbsolute, normalize, relative } from "node:path";
 
 import type {
     ImageMatch,
@@ -53,7 +53,7 @@ import type {
     LocalImageMatchWithAbsPath,
     LocalImageMatchWithRelativePath,
     WebImageMatch,
-} from './types.js';
+} from "./types.js";
 
 /**
  * 规范化文件路径用于比较（处理跨平台和大小写）
@@ -73,10 +73,10 @@ export function normalizePath(filePath: string): string {
     let normalized = normalize(filePath);
 
     // 然后将所有反斜杠替换为正斜杠（无论在哪个平台上）
-    normalized = normalized.split('\\').join('/');
+    normalized = normalized.split("\\").join("/");
 
     // Windows 系统下转为小写（不区分大小写）
-    if (process.platform === 'win32') {
+    if (process.platform === "win32") {
         return normalized.toLowerCase();
     }
 
@@ -124,7 +124,7 @@ export function isLocalAbsolutePath(src: string): boolean {
  */
 export function isPathInside(parent: string, child: string): boolean {
     const rel = relative(parent, child);
-    return !rel.startsWith('..') && !isAbsolute(rel);
+    return !rel.startsWith("..") && !isAbsolute(rel);
 }
 
 /**
@@ -135,7 +135,7 @@ export function isPathInside(parent: string, child: string): boolean {
  * @public
  */
 export function isWebImage(img: ImageMatch): img is WebImageMatch {
-    return img.type === 'web';
+    return img.type === "web";
 }
 
 /**
@@ -146,7 +146,7 @@ export function isWebImage(img: ImageMatch): img is WebImageMatch {
  * @public
  */
 export function isLocalImage(img: ImageMatch): img is LocalImageMatch {
-    return img.type === 'local';
+    return img.type === "local";
 }
 
 /**
@@ -157,7 +157,7 @@ export function isLocalImage(img: ImageMatch): img is LocalImageMatch {
  * @public
  */
 export function isLocalImageWithAbsPath(img: ImageMatch): img is LocalImageMatchWithAbsPath {
-    return img.type === 'local' && 'absLocalPath' in img;
+    return img.type === "local" && "absLocalPath" in img;
 }
 
 /**
@@ -168,9 +168,9 @@ export function isLocalImageWithAbsPath(img: ImageMatch): img is LocalImageMatch
  * @public
  */
 export function isLocalImageWithRelativePath(
-    img: ImageMatch
+    img: ImageMatch,
 ): img is LocalImageMatchWithRelativePath {
-    return img.type === 'local' && !('absLocalPath' in img);
+    return img.type === "local" && !("absLocalPath" in img);
 }
 
 // ==================== URL 工具函数 ====================
@@ -239,9 +239,9 @@ export function parseUrlSafe(urlString: string): URL | null {
  * @public
  */
 export function formatMarkdownImage(
-    options: import('./types.js').FormatMarkdownImageOptions
+    options: import("./types.js").FormatMarkdownImageOptions,
 ): string {
-    const { src, alt = '', title } = options;
+    const { src, alt = "", title } = options;
 
     if (title) {
         return `![${alt}](${src} "${title}")`;
@@ -269,11 +269,11 @@ export function formatMarkdownImage(
  * ```
  * @public
  */
-export function formatHtmlImage(options: import('./types.js').FormatHtmlImageOptions): string {
-    const { src, alt = '', attributes = {}, extraAttributes = {} } = options;
+export function formatHtmlImage(options: import("./types.js").FormatHtmlImageOptions): string {
+    const { src, alt = "", attributes = {}, extraAttributes = {} } = options;
 
     const attrs: string[] = [`src="${src}"`];
-    if (alt) attrs.push(`alt="${alt.replace(/"/g, '&quot;')}"`);
+    if (alt) attrs.push(`alt="${alt.replace(/"/g, "&quot;")}"`);
 
     // 标准属性
     if (attributes.width) attrs.push(`width="${attributes.width}"`);
@@ -285,10 +285,10 @@ export function formatHtmlImage(options: import('./types.js').FormatHtmlImageOpt
 
     // 额外属性
     for (const [key, value] of Object.entries(extraAttributes)) {
-        attrs.push(`${key}="${value.replace(/"/g, '&quot;')}"`);
+        attrs.push(`${key}="${value.replace(/"/g, "&quot;")}"`);
     }
 
-    return `<img ${attrs.join(' ')}>`;
+    return `<img ${attrs.join(" ")}>`;
 }
 
 /**
@@ -319,11 +319,11 @@ export function formatHtmlImage(options: import('./types.js').FormatHtmlImageOpt
 export function replaceAltVariables(template: string, filename?: string): string {
     const now = new Date();
     const year = now.getFullYear().toString();
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const day = now.getDate().toString().padStart(2, '0');
-    const hour = now.getHours().toString().padStart(2, '0');
-    const minute = now.getMinutes().toString().padStart(2, '0');
-    const second = now.getSeconds().toString().padStart(2, '0');
+    const month = (now.getMonth() + 1).toString().padStart(2, "0");
+    const day = now.getDate().toString().padStart(2, "0");
+    const hour = now.getHours().toString().padStart(2, "0");
+    const minute = now.getMinutes().toString().padStart(2, "0");
+    const second = now.getSeconds().toString().padStart(2, "0");
 
     return template
         .replace(/\{timestamp\}/g, Date.now().toString())
@@ -336,5 +336,5 @@ export function replaceAltVariables(template: string, filename?: string): string
         .replace(/\{hour\}/g, hour)
         .replace(/\{minute\}/g, minute)
         .replace(/\{second\}/g, second)
-        .replace(/\{filename\}/g, filename || 'image');
+        .replace(/\{filename\}/g, filename || "image");
 }

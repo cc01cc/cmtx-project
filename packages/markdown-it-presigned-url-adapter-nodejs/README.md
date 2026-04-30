@@ -1,232 +1,140 @@
 # @cmtx/markdown-it-presigned-url-adapter-nodejs
 
-Node.js 适配器，为 @cmtx/markdown-it-presigned-url 插件提供云存储预签名 URL 生成能力。
-
 [![npm version](https://img.shields.io/npm/v/@cmtx/markdown-it-presigned-url-adapter-nodejs.svg)](https://www.npmjs.com/package/@cmtx/markdown-it-presigned-url-adapter-nodejs)
 [![License](https://img.shields.io/npm/l/@cmtx/markdown-it-presigned-url-adapter-nodejs.svg)](https://github.com/cc01cc/cmtx-project/blob/main/LICENSE)
 
-## 1. 功能特性
+Node.js 适配器，为 `@cmtx/markdown-it-presigned-url` 插件提供云存储预签名 URL 生成能力。内置缓存管理，支持阿里云 OSS。
 
-- **预签名 URL 生成** - 为阿里云 OSS 等云存储生成预签名 URL
-- **缓存管理** - 内置 URL 缓存机制，减少重复签名请求
-- **Node.js 专用** - 针对 Node.js 环境优化，支持异步签名
-- **零配置集成** - 与 @cmtx/markdown-it-presigned-url 插件无缝集成
-- **类型安全** - 完整的 TypeScript 类型支持
+> 完整 API 文档：`pnpm run docs`（生成于 `docs/api/`）
 
-## 2. 安装
+## 1. 安装
 
 ```bash
-npm install @cmtx/markdown-it-presigned-url-adapter-nodejs @cmtx/markdown-it-presigned-url
+pnpm add @cmtx/markdown-it-presigned-url-adapter-nodejs @cmtx/markdown-it-presigned-url
 ```
 
-## 3. 快速开始
-
-### 3.1 基础用法
+## 2. 快速开始
 
 ```typescript
-import MarkdownIt from 'markdown-it';
-import { presignedUrlPlugin } from '@cmtx/markdown-it-presigned-url';
-import { UrlSigner, UrlCacheManager } from '@cmtx/markdown-it-presigned-url-adapter-nodejs';
-import OSS from 'ali-oss';
+import MarkdownIt from "markdown-it";
+import { presignedUrlPlugin } from "@cmtx/markdown-it-presigned-url";
+import { UrlSigner, UrlCacheManager } from "@cmtx/markdown-it-presigned-url-adapter-nodejs";
 
-// 初始化阿里云 OSS 客户端
-const client = new OSS({
-    region: 'oss-cn-hangzhou',
-    accessKeyId: process.env.OSS_ACCESS_KEY_ID,
-    accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET,
-    bucket: 'your-bucket'
-});
+// 域名配置：每个域名可引用 storage pool 或独立配置
+const signer = new UrlSigner({
+    // 存储池配置
+    storageConfigs: {
+        oss: {
+            provider: "aliyun-oss",
+            region: "oss-cn-hangzhou",
+            bucket: "your-bucket",
+            accessKeyId: process.env.OSS_ACCESS_KEY_ID,
+            accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET,
+            // endpoint: "oss-cn-hangzhou.aliyuncs.com",
+        },
+    },
+    // 域名配置：关联 storage pool
+    domains: [
+        { domain: "your-bucket.oss-cn-hangzhou.aliyuncs.com", useStorage: "oss" },
+    ],
+    expire: 600, // 预签名 URL 过期时间（秒）
+    maxRetryCount: 3,
+}, new UrlCacheManager());
 
-// 创建签名器
-const signer = new UrlSigner(client, {
-    expires: 3600, // URL 有效期 1 小时
-    domains: ['your-bucket.oss-cn-hangzhou.aliyuncs.com']
-});
-
-// 创建缓存管理器
-const cacheManager = new UrlCacheManager();
+// 生成预签名 URL
+const signedUrl = await signer.signUrl(
+    "https://your-bucket.oss-cn-hangzhou.aliyuncs.com/path/image.png"
+);
 
 // 配置 markdown-it 插件
 const md = new MarkdownIt();
 md.use(presignedUrlPlugin, {
-    domains: ['your-bucket.oss-cn-hangzhou.aliyuncs.com'],
-    imageFormat: 'all',
-    getSignedUrl: (src) => {
-        // 从缓存获取签名 URL
-        return cacheManager.get(src);
-    },
-    requestSignedUrl: async (src) => {
-        // 生成签名 URL 并缓存
-        const signedUrl = await signer.sign(src);
-        cacheManager.set(src, signedUrl);
-        return signedUrl;
-    },
-    onSignedUrlReady: () => {
-        // 签名完成后刷新预览
-        console.log('URL 签名完成，刷新预览');
-    }
-});
-
-// 渲染 Markdown
-const html = md.render('![image](https://your-bucket.oss-cn-hangzhou.aliyuncs.com/path/image.png)');
-```
-
-### 3.2 使用日志
-
-```typescript
-import { UrlSigner, UrlCacheManager, type CacheManagerLogger, type SignerLogger } from '@cmtx/markdown-it-presigned-url-adapter-nodejs';
-
-// 配置日志
-const logger: CacheManagerLogger & SignerLogger = {
-    debug: (msg, ...args) => console.debug(msg, ...args),
-    info: (msg, ...args) => console.info(msg, ...args),
-    warn: (msg, ...args) => console.warn(msg, ...args),
-    error: (msg, ...args) => console.error(msg, ...args),
-};
-
-const cacheManager = new UrlCacheManager({ logger });
-const signer = new UrlSigner(client, {
-    expires: 3600,
-    domains: ['example.com'],
-    logger
+    domains: ["your-bucket.oss-cn-hangzhou.aliyuncs.com"],
+    imageFormat: "all",
+    getSignedUrl: (src) => signer.signUrl(src),
 });
 ```
 
-## 4. API
+## 3. API
 
-### `UrlSigner`
+### UrlSigner
 
 预签名 URL 生成器。
 
-#### 构造函数
-
 ```typescript
-constructor(client: OSS, options: UrlSignerOptions)
+constructor(options: PresignedUrlAdapterOptions, cacheManager: UrlCacheManager)
 ```
 
-#### 选项
+| 选项 | 类型 | 说明 |
+|------|------|------|
+| `storageConfigs` | `Record<string, CloudStorageConfig>` | 存储池配置 |
+| `domains` | `PresignedUrlDomainConfig[]` | 域名配置数组 |
+| `expire` | `number` | 预签名 URL 过期时间（秒） |
+| `maxRetryCount` | `number` | 签名失败最大重试次数 |
+| `logger?` | `Logger` | 日志接口 |
 
-| 选项 | 类型 | 必需 | 默认值 | 描述 |
-|------|------|------|--------|------|
-| `expires` | `number` | 否 | `3600` | URL 有效期（秒） |
-| `domains` | `string[]` | 是 | - | 允许的域名列表 |
-| `logger` | `SignerLogger` | 否 | - | 日志接口 |
+**方法**：
 
-#### 方法
+- `signUrl(url: string): Promise<string>` - 生成预签名 URL（自动缓存）
+- `getMaxRetryCount(): number` - 获取最大重试次数
 
-- **`sign(src: string): Promise<string>`** - 为图片 URL 生成预签名 URL
-
-### `UrlCacheManager`
+### UrlCacheManager
 
 URL 缓存管理器。
 
-#### 构造函数
-
 ```typescript
-constructor(options?: UrlCacheManagerOptions)
+constructor(logger?: Logger)
 ```
 
-#### 选项
+**方法**：
 
-| 选项 | 类型 | 必需 | 默认值 | 描述 |
-|------|------|------|--------|------|
-| `maxSize` | `number` | 否 | `1000` | 最大缓存条目数 |
-| `ttl` | `number` | 否 | `3600000` | 缓存有效期（毫秒） |
-| `logger` | `CacheManagerLogger` | 否 | - | 日志接口 |
+| 方法 | 说明 |
+|------|------|
+| `get(url)` | 获取缓存的签名 URL |
+| `set(url, signedUrl, expireInSeconds)` | 设置缓存（含过期时间） |
+| `has(url)` | 检查缓存是否存在 |
+| `clear()` | 清空所有缓存 |
+| `canRetry(url, maxRetryCount)` | 检查是否可重试 |
+| `getRetryCount(url)` | 获取重试次数 |
+| `recordFailure(url)` | 记录失败次数 |
+| `resetRetry(url)` | 重置重试计数 |
+| `addPendingRequest(url, promise)` | 添加待处理请求 |
+| `getPendingRequest(url)` | 获取待处理请求 |
+| `removePendingRequest(url)` | 移除待处理请求 |
+| `waitForAllPending()` | 等待所有待处理请求完成 |
 
-#### 方法
-
-- **`get(src: string): string | null`** - 获取缓存的签名 URL
-- **`set(src: string, url: string): void`** - 设置缓存
-- **`has(src: string): boolean`** - 检查缓存是否存在
-- **`delete(src: string): boolean`** - 删除缓存
-- **`clear(): void`** - 清空所有缓存
-
-### `PresignedUrlAdapter`
-
-预签名 URL 适配器接口。
+### PresignedUrlCache
 
 ```typescript
-interface PresignedUrlAdapter {
-    sign(src: string): Promise<string>;
+interface PresignedUrlCacheItem {
+    url: string;
+    timestamp: number;
+    expires: number;
 }
-```
 
-### `PresignedUrlCache`
-
-预签名 URL 缓存接口。
-
-```typescript
 interface PresignedUrlCache {
-    get(src: string): string | null;
-    set(src: string, url: string): void;
-    has(src: string): boolean;
+    [key: string]: PresignedUrlCacheItem;
 }
 ```
 
-## 5. 类型定义
+## 4. 工作原理
 
-### `UrlSignerOptions`
+1. 创建 `UrlSigner`（配置域名和存储凭证）和 `UrlCacheManager`
+2. 渲染 Markdown 时，插件对匹配域名的图片 URL 调用 `signUrl()`
+3. `signUrl()` 先查缓存，命中直接返回
+4. 未命中则通过 `AliOSSAdapter.getSignedUrl()` 生成预签名 URL
+5. 结果缓存后返回，后续请求直接从缓存读取
 
-```typescript
-interface UrlSignerOptions {
-    expires?: number;
-    domains: string[];
-    logger?: SignerLogger;
-}
-```
+## 5. 相关项目
 
-### `UrlCacheManagerOptions`
-
-```typescript
-interface UrlCacheManagerOptions {
-    maxSize?: number;
-    ttl?: number;
-    logger?: CacheManagerLogger;
-}
-```
-
-### `Logger` 接口
-
-```typescript
-interface Logger {
-    debug(message: string, ...args: unknown[]): void;
-    info(message: string, ...args: unknown[]): void;
-    warn(message: string, ...args: unknown[]): void;
-    error(message: string, ...args: unknown[]): void;
-}
-```
-
-## 6. 工作原理
-
-1. **初始化**：创建 `UrlSigner` 和 `UrlCacheManager` 实例
-2. **渲染请求**：markdown-it 渲染 Markdown 内容
-3. **缓存检查**：`getSignedUrl` 检查缓存
-   - 命中 → 返回缓存的签名 URL
-   - 未命中 → 返回 null，触发异步签名
-4. **异步签名**：`requestSignedUrl` 调用 `UrlSigner.sign()` 生成签名 URL
-5. **缓存更新**：将签名 URL 存入 `UrlCacheManager`
-6. **刷新回调**：调用 `onSignedUrlReady` 通知宿主应用刷新预览
-
-## 7. 依赖
-
-### Peer Dependencies
-
-- `@cmtx/markdown-it-presigned-url`: `workspace:*`
-- `markdown-it`: `^14.0.0`
-
-### Dependencies
-
-- `@cmtx/storage`: `workspace:*`
-- `@cmtx/core`: `workspace:*`
-- `ali-oss`: `catalog:`
-
-## 8. 相关项目
-
-- [@cmtx/markdown-it-presigned-url](../markdown-it-presigned-url) - Markdown-it 预签名 URL 插件
+- [@cmtx/markdown-it-presigned-url](../markdown-it-presigned-url) - markdown-it 预签名 URL 插件
 - [@cmtx/storage](../storage) - 对象存储适配器
-- [@cmtx/vscode-extension](../vscode-extension) - VS Code 扩展（使用此适配器）
 
-## 9. 许可证
+## 6. 开发
 
-Apache-2.0
+```bash
+pnpm build       # 构建
+pnpm test        # 测试
+pnpm lint        # 代码检查
+pnpm run docs    # 生成 API 文档
+```

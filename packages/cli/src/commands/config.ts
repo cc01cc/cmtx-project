@@ -1,42 +1,55 @@
+/* eslint-disable no-console */
 /**
  * config 命令 - 配置文件管理
  *
  * 用法：cmtx config <action> [options]
- * 示例：cmtx config init --preset blog-simple
+ * 示例：cmtx config init
+ *
+ * 迁移说明：
+ * - 使用 @cmtx/asset/config 替代 CLI 独立 presets 系统
+ * - 提供 generateDefaultConfig 生成默认配置
+ * - 不再支持 --preset 参数，统一使用默认配置模板
  */
 
-import { promises as fs } from 'node:fs';
-import { resolve } from 'node:path';
-import type { Argv, CommandModule } from 'yargs';
-import { generatePresetConfig, listPresets } from '../config/presets.js';
-import type { ConfigCommandOptions } from '../types/cli.js';
-import { formatError, formatInfo } from '../utils/formatter.js';
+import { access } from "node:fs/promises";
+import { resolve } from "node:path";
+import { generateDefaultConfig } from "@cmtx/asset/config";
+import { FileService } from "@cmtx/asset/file";
+import type { Argv, CommandModule } from "yargs";
+import type { ConfigCommandOptions } from "../types/cli.js";
+import { formatError, formatInfo } from "../utils/formatter.js";
 
-export const command = 'config <action>';
-export const description = '配置文件管理';
+const fileService = new FileService();
+
+async function fileExists(filePath: string): Promise<boolean> {
+    try {
+        await access(filePath);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+export const command = "config <action>";
+export const description = "配置文件管理（使用 @cmtx/asset/config）";
 
 export function builder(yargs: Argv): Argv {
     return yargs
-        .positional('action', {
-            description: '配置操作 (init|list|show)',
-            type: 'string',
-            choices: ['init', 'list', 'show'],
+        .positional("action", {
+            description: "配置操作 (init|show)",
+            type: "string",
+            choices: ["init", "show"],
         })
-        .option('preset', {
-            alias: 'p',
-            description: '预设配置名称',
-            type: 'string',
+        .option("output-file", {
+            alias: "o",
+            description: "输出文件名",
+            type: "string",
+            default: "cmtx.config.yaml",
         })
-        .option('output-file', {
-            alias: 'o',
-            description: '输出文件名',
-            type: 'string',
-            default: 'cmtx.config.yaml',
-        })
-        .option('force', {
-            alias: 'f',
-            description: '强制覆盖已存在的文件',
-            type: 'boolean',
+        .option("force", {
+            alias: "f",
+            description: "强制覆盖已存在的文件",
+            type: "boolean",
             default: false,
         });
 }
@@ -44,14 +57,11 @@ export function builder(yargs: Argv): Argv {
 export async function handler(argv: ConfigCommandOptions): Promise<void> {
     try {
         switch (argv.action) {
-            case 'init':
+            case "init":
                 await handleInit(argv);
                 break;
-            case 'list':
-                await handleList();
-                break;
-            case 'show':
-                await handleShow(argv);
+            case "show":
+                await handleShow();
                 break;
             default:
                 throw new Error(`未知的操作: ${argv.action}`);
@@ -64,65 +74,29 @@ export async function handler(argv: ConfigCommandOptions): Promise<void> {
 }
 
 async function handleInit(argv: ConfigCommandOptions): Promise<void> {
-    const outputPath = resolve(argv.outputFile || 'cmtx.config.yaml');
+    const outputPath = resolve(argv.outputFile || "cmtx.config.yaml");
 
     // 检查文件是否存在
-    try {
-        await fs.access(outputPath);
-        if (!argv.force) {
-            throw new Error(`配置文件已存在: ${outputPath}。使用 --force 选项强制覆盖。`);
-        }
-    } catch (error) {
-        // 文件不存在，继续执行
-        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-            throw error;
-        }
+    const exists = await fileExists(outputPath);
+    if (exists && !argv.force) {
+        throw new Error(`配置文件已存在: ${outputPath}。使用 --force 选项强制覆盖。`);
     }
 
-    let configContent: string;
+    // 使用 @cmtx/asset/config 生成默认配置
+    const configContent = generateDefaultConfig();
 
-    if (argv.preset) {
-        // 使用预设配置
-        configContent = generatePresetConfig(
-            argv.preset as keyof typeof import('../config/presets.js').PRESETS
-        );
-        console.log(formatInfo(`使用预设配置 "${argv.preset}" 初始化配置文件`));
-    } else {
-        // 使用默认的 minimal 预设
-        configContent = generatePresetConfig('minimal');
-        console.log(formatInfo('使用默认配置初始化配置文件'));
-    }
-
-    await fs.writeFile(outputPath, configContent, 'utf-8');
+    await fileService.writeFileContent(outputPath, configContent);
     console.log(formatInfo(`配置文件已创建: ${outputPath}`));
-    console.log('\n请记得设置以下环境变量：');
-    console.log('  ALIYUN_OSS_ACCESS_KEY_ID');
-    console.log('  ALIYUN_OSS_ACCESS_KEY_SECRET');
-    console.log('  ALIYUN_OSS_BUCKET');
+    console.log("\n请记得设置以下环境变量：");
+    console.log("  CMTX_ALIYUN_ACCESS_KEY_ID");
+    console.log("  CMTX_ALIYUN_ACCESS_KEY_SECRET");
+    console.log("  CMTX_ALIYUN_BUCKET");
 }
 
-async function handleList(): Promise<void> {
-    const presets = listPresets();
-    console.log(formatInfo('可用的预设配置：'));
-    for (const preset of presets) {
-        console.log(`  - ${preset}`);
-    }
-    console.log('\n使用方法：cmtx config init --preset <preset-name>');
-}
-
-async function handleShow(argv: ConfigCommandOptions): Promise<void> {
-    if (!argv.preset) {
-        throw new Error('请指定要查看的预设名称：--preset <name>');
-    }
-
-    try {
-        const configContent = generatePresetConfig(
-            argv.preset as keyof typeof import('../config/presets.js').PRESETS
-        );
-        console.log(`\n${configContent}`);
-    } catch (error) {
-        throw new Error(`无法找到预设配置 "${argv.preset}"`, { cause: error });
-    }
+async function handleShow(): Promise<void> {
+    // 使用 @cmtx/asset/config 显示默认配置模板
+    const configContent = generateDefaultConfig();
+    console.log(`\n${configContent}`);
 }
 
 // 默认导出为 yargs CommandModule

@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+
 /**
  * 发布格式化函数 - 为发布准备 Markdown 文档
  *
@@ -39,10 +41,10 @@ import {
     parseFrontmatter,
     parseYamlFrontmatter,
     upsertFrontmatterFields,
-} from '@cmtx/core';
-import { IdGenerator } from './metadata/id-generator.js';
-import { processImagesForPublish } from './process-images.js';
-import type { FormatForPublishOptions, FormatForPublishResult } from './types.js';
+} from "@cmtx/core";
+import { IdGenerator } from "./metadata/id-generator.js";
+import { processImagesForPublish } from "./process-images.js";
+import type { FormatForPublishOptions, FormatForPublishResult } from "./types.js";
 
 function hasFrontmatterField(markdown: string, field: string): boolean {
     const { hasFrontmatter, data } = parseFrontmatter(markdown);
@@ -53,6 +55,69 @@ function hasFrontmatterField(markdown: string, field: string): boolean {
     } catch {
         return false;
     }
+}
+
+interface ApplyTitleConversionResult {
+    content: string;
+    converted: boolean;
+}
+
+function applyTitleConversion(content: string): ApplyTitleConversionResult {
+    const newContent = convertHeadingToFrontmatter(content, { headingLevel: 1 });
+    return { content: newContent, converted: newContent !== content };
+}
+
+function applyFrontmatter(content: string, frontmatter: Record<string, string | string[]>): string {
+    return upsertFrontmatterFields(content, frontmatter).markdown;
+}
+
+interface ApplyAutoMetadataResult {
+    content: string;
+    idGenerated: boolean;
+    dateAdded: boolean;
+    updatedAdded: boolean;
+    frontmatterUpdated: boolean;
+}
+
+function applyAutoMetadata(
+    content: string,
+    options: Exclude<FormatForPublishOptions["autoMetadata"], undefined>,
+): ApplyAutoMetadataResult {
+    const autoFields: Record<string, string> = {};
+    let idGenerated = false;
+    let dateAdded = false;
+    let updatedAdded = false;
+    let frontmatterUpdated = false;
+    const { generateId, idOptions, autoDate, autoUpdated } = options;
+
+    if (generateId && idOptions?.encryptionKey && idOptions?.plaintext) {
+        if (!hasFrontmatterField(content, "id")) {
+            const generator = new IdGenerator();
+            autoFields.id = generator.encryptFF1(idOptions.plaintext, idOptions.encryptionKey, {
+                radix: idOptions.radix,
+                withChecksum: idOptions.withChecksum,
+            });
+            idGenerated = true;
+        }
+    }
+
+    if (autoDate && !hasFrontmatterField(content, "date")) {
+        autoFields.date = new Date().toISOString().split("T")[0];
+        dateAdded = true;
+    }
+
+    if (autoUpdated) {
+        autoFields.updated = new Date().toISOString().split("T")[0];
+        updatedAdded = true;
+    }
+
+    if (Object.keys(autoFields).length > 0) {
+        const result = upsertFrontmatterFields(content, autoFields);
+        content = result.markdown;
+        frontmatterUpdated = true;
+    }
+
+    return { content, idGenerated, dateAdded, updatedAdded, frontmatterUpdated };
 }
 
 /**
@@ -66,7 +131,7 @@ function hasFrontmatterField(markdown: string, field: string): boolean {
  */
 export async function formatForPublish(
     filePath: string,
-    options: FormatForPublishOptions = {}
+    options: FormatForPublishOptions = {},
 ): Promise<FormatForPublishResult> {
     const imageResult = await processImagesForPublish(filePath, {
         convertToHtml: options.convertToHtml,
@@ -84,50 +149,24 @@ export async function formatForPublish(
     let updatedAdded = false;
 
     if (options.convertTitle) {
-        const newContent = convertHeadingToFrontmatter(content, { headingLevel: 1 });
-        if (newContent !== content) {
-            content = newContent;
-            titleConverted = true;
-            frontmatterUpdated = true;
-        }
+        const result = applyTitleConversion(content);
+        content = result.content;
+        titleConverted = result.converted;
+        frontmatterUpdated = result.converted;
     }
 
     if (options.frontmatter && Object.keys(options.frontmatter).length > 0) {
-        const result = upsertFrontmatterFields(content, options.frontmatter);
-        content = result.markdown;
+        content = applyFrontmatter(content, options.frontmatter);
         frontmatterUpdated = true;
     }
 
     if (options.autoMetadata) {
-        const autoFields: Record<string, string> = {};
-        const { generateId, idOptions, autoDate, autoUpdated } = options.autoMetadata;
-
-        if (generateId && idOptions?.encryptionKey && idOptions?.plaintext) {
-            if (!hasFrontmatterField(content, 'id')) {
-                const generator = new IdGenerator();
-                autoFields.id = generator.encryptFF1(idOptions.plaintext, idOptions.encryptionKey, {
-                    radix: idOptions.radix,
-                    withChecksum: idOptions.withChecksum,
-                });
-                idGenerated = true;
-            }
-        }
-
-        if (autoDate) {
-            if (!hasFrontmatterField(content, 'date')) {
-                autoFields.date = new Date().toISOString().split('T')[0];
-                dateAdded = true;
-            }
-        }
-
-        if (autoUpdated) {
-            autoFields.updated = new Date().toISOString().split('T')[0];
-            updatedAdded = true;
-        }
-
-        if (Object.keys(autoFields).length > 0) {
-            const result = upsertFrontmatterFields(content, autoFields);
-            content = result.markdown;
+        const result = applyAutoMetadata(content, options.autoMetadata);
+        content = result.content;
+        idGenerated = result.idGenerated;
+        dateAdded = result.dateAdded;
+        updatedAdded = result.updatedAdded;
+        if (result.frontmatterUpdated) {
             frontmatterUpdated = true;
         }
     }

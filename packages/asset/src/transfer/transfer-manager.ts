@@ -6,15 +6,15 @@
  * 集成 Markdown 处理、URL 解析和传输服务，提供完整的传输功能。
  */
 
-import { promises as fs } from 'node:fs';
-import type { ReplaceOptions, ReplaceResult } from '@cmtx/core';
-import { replaceImagesInText } from '@cmtx/core';
-import pLimit from 'p-limit';
-import { createProgressTracker } from '../utils/progress-tracker.js';
-import { createTempManager, type TempManager } from '../utils/temp-manager.js';
-import { createUrlParser } from '../utils/url-parser.js';
-import { createTransferService } from './transfer-service.js';
-import type { InternalTransferConfig, TransferResult, UrlMapping } from './types.js';
+import { promises as fs } from "node:fs";
+import type { ReplaceOptions, ReplaceResult } from "@cmtx/core";
+import { replaceImagesInText } from "@cmtx/core";
+import pLimit from "p-limit";
+import { createProgressTracker } from "../utils/progress-tracker.js";
+import { createTempManager, type TempManager } from "../utils/temp-manager.js";
+import { createUrlParser } from "../utils/url-parser.js";
+import { createTransferService } from "./transfer-service.js";
+import type { InternalTransferConfig, TransferResult, UrlMapping } from "./types.js";
 
 /**
  * 传输管理器
@@ -36,7 +36,7 @@ export class TransferManager {
      */
     async transferMarkdown(filePath: string): Promise<TransferResult> {
         // 读取 Markdown 文件
-        const content = await fs.readFile(filePath, 'utf-8');
+        const content = await fs.readFile(filePath, "utf-8");
         return this.transferContent(content, filePath);
     }
 
@@ -95,8 +95,8 @@ export class TransferManager {
             // 执行传输
             const mappings = await Promise.all(
                 matchedUrls.map((url) =>
-                    limit(() => transferService.transfer(url.originalUrl, url.remotePath ?? ''))
-                )
+                    limit(() => transferService.transfer(url.originalUrl, url.remotePath ?? "")),
+                ),
             );
 
             // 替换 Markdown 中的 URL
@@ -106,12 +106,15 @@ export class TransferManager {
             return {
                 total: mappings.length,
                 success: mappings.filter((m) => m.success).length,
-                failed: mappings.filter((m) => !m.success && !m.error?.includes('skip')).length,
-                skipped: mappings.filter((m) => m.error?.includes('skip')).length,
+                failed: mappings.filter((m) => !m.success && !m.error?.includes("skip")).length,
+                skipped: mappings.filter((m) => m.error?.includes("skip")).length,
                 mappings,
                 errors: mappings
-                    .filter((m) => !m.success && !m.error?.includes('skip'))
-                    .map((m) => ({ url: m.originalUrl, error: m.error || 'Unknown error' })),
+                    .filter((m) => !m.success && !m.error?.includes("skip"))
+                    .map((m) => ({
+                        url: m.originalUrl,
+                        error: m.error || "Unknown error",
+                    })),
                 newContent,
             };
         } finally {
@@ -175,7 +178,7 @@ export class TransferManager {
         const replaceOptions: ReplaceOptions[] = [];
         for (const [originalUrl, newUrl] of urlMap.entries()) {
             replaceOptions.push({
-                field: 'src',
+                field: "src",
                 pattern: originalUrl,
                 newSrc: newUrl,
             });
@@ -203,7 +206,7 @@ export function createTransferManager(config: InternalTransferConfig): TransferM
  */
 export async function transferRemoteImages(
     filePath: string,
-    config: InternalTransferConfig
+    config: InternalTransferConfig,
 ): Promise<TransferResult> {
     const manager = createTransferManager(config);
     return manager.transferMarkdown(filePath);

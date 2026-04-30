@@ -42,15 +42,16 @@
  *
  * @see {@link generateNameAndRemotePath} - 主要导出函数
  * @see {@link NameTemplateVariables} - 模板变量类型
- * @see {@link renderTemplateImage} - 图片上传模板渲染函数
+ * @see {@link @cmtx/template/renderTemplate} - 统一的模板渲染函数
  */
 
-import { readFile, stat } from 'node:fs/promises';
-import { basename, extname } from 'node:path';
-import type { LocalImageMatchWithAbsPath } from '@cmtx/core';
-import { generateMD5, renderNamingTemplate } from '../shared/index.js';
-import type { BaseNamingVariables } from '../shared/types.js';
-import type { StorageOptions } from './types.js';
+import { readFile, stat } from "node:fs/promises";
+import { basename, extname } from "node:path";
+import type { LocalImageMatchWithAbsPath } from "@cmtx/core";
+import { renderTemplate } from "@cmtx/template";
+import { generateMD5 } from "../shared/index.js";
+import type { BaseNamingVariables } from "../shared/types.js";
+import type { StorageConfig } from "./config.js";
 
 /**
  * 文件信息接口（向后兼容导出）
@@ -91,9 +92,6 @@ export async function getFileInfo(localPath: string): Promise<FileInfo> {
         size: stats.size, // 文件大小（字节）
     };
 }
-
-// 重新导出 generateMD5 以保持向后兼容
-export { generateMD5 };
 
 /**
  * Upload 命名模板变量
@@ -136,9 +134,9 @@ export interface NameTemplateVariables extends BaseNamingVariables {
 export function generateRemoteImageName(
     fileInfo: FileInfo,
     imageData: Buffer,
-    storage: StorageOptions
+    storage: StorageConfig,
 ): string {
-    const namingTemplate = storage.namingTemplate || '{name}.{ext}';
+    const namingTemplate = storage.namingTemplate || "{name}.{ext}";
 
     // 填充模板变量
     const variables: NameTemplateVariables = {
@@ -148,15 +146,17 @@ export function generateRemoteImageName(
         date: new Date().toISOString().slice(0, 10),
         timestamp: Date.now().toString(),
         year: new Date().getFullYear().toString(),
-        month: (new Date().getMonth() + 1).toString().padStart(2, '0'),
-        day: new Date().getDate().toString().padStart(2, '0'),
+        month: (new Date().getMonth() + 1).toString().padStart(2, "0"),
+        day: new Date().getDate().toString().padStart(2, "0"),
         md5: generateMD5(imageData),
         md5_8: generateMD5(imageData, 8),
         md5_16: generateMD5(imageData, 16),
     };
 
-    // 使用统一的命名模板渲染函数
-    return renderNamingTemplate(namingTemplate, variables);
+    // 使用 @cmtx/template/renderTemplate 进行模板渲染
+    return renderTemplate(namingTemplate, variables, {
+        postProcess: (result) => result.replace(/\/+/g, "/"),
+    });
 }
 
 /**
@@ -164,7 +164,8 @@ export function generateRemoteImageName(
  */
 export async function generateNameAndRemotePath(
     localImageWithAbs: LocalImageMatchWithAbsPath,
-    storageOptions: StorageOptions
+    storageOptions: StorageConfig,
+    prefix?: string,
 ): Promise<{
     name: string;
     remotePath: string;
@@ -183,24 +184,19 @@ export async function generateNameAndRemotePath(
             date: new Date().toISOString().slice(0, 10),
             timestamp: Date.now().toString(),
             year: new Date().getFullYear().toString(),
-            month: (new Date().getMonth() + 1).toString().padStart(2, '0'),
-            day: new Date().getDate().toString().padStart(2, '0'),
+            month: (new Date().getMonth() + 1).toString().padStart(2, "0"),
+            day: new Date().getDate().toString().padStart(2, "0"),
             md5: generateMD5(imageData),
             md5_8: generateMD5(imageData, 8),
             md5_16: generateMD5(imageData, 16),
         };
 
-        const imageName = renderNamingTemplate(
-            storageOptions.namingTemplate || '{fileName}',
-            variables
-        );
+        const imageName = renderTemplate(storageOptions.namingTemplate || "{fileName}", variables, {
+            postProcess: (result) => result.replace(/\/+/g, "/"),
+        });
 
         // 构造最终路径
-        const prefix = storageOptions.prefix || '';
-        let normalizedPrefix = prefix;
-        if (normalizedPrefix && !normalizedPrefix.endsWith('/')) {
-            normalizedPrefix += '/';
-        }
+        const normalizedPrefix = (prefix || "").endsWith("/") ? prefix : prefix ? `${prefix}/` : "";
         return {
             name: imageName,
             remotePath: `${normalizedPrefix}${imageName}`,
@@ -209,7 +205,7 @@ export async function generateNameAndRemotePath(
     } catch (error) {
         throw new Error(
             `Failed to read file at ${localImageWithAbs.absLocalPath}: ${(error as Error).message}`,
-            { cause: error }
+            { cause: error },
         );
     }
 }

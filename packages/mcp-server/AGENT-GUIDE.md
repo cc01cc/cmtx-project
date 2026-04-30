@@ -10,18 +10,18 @@
 
 ```json
 {
-  "tools": {
-    "cmtx": {
-      "command": "node",
-      "args": ["packages/mcp-server/dist/bin/cmtx-mcp.js"],
-      "env": {
-        "ALIYUN_OSS_REGION": "oss-cn-hangzhou",
-        "ALIYUN_OSS_BUCKET": "your-bucket",
-        "ALIYUN_OSS_ACCESS_KEY_ID": "your-access-key",
-        "ALIYUN_OSS_ACCESS_KEY_SECRET": "your-secret"
-      }
+    "tools": {
+        "cmtx": {
+            "command": "node",
+            "args": ["packages/mcp-server/dist/bin/cmtx-mcp.js"],
+            "env": {
+                "ALIYUN_OSS_REGION": "oss-cn-hangzhou",
+                "ALIYUN_OSS_BUCKET": "your-bucket",
+                "ALIYUN_OSS_ACCESS_KEY_ID": "your-access-key",
+                "ALIYUN_OSS_ACCESS_KEY_SECRET": "your-secret"
+            }
+        }
     }
-  }
 }
 ```
 
@@ -101,4 +101,5 @@ Agent：我会先分析图片引用情况，然后安全删除未被引用的图
 🚧 **持续优化**：根据实际使用反馈不断改进
 
 ---
-*这个工具让您的 AI Agent 获得专业的 Markdown 图片管理能力*
+
+_这个工具让您的 AI Agent 获得专业的 Markdown 图片管理能力_

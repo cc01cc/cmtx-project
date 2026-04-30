@@ -1,499 +1,228 @@
 # @cmtx/mcp-server
 
-JSON-RPC 2.0 MCP (Model Context Protocol) 服务器，通过标准输入/输出（stdio）为 AI Agent 提供 Markdown 图片管理工具接口。
+[![npm version](https://img.shields.io/npm/v/@cmtx/mcp-server.svg)](https://www.npmjs.com/package/@cmtx/mcp-server)
+[![License](https://img.shields.io/npm/l/@cmtx/mcp-server.svg)](https://github.com/cc01cc/cmtx-project/blob/main/LICENSE)
 
-> **状态说明**：已完成对 core 和 upload 包大规模重构的全面适配，所有核心功能均已实现并通过测试。
+Model Context Protocol (MCP) 服务器，让 AI Agent 直接管理 Markdown 文档中的图片资源。
+MCP server for Markdown asset management — lets AI agents scan, upload, transfer, and delete images without handling cloud credentials directly.
 
-## 概述
+---
 
-该服务器实现了完整的 Model Context Protocol 2.0，提供 7 个工具用于 Markdown 图片的分析、上传、查询和删除操作。支持与 AI Agent（如 Claude）集成，使 Agent 能够自动管理项目中的图片资源。
+## 为什么需要 Markdown MCP Server？/ Why?
 
-### 接口完成状态
+AI Agent 在编写或编辑 Markdown 时面临和人类一样的痛点：
 
-| 工具名称 | 状态 | 说明 |
-|---------|------|------|
-| `scan.analyze` | ✅ 完成 | 扫描分析本地图片引用情况 |
-| `upload.preview` | ✅ 完成 | 预览上传操作结果（干运行）|
-| `upload.run` | ✅ 完成 | 执行实际上传和引用替换 |
-| `find.filesReferencingImage` | ✅ 完成 | 查找引用指定图片的文件 |
-| `delete.safe` | ✅ 完成 | 安全删除图片（检查引用）|
-| `delete.force` | ✅ 完成 | 强制删除图片（需确认）|
+- **上传门槛**：图片需要上传到云存储，但 AI 不应该持有云凭证
+- **引用更新**：上传后 Markdown 中的图片引用需要同步更新
+- **清理维护**：不再使用的图片需要检测并安全删除
+- **预签名 URL**：私有存储桶的图片需要临时访问链接
 
-> **v0.2.0 更新**：core 包进行了重大重构，移除了精确的位置信息 API，但图片分析、上传、删除等核心功能保持不变。
+CMTX MCP 服务器作为**能力代理层（capability delegation layer）**：AI 描述意图（"上传所有本地图片并更新引用"），CMTX 处理凭证和权限操作。
 
-## 快速开始
+AI agents face the same pain points as humans when editing Markdown. CMTX MCP server acts as a capability delegation layer — the agent describes what it wants, and CMTX handles the permission-heavy operations.
 
-### 安装
+---
+
+## 快速开始 / Quick Start
+
+### 安装 / Installation
 
 ```bash
 pnpm install @cmtx/mcp-server
 ```
 
-### 使用
+### Claude Desktop 配置
 
-作为 stdio 服务器运行（通常由 AI Agent 框架调用）：
+```json
+{
+    "mcpServers": {
+        "cmtx": {
+            "command": "node",
+            "args": ["path/to/mcp-server/dist/bin/cmtx-mcp.js"],
+            "env": {
+                "ALIYUN_OSS_REGION": "oss-cn-hangzhou",
+                "ALIYUN_OSS_BUCKET": "my-bucket",
+                "ALIYUN_OSS_ACCESS_KEY_ID": "your-key-id",
+                "ALIYUN_OSS_ACCESS_KEY_SECRET": "your-secret"
+            }
+        }
+    }
+}
+```
+
+### Claude Code / Cursor
 
 ```bash
-node packages/mcp-server/dist/bin/cmtx-mcp.js < input.jsonl > output.jsonl
+claude mcp add cmtx npx -y @cmtx/mcp-server
+
+# Then ask your agent:
+# "Scan the docs/ folder for local images and upload them to cloud storage"
 ```
 
-或在 AI Agent 配置中：
+---
 
-```json
-{
-  "tools": {
-    "cmtx": {
-      "command": "node",
-      "args": ["packages/mcp-server/dist/bin/cmtx-mcp.js"],
-      "env": {
-        "ALIYUN_OSS_REGION": "oss-cn-hangzhou",
-        "ALIYUN_OSS_BUCKET": "your-bucket",
-        "ALIYUN_OSS_ACCESS_KEY_ID": "your-key-id",
-        "ALIYUN_OSS_ACCESS_KEY_SECRET": "your-secret"
-      }
-    }
-  }
-}
-```
+## 工具列表 / Tools
 
-## 实现的工具
+### scan.analyze
 
-### 1. scan.analyze
+扫描目录中的本地图片，分析其在 Markdown 文件中的引用情况。
+Scan a directory for local images and analyze their references across Markdown files.
 
-扫描本地图片并分析其引用情况。
-
-**参数：**
+**参数 / Parameters：**
 
 | 参数 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| projectRoot | string | 是 | 项目根目录 |
+|---|---|---|---|
+| projectRoot | string | 是 | 项目根目录（路径安全限制） |
 | searchDir | string | 是 | 扫描目录 |
-| localPrefixes | string[] | - | 本地路径前缀 |
-| uploadPrefix | string | - | 上传路径前缀 |
-| namingStrategy | string | - | 命名策略 |
-| maxFileSize | number | - | 最大文件大小（字节） |
-| allowedExtensions | string[] | - | 允许的扩展名 |
 
-**返回值：**
+**返回 / Returns：** 图片列表（含引用计数）、跳过文件、总计统计。
 
-```typescript
-{
-  images: Array<{
-    localPath: string;
-    fileSize: number;
-    referencedIn: string[];
-  }>;
-  skipped: Array<{
-    path: string;
-    reason: string;
-  }>;
-  totalSize: number;
-  totalCount: number;
-}
-```
+### upload.preview
 
-**示例：**
+预览上传操作结果（干运行），不实际修改文件。
+Preview what an upload operation would do — dry run without modifying files.
 
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "tools.call",
-  "params": {
-    "name": "scan.analyze",
-    "arguments": {
-      "projectRoot": "/project",
-      "searchDir": "/project/docs"
-    }
-  }
-}
-```
+**参数：** 同 scan.analyze，另加存储适配器配置（region、bucket、credentials）。
 
-### 2. upload.preview
+### upload.run
 
-预览上传操作的结果（干运行），不实际执行上传或修改文件。
+执行实际上传和引用替换。
+Execute upload and reference replacement.
 
-**参数：** 同 scan.analyze，另加存储适配器配置
-
-**返回值：**
-
-```typescript
-{
-  preview: Array<{
-    imagePath: string;
-    remotePath: string;
-    referencedIn: string[];
-  }>;
-  totals: {
-    toReplace: number;
-    toDelete: number;
-  };
-}
-```
-
-### 3. upload.run
-
-执行实际的上传和 Markdown 引用更新。
-
-**参数：**
+**参数 / Parameters：**
 
 | 参数 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
+|---|---|---|---|
 | projectRoot | string | 是 | 项目根目录 |
 | searchDir | string | 是 | 扫描目录 |
-| region | string | - | OSS 区域（默认：oss-cn-hangzhou）|
-| accessKeyId | string | - | OSS Access Key ID |
-| accessKeySecret | string | - | OSS Access Key Secret |
-| bucket | string | - | OSS Bucket 名称 |
-| uploadPrefix | string | - | 上传路径前缀 |
-| namingPattern | string | - | 命名模式（已更新）|
-| deletionStrategy | string | - | 删除策略 |
-| maxDeletionRetries | number | - | 最大重试次数 |
+| region | string | 否 | OSS 区域 |
+| bucket | string | 否 | OSS bucket 名称 |
+| uploadPrefix | string | 否 | 上传路径前缀 |
+| namingTemplate | string | 否 | 命名模板（如 `{date}_{md5_8}{ext}`） |
 
-**返回值：**
-
-```typescript
-{
-  count: number;
-  results: Array<{
-    filePath: string;
-    success: boolean;
-    uploaded: number;
-    replaced: number;
-    deleted: number;
-    error?: string;
-  }>;
-}
-```
-
-**事件：** 上传过程中发送 JSON-RPC 通知
-
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "upload.event",
-  "params": {
-    "type": "scan" | "upload" | "replace" | "delete" | "complete",
-    "data": {}
-  }
-}
-```
-
-### 4. find.filesReferencingImage
+### find.filesReferencingImage
 
 查找引用指定图片的所有 Markdown 文件。
+List all Markdown files that reference a specific image.
 
-**参数：**
+### find.referenceDetails
 
-| 参数 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| projectRoot | string | 是 | 项目根目录 |
-| imagePath | string | 是 | 图片路径 |
-| searchDir | string | 是 | 搜索目录 |
-| depth | number | - | 递归深度 |
+获取图片引用的详细位置信息（行号、列号、原文）。
 
-**返回值：**
+### delete.safe
 
-```typescript
-{
-  files: string[];  // 相对路径列表
-}
-```
+安全删除图片（仅当无 Markdown 文件引用时）。
+Delete an image only if no Markdown files reference it.
 
-### 5. find.referenceDetails
+### delete.force
 
-获取图片引用的详细位置信息（行号、列号）。
+强制删除图片（需显式确认 `allowHardDelete: true`）。
+Force-delete an image with explicit confirmation.
 
-**参数：** 同 find.filesReferencingImage
+### transfer.analyze
 
-**返回值：**
+分析远程图片的转移需求。
+Analyze remote images for transfer between storage providers.
 
-```typescript
-{
-  references: Array<{
-    file: string;
-    locations: Array<{
-      line: number;
-      column: number;
-      text: string;
-    }>;
-  }>;
-}
-```
+### transfer.preview
 
-### 6. delete.safe
+预览转移操作结果（干运行）。
+Preview what a transfer operation would do — dry run without modifying files.
 
-安全删除图片（检查引用后删除）。
+### transfer.execute
 
-**参数：**
+执行远程图片转移。
+Execute the remote image transfer between storage providers.
 
-| 参数 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| projectRoot | string | 是 | 项目根目录 |
-| imagePath | string | 是 | 图片路径 |
-| searchDir | string | 是 | 搜索目录 |
+---
 
-**返回值：**
+## 错误处理 / Error Handling
 
-```typescript
-{
-  deleted: boolean;
-  path?: string;
-  reason?: string;
-  file?: string;  // 如果未删除，返回引用该图片的文件
-}
-```
-
-### 7. delete.force
-
-强制删除图片（需显式确认）。
-
-**参数：**
-
-| 参数 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| projectRoot | string | 是 | 项目根目录 |
-| imagePath | string | 是 | 图片路径 |
-| searchDir | string | 是 | 搜索目录 |
-| allowHardDelete | boolean | 是 | 必须为 true（安全确认） |
-
-**返回值：** 同 delete.safe，另加 `forced: true`
-
-## 错误处理
-
-服务器返回标准 JSON-RPC 2.0 错误响应：
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "error": {
-    "code": 4001,
-    "message": "Path is outside project root",
-    "data": {
-      "path": "/etc/passwd"
-    }
-  }
-}
-```
-
-**错误代码：**
+标准 JSON-RPC 2.0 错误码 / Standard JSON-RPC 2.0 error codes：
 
 | 代码 | 消息 | 说明 |
-| --- | --- | --- |
+|---|---|---|
 | 4001 | PATH_OUTSIDE_ROOT | 路径超出项目根目录 |
-| 4101 | ADAPTER_UNAVAILABLE | 存储适配器不可用 |
-| 4300 | DELETE_REFERENCED | 图片仍被引用，无法删除 |
+| 4101 | ADAPTER_UNAVAILABLE | 存储适配器未配置或不可用 |
+| 4102 | UNSUPPORTED_PROVIDER | 不支持的云存储提供商类型 |
+| 4300 | DELETE_REFERENCED | 图片仍被引用，无法安全删除 |
 | 4301 | DELETE_FAILED | 删除操作失败 |
 | 4400 | INVALID_ARGS | 参数无效或缺失 |
-| 5000 | 其他错误 | 通用服务器错误 |
+| 5000 | INTERNAL_ERROR | 通用服务器错误 |
 
-## 环境变量
+---
 
-OSS 凭证可通过环境变量配置：
+## 环境变量 / Environment Variables
+
+凭证可通过环境变量或工具调用参数传入：
 
 ```bash
+# 阿里云 OSS / Aliyun OSS
 export ALIYUN_OSS_REGION=oss-cn-hangzhou
 export ALIYUN_OSS_BUCKET=my-bucket
 export ALIYUN_OSS_ACCESS_KEY_ID=your_access_key
 export ALIYUN_OSS_ACCESS_KEY_SECRET=your_secret
+
+# 腾讯云 COS / Tencent COS
+export TENCENT_COS_REGION=ap-guangzhou
+export TENCENT_COS_BUCKET=my-bucket-123456
+export TENCENT_COS_SECRET_ID=your_secret_id
+export TENCENT_COS_SECRET_KEY=your_secret_key
 ```
 
-或在工具调用时作为参数传递。
+---
 
-### 技术细节
+## AI Agent 使用场景 / Use Cases
 
-### JSON-RPC 2.0 协议
+### 自动图片上传 / Automatic image upload
 
-- **请求：** 通过 stdin 接收 JSON 行
-- **响应：** 通过 stdout 发送 JSON 行
-- **通知：** 支持无 id 的通知（用于事件）
-
-### 类型安全
-
-- 全 TypeScript strict 模式
-- 参数验证和类型检查
-- 完整的 JSDoc 注释
-
-### 依赖
-
-- `@cmtx/core`：Markdown 分析（重构版本）
-- `@cmtx/upload`：上传和替换（重构版本）
-- `ali-oss`：阿里云 OSS SDK
-- `fast-glob`：文件模式匹配
-
-### 重构变更
-
-此版本已完成对 core 和 upload 包大规模重构的适配：
-
-- **API 适配**：更新了 ConfigBuilder 和参数名称
-- **功能增强**：实现了目录级别的上传处理
-- **引用查找**：新增了文件引用查找和详细位置信息功能
-- **错误处理**：改进了错误消息和类型安全性
-- **性能优化**：使用了 core 包的快速内容检查机制
-
-## AI Agent 集成指南
-
-### Claude Desktop 配置
-
-在 Claude Desktop 的配置文件中添加：
-
-```json
-{
-  "tools": {
-    "cmtx": {
-      "command": "node",
-      "args": ["packages/mcp-server/dist/bin/cmtx-mcp.js"],
-      "env": {
-        "ALIYUN_OSS_REGION": "oss-cn-hangzhou",
-        "ALIYUN_OSS_BUCKET": "your-bucket",
-        "ALIYUN_OSS_ACCESS_KEY_ID": "your-key-id",
-        "ALIYUN_OSS_ACCESS_KEY_SECRET": "your-secret"
-      }
-    }
-  }
-}
+```
+User: "Upload all local images in docs/ to cloud storage and update Markdown references"
+Agent: Calls upload.run with the configured storage credentials
 ```
 
-### Claude API（Anthropic）集成
+### 图片使用分析 / Image usage analysis
 
-```python
-from anthropic import Anthropic
-
-# MCP 工具定义
-mcp_tools = [
-    {
-        "name": "scan.analyze",
-        "description": "扫描本地图片并分析引用情况",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "projectRoot": {"type": "string", "description": "项目根目录"},
-                "searchDir": {"type": "string", "description": "扫描目录"}
-            },
-            "required": ["projectRoot", "searchDir"]
-        }
-    },
-    {
-        "name": "upload.run",
-        "description": "上传本地图片到云存储并更新 Markdown 引用",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "projectRoot": {"type": "string"},
-                "searchDir": {"type": "string"},
-                "region": {"type": "string"},
-                "accessKeyId": {"type": "string"},
-                "accessKeySecret": {"type": "string"},
-                "bucket": {"type": "string"}
-            },
-            "required": ["projectRoot", "searchDir"]
-        }
-    }
-    # ... 其他工具定义
-]
-
-client = Anthropic()
-response = client.messages.create(
-    model="claude-3-5-sonnet-20241022",
-    max_tokens=1024,
-    tools=mcp_tools,
-    messages=[
-        {
-            "role": "user", 
-            "content": "请帮我扫描 docs 目录中的所有本地图片，并上传到 OSS"
-        }
-    ]
-)
+```
+User: "Which files reference logo.png?"
+Agent: Calls find.filesReferencingImage to get the list
 ```
 
-### 与其他 AI Agent 集成
+### 安全清理 / Safe cleanup
 
-通过 stdio 连接：
-
-```typescript
-const { spawn } = require('child_process');
-
-const server = spawn('node', ['cmtx-mcp.js']);
-
-server.stdout.on('data', (data) => {
-  const response = JSON.parse(data.toString());
-  // 处理 MCP 响应
-  console.log('Agent received:', response);
-});
-
-// 发送工具调用请求
-server.stdin.write(JSON.stringify({
-  jsonrpc: "2.0",
-  id: 1,
-  method: "tools.call",
-  params: {
-    name: "scan.analyze",
-    arguments: { 
-      projectRoot: "/project", 
-      searchDir: "/project/docs" 
-    }
-  }
-}) + '\n');
+```
+User: "Remove all unused images from the assets/ directory"
+Agent: Calls scan.analyze to identify unused images, then delete.safe for each
 ```
 
-## Agent 使用场景
+### 跨存储转移 / Cross-storage transfer
 
-### 场景1：自动图片迁移
 ```
-用户："请帮我把 docs 目录中所有本地图片上传到 OSS，并更新 Markdown 引用"
-Agent：调用 upload.run 工具完成操作
-```
-
-### 场景2：图片引用分析
-```
-用户："我想知道哪些文件引用了 logo.png 这个图片"
-Agent：调用 find.filesReferencingImage 工具查找引用
+User: "Transfer all images from Aliyun OSS to Tencent COS"
+Agent: Calls transfer tools to move assets between providers
 ```
 
-### 场景3：安全清理
-```
-用户："删除不再被引用的旧图片文件"
-Agent：先调用 scan.analyze 分析，再调用 delete.safe 清理
-```
+---
 
-### 场景4：批量预览
-```
-用户："预览一下上传操作会有什么变化"
-Agent：调用 upload.preview 进行干运行
-```
-
-## 常见问题
-
-### 如何测试服务器？
-
-使用 echo 和 node：
+## 测试 / Testing
 
 ```bash
+# Send a test request via stdin
 echo '{"jsonrpc":"2.0","id":1,"method":"tools.call","params":{"name":"scan.analyze","arguments":{"projectRoot":".","searchDir":"./docs"}}}' | \
 node packages/mcp-server/dist/bin/cmtx-mcp.js
 ```
 
-### OSS 凭证如何安全传递？
+---
 
-优先使用环境变量，避免在命令行或配置文件中暴露敏感信息。
+## 参见 / See Also
 
-### 支持其他存储服务吗？
+- [根 README](../../README.md) — 项目概览和架构
+- [@cmtx/core](../core/README.md) — Markdown 纯文本处理
+- [@cmtx/asset](../asset/README.md) — 资产管道
+- [Model Context Protocol](https://modelcontextprotocol.io/)
 
-当前实现支持阿里云 OSS。可通过实现 `IStorageAdapter` 接口扩展支持 S3、COS 等。
+---
 
-### 为什么某些功能标记为 TODO？
-
-部分高级功能（如精确的位置信息）由于 core 包架构限制暂未实现。重构后的版本已尽可能提供实用功能。
-
-## 许可证
+## 许可证 / License
 
 Apache-2.0
-
-## 参见
-
-- [@cmtx/core](../core/README.md) - 图片处理与元数据操作
-- [@cmtx/upload](../upload/README.md) - 对象存储上传
-- [@cmtx/cli](../cli/README.md) - 命令行工具
-- [Model Context Protocol](https://modelcontextprotocol.io/)
-- [AGENT-GUIDE.md](AGENT-GUIDE.md) - AI Agent 使用指南

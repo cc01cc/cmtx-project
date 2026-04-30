@@ -22,7 +22,7 @@ export interface CosClient {
      */
     uploadFile(
         params: CosUploadFileParams,
-        callback: (err: Error | null, data?: CosUploadFileResult) => void
+        callback: (err: Error | null, data?: CosUploadFileResult) => void,
     ): void;
 
     /**
@@ -30,7 +30,7 @@ export interface CosClient {
      */
     getObjectUrl(
         params: Record<string, unknown>,
-        callback: (err: Error | null, data?: { Url?: string }) => void
+        callback: (err: Error | null, data?: { Url?: string }) => void,
     ): void;
 
     /**
@@ -44,7 +44,7 @@ export interface CosClient {
             Body: Buffer;
             Headers?: Record<string, string>;
         },
-        callback: (err: Error | null) => void
+        callback: (err: Error | null) => void,
     ): void;
 
     /**
@@ -59,14 +59,9 @@ export interface CosClient {
             Bucket: string;
             Region: string;
             Key: string;
-            // biome-ignore lint/suspicious/noExplicitAny: COS SDK 未提供完整类型定义
-            Output?: any;
+            Output?: unknown;
         },
-        callback: (
-            err: Error | null,
-            // biome-ignore lint/suspicious/noExplicitAny: COS SDK 未提供完整类型定义
-            data?: { Body?: any }
-        ) => void
+        callback: (err: Error | null, data?: { Body?: unknown }) => void,
     ): void;
 
     /**
@@ -78,7 +73,7 @@ export interface CosClient {
             Region: string;
             Key: string;
         },
-        callback: (err: Error | null, data?: { Headers?: Record<string, string> }) => void
+        callback: (err: Error | null, data?: { Headers?: Record<string, string> }) => void,
     ): void;
 
     /**
@@ -93,11 +88,7 @@ export interface CosClient {
             Region: string;
             Key: string;
         },
-        callback: (
-            err: Error | null,
-            // biome-ignore lint/suspicious/noExplicitAny: COS SDK 未提供完整类型定义
-            data?: any
-        ) => void
+        callback: (err: Error | null, data?: unknown) => void,
     ): void;
 }
 
