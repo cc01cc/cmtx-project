@@ -1,5 +1,0 @@
-# Generated demo assets for examples (not tracked)
-examples/demo-data/
-
-# Environment variables with sensitive credentials
-examples/.env
