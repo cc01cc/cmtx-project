@@ -192,6 +192,6 @@ Press [1-3]:
 [OK] 无 Emoji fallback，无格式化风险  
 [OK] 代码易于解析和检查  
 [OK] Git diff / patch 显示清晰  
-[OK] 支持所有编码（UTF-8/ASCII/Latin-1）  
+[OK] 支持所有编码（UTF-8/ASCII/Latin-1）
 
 **一句话：当有疑问时，用 `[ ] [x] [OK] [FAIL]` 就对了！**

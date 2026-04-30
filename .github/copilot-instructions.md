@@ -99,11 +99,11 @@ cmtx-project/
 1. Create feature branch: `git checkout -b feat/feature-name`
 2. Make changes & test:
 
-   ```bash
-   cd packages/core
-   pnpm test
-   pnpm lint
-   ```
+    ```bash
+    cd packages/core
+    pnpm test
+    pnpm lint
+    ```
 
 3. Build verification: `pnpm build` or `pnpm -F @cmtx/core build`
 4. Commit: `git commit -m "feat: description"` & push
@@ -192,18 +192,18 @@ VS Code debugging configuration (`.vscode/launch.json`):
 
 ```json
 {
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Launch Test",
-      "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["test", "--"],
-      "console": "integratedTerminal",
-      "cwd": "${workspaceFolder}/packages/core"
-    }
-  ]
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Test",
+            "runtimeExecutable": "pnpm",
+            "runtimeArgs": ["test", "--"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/packages/core"
+        }
+    ]
 }
 ```
 
@@ -246,6 +246,11 @@ pnpm lint                       # Auto-fix
 - Strict mode, NodeNext module resolution
 - Import paths use `.js` suffix in source (NodeNext requirement)
 - Follow existing project structure and naming conventions
+- **Quote Style**: Use single quotes (`'`) for all JavaScript/TypeScript strings (enforced by Biome)
+    - String literals: `const msg = 'hello world';`
+    - Import statements: `import { foo } from '@cmtx/core';`
+    - Exception: Template strings when content contains single quotes: `` `I'm here` ``
+    - Exception: JSON files must use double quotes (JSON spec requirement)
 
 ### Markdown & Comments
 
@@ -267,11 +272,11 @@ pnpm lint                       # Auto-fix
 Follow core principles to maintain code quality and maintainability:
 
 - **SOLID**
-  - Single Responsibility: Each module has one reason to change (core: filter/replace/delete are separate)
-  - Open/Closed: Extensible via adapters without modifying existing code
-  - Liskov Substitution: Adapter interfaces are interchangeable
-  - Interface Segregation: Small focused interfaces, not bloated ones
-  - Dependency Inversion: Depend on abstractions, not concrete implementations
+    - Single Responsibility: Each module has one reason to change (core: filter/replace/delete are separate)
+    - Open/Closed: Extensible via adapters without modifying existing code
+    - Liskov Substitution: Adapter interfaces are interchangeable
+    - Interface Segregation: Small focused interfaces, not bloated ones
+    - Dependency Inversion: Depend on abstractions, not concrete implementations
 
 - **DRY** (Don't Repeat Yourself): Shared logic in utils, constants in `constants/` dirs
 
@@ -297,6 +302,7 @@ Follow core principles to maintain code quality and maintainability:
 **Purpose**: Pure regex-based Markdown image parsing and manipulation
 
 **Key Exports**:
+
 - `filterImagesInText / fromFile / fromDirectory` - Extract images (Markdown inline, HTML tags)
 - `replaceImagesInText / inFile / inDirectory` - Regex-based replacement with multi-field support
 - `deleteLocalImage` / `deleteLocalImageSafely` - Safe deletion with retry & strategy support
@@ -308,6 +314,7 @@ Follow core principles to maintain code quality and maintainability:
 **Purpose**: Adapter-based cloud storage integration with ConfigBuilder pattern
 
 **Architecture**:
+
 ```
 ConfigBuilder (fluent API)
     ↓
@@ -319,11 +326,13 @@ IStorageAdapter (AliOSSAdapter, etc)
 ```
 
 **Key Classes**:
+
 - `ConfigBuilder` - Fluent config construction with chainable methods
 - `AliOSSAdapter` - OSS client wrapper (peer dependency: ali-oss)
 - `UploadContext` - Maintains upload state & deduplication map
 
 **Default Behaviors**:
+
 - **Delete is OFF by default** - Only execute when `.delete()` is called on ConfigBuilder
 - **Replace fields default to**: `{ src: '{cloudSrc}', alt: '{originalAlt}' }`
 - **Deduplication**: Always enabled; tracks uploaded files by hash to prevent re-uploads
@@ -335,6 +344,7 @@ IStorageAdapter (AliOSSAdapter, etc)
 **Entry Point**: `packages/cli/bin/cmtx.ts`
 
 **Command Structure**:
+
 - `analyze` - Scan Markdown for images
 - `upload` - Execute upload workflow
 - `delete` - Safe image deletion
@@ -386,6 +396,7 @@ pnpm -F @cmtx/upload exec tsc --noEmit src/uploader.ts
 ### Deduplication Logic
 
 Located in `packages/upload/src/upload-context.ts`:
+
 - Tracks uploaded files by absolute path
 - Prevents duplicate uploads of same file
 - Returns existing cloud URL for duplicates
@@ -393,6 +404,7 @@ Located in `packages/upload/src/upload-context.ts`:
 ### Deletion Strategy
 
 Supports three modes (from @cmtx/core):
+
 - `trash` - Move to system recycle bin (default, cross-platform)
 - `move` - Move to `.cmtx-trash/` directory
 - `hard-delete` - Permanent deletion (use with caution)
@@ -400,6 +412,7 @@ Supports three modes (from @cmtx/core):
 ### Field Replacement Templates
 
 Renderer in `packages/upload/src/template-renderer.ts` handles:
+
 - Built-in vars: `{cloudSrc}`, `{originalAlt}`, `{date}`, `{md5_8}`, `{ext}`
 - Custom context variables: Pass via `replace.context`
 - Conditional replacement: Future feature (see test stubs)
