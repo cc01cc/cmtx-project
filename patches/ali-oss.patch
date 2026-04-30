@@ -1,0 +1,10 @@
+diff --git a/lib/common/utils/encoder.ts b/lib/common/utils/encoder.ts
+index 7476afb098a470046825db1755a9d319c833d6f8..bdc232b277454b1f2ea638866829adefdff34087 100644
+--- a/lib/common/utils/encoder.ts
++++ b/lib/common/utils/encoder.ts
+@@ -1,4 +1,4 @@
+-import { THeaderEncoding } from '../../types/experimental';
++import type { THeaderEncoding } from '../../types/experimental';
+ 
+ export function encoder(str: string, encoding: THeaderEncoding = 'utf-8') {
+   if (encoding === 'utf-8') return str;

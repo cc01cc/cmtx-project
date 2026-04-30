@@ -1,0 +1,58 @@
+{
+    "name": "@cmtx/autocorrect-wasm",
+    "version": "0.1.1-alpha.0",
+    "description": "AutoCorrect WASM bindings for CMTX",
+    "keywords": [
+        "autocorrect",
+        "lint",
+        "text-formatting",
+        "wasm"
+    ],
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cc01cc/cmtx-project.git",
+        "directory": "packages/autocorrect-wasm"
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "CHANGELOG.md"
+    ],
+    "type": "module",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.cjs"
+        }
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "scripts": {
+        "build:wasm": "wasm-pack build --target web --out-dir pkg",
+        "build": "pnpm run build:wasm && tsdown",
+        "build:watch": "tsdown --watch",
+        "build:release": "wasm-pack build --target web --out-dir pkg --release && tsdown",
+        "test:wasm": "wasm-pack test --node",
+        "test:ts": "vitest run",
+        "test": "pnpm run test:wasm && pnpm run test:ts",
+        "docs": "typedoc",
+        "docs:rust": "cargo doc --no-deps",
+        "clean": "rm -rf dist",
+        "typecheck": "tsc --noEmit -p tsconfig.json",
+        "typecheck:tests": "tsc --noEmit -p tsconfig.test.json"
+    },
+    "devDependencies": {
+        "@types/node": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:"
+    },
+    "engines": {
+        "node": ">=22.0.0"
+    }
+}
