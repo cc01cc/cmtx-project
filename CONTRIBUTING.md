@@ -4,7 +4,7 @@
 
 ## 开发环境
 
-- Node.js 18+（建议保持与 CI 一致）
+- Node.js 22+（建议保持与 CI 一致）
 - pnpm 10+（已在 packageManager 字段声明）
 - ESM / TypeScript NodeNext
 
@@ -14,17 +14,57 @@
 pnpm install        # 安装依赖
 pnpm build          # 递归构建所有包
 pnpm test           # 递归运行 Vitest
-pnpm lint           # 统一 ESLint（ESM/TS/Markdown/JSON）
+pnpm lint           # 代码检查（oxlint & oxfmt）
 pnpm run docs       # 递归生成 TypeDoc（core、upload 输出至各自 docs/api）
 ```
+
+## 代码变更工作流程
+
+### 三个固定阶段
+
+#### 阶段 1: 代码设计与实现
+
+- 在 PLAN 中设计变更方案
+- 同步编写/更新相关测试
+- 更新受影响的注释（代码内注释）
+
+#### 阶段 2: 验收检查（缺一不可）
+
+所有代码变更必须通过以下四项检查：
+
+1. `pnpm build` - 构建成功
+2. `pnpm test` - 测试通过
+3. `pnpm lint` - 代码风格检查（oxlint & oxfmt）
+4. `pnpm typecheck` - TypeScript 类型检查
+
+**验收通过条件：四项全部 PASS，缺一不可**
+
+#### 阶段 3: 文档更新（验收后立即执行）
+
+验收通过后，需要更新所有涉及的文档：
+
+- API 文档（对应包的 README.md）
+- 架构文档（如涉及包设计或依赖关系变更）
+- 使用指南（如改变公开 API）
+- 历史 PLAN 除外，仅记录最新状态
+
+### PLAN 设计清单
+
+设计代码变更的 PLAN 时，应包含以下固定段落：
+
+- [OK] 测试更新策略（新增、修改或删除的测试）
+- [OK] 四项检查验收标准（build/test/lint/typecheck）
+- [OK] 文档更新清单（受影响的文件）
+- [OK] 预期的代码行数变化（构建产物大小变化）
 
 ## 提交流程
 
 1. Fork & branch
 2. 开发：保持 ESM、严格类型，遵循现有代码风格
-3. 校验：至少运行 `pnpm lint` 与 `pnpm test`
-4. 提交信息：建议使用简洁动词开头，明确范围（如 feat(core), fix(upload), docs(cli)）
-5. PR：描述改动、测试结果，必要时附截图或日志
+3. 校验：运行 `pnpm build`、`pnpm test`、`pnpm lint`、`pnpm typecheck`（四项都需通过）
+4. 更新文档：确保所有受影响的 README 与架构文档已更新
+5. 提交信息：建议使用简洁动词开头，明确范围（如 feat(core), fix(upload), docs(cli)）
+6. PR：描述改动、测试结果、文档更新情况，必要时附截图或日志
 
 ## 代码风格
 
@@ -45,7 +85,7 @@ pnpm run docs       # 递归生成 TypeDoc（core、upload 输出至各自 docs/
 ## 版本与发布
 
 - 正式发布后各包将独立版本号和更新周期
-- 发布范围：@cmtx/*（默认 public 发布）
+- 发布范围：@cmtx/\*（默认 public 发布）
 - Changelog 维护：各包内 CHANGELOG.md，遵循 Keep a Changelog 格式
 
 ## 文档要求

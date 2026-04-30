@@ -38,6 +38,7 @@
 5. 更新相关文档以反映新的架构关系
 
 **核心挑战**：
+
 - 确保 template 包的通用性（可被其他应用作为依赖库使用）
 - 明确各包间的数据流向和调用关系
 - 保持向后兼容性（如果有现有用户）
@@ -73,21 +74,21 @@ packages/template/
 ```typescript
 // packages/template/src/core/types.ts
 export interface TemplateContext {
-  [key: string]: string | number | boolean | undefined;
-  // 内置标准变量
-  date?: string;
-  timestamp?: string;
-  uuid?: string;
+    [key: string]: string | number | boolean | undefined;
+    // 内置标准变量
+    date?: string;
+    timestamp?: string;
+    uuid?: string;
 }
 
 export interface TemplateEngine {
-  render(template: string, context: TemplateContext): string;
-  validate(template: string): ValidationResult;
+    render(template: string, context: TemplateContext): string;
+    validate(template: string): ValidationResult;
 }
 
 export interface ValidationResult {
-  isValid: boolean;
-  errors: string[];
+    isValid: boolean;
+    errors: string[];
 }
 ```
 
@@ -96,38 +97,38 @@ export interface ValidationResult {
 ```typescript
 // packages/template/src/builder/base-builder.ts
 export abstract class BaseTemplateBuilder {
-  protected context: TemplateContext = {};
-  
-  withDate(): this {
-    this.context.date = new Date().toISOString().split('T')[0];
-    return this;
-  }
-  
-  withTimestamp(): this {
-    this.context.timestamp = Date.now().toString();
-    return this;
-  }
-  
-  withUUID(): this {
-    this.context.uuid = crypto.randomUUID();
-    return this;
-  }
-  
-  addVariable(key: string, value: string | number | boolean): this {
-    this.context[key] = value;
-    return this;
-  }
-  
-  merge(context: TemplateContext): this {
-    Object.assign(this.context, context);
-    return this;
-  }
-  
-  getContext(): TemplateContext {
-    return { ...this.context };
-  }
-  
-  abstract build(): string;
+    protected context: TemplateContext = {};
+
+    withDate(): this {
+        this.context.date = new Date().toISOString().split("T")[0];
+        return this;
+    }
+
+    withTimestamp(): this {
+        this.context.timestamp = Date.now().toString();
+        return this;
+    }
+
+    withUUID(): this {
+        this.context.uuid = crypto.randomUUID();
+        return this;
+    }
+
+    addVariable(key: string, value: string | number | boolean): this {
+        this.context[key] = value;
+        return this;
+    }
+
+    merge(context: TemplateContext): this {
+        Object.assign(this.context, context);
+        return this;
+    }
+
+    getContext(): TemplateContext {
+        return { ...this.context };
+    }
+
+    abstract build(): string;
 }
 ```
 
@@ -135,23 +136,20 @@ export abstract class BaseTemplateBuilder {
 
 ```typescript
 // packages/template/src/core/template-engine.ts
-export function renderTemplate(
-  template: string,
-  context: TemplateContext
-): string {
-  return template.replaceAll(/\{([^}]+)\}/g, (match, key) => {
-    const value = context[key];
-    return value !== undefined ? String(value) : match;
-  });
+export function renderTemplate(template: string, context: TemplateContext): string {
+    return template.replaceAll(/\{([^}]+)\}/g, (match, key) => {
+        const value = context[key];
+        return value !== undefined ? String(value) : match;
+    });
 }
 
 export function validateTemplate(template: string): ValidationResult {
-  // 基本语法验证
-  const unmatchedBraces = template.match(/(?<!\{)\{[^{}]*\}(?!\})/g) || [];
-  return {
-    isValid: unmatchedBraces.length === 0,
-    errors: unmatchedBraces.map(match => `未闭合的模板变量: ${match}`)
-  };
+    // 基本语法验证
+    const unmatchedBraces = template.match(/(?<!\{)\{[^{}]*\}(?!\})/g) || [];
+    return {
+        isValid: unmatchedBraces.length === 0,
+        errors: unmatchedBraces.map((match) => `未闭合的模板变量: ${match}`),
+    };
 }
 ```
 
@@ -159,36 +157,36 @@ export function validateTemplate(template: string): ValidationResult {
 
 ```typescript
 // packages/upload/src/naming/builder.ts
-import { BaseTemplateBuilder } from '@cmtx/template';
+import { BaseTemplateBuilder } from "@cmtx/template";
 
 export interface FileInfo {
-  name: string;
-  size: number;
-  extension: string;
-  path: string;
+    name: string;
+    size: number;
+    extension: string;
+    path: string;
 }
 
 export class UploadNameBuilder extends BaseTemplateBuilder {
-  constructor(private fileInfo: FileInfo) {
-    super();
-  }
-  
-  withFileInfo(): this {
-    this.context.filename = this.fileInfo.name;
-    this.context.filesize = this.fileInfo.size.toString();
-    this.context.fileext = this.fileInfo.extension;
-    return this;
-  }
-  
-  withCloudUrl(url: string): this {
-    this.context.cloudSrc = url;
-    return this;
-  }
-  
-  build(): string {
-    // 可以在这里添加特定的构建逻辑
-    return super.getContext() as unknown as string; // 实际实现会更复杂
-  }
+    constructor(private fileInfo: FileInfo) {
+        super();
+    }
+
+    withFileInfo(): this {
+        this.context.filename = this.fileInfo.name;
+        this.context.filesize = this.fileInfo.size.toString();
+        this.context.fileext = this.fileInfo.extension;
+        return this;
+    }
+
+    withCloudUrl(url: string): this {
+        this.context.cloudSrc = url;
+        return this;
+    }
+
+    build(): string {
+        // 可以在这里添加特定的构建逻辑
+        return super.getContext() as unknown as string; // 实际实现会更复杂
+    }
 }
 ```
 
@@ -209,26 +207,26 @@ export class UploadNameBuilder extends BaseTemplateBuilder {
 ```typescript
 // 1. Upload 包调用 Template 包生成文本
 const templateResult = new UploadNameBuilder(fileInfo)
-  .withFileInfo()
-  .withDate()
-  .withCloudUrl(cloudUrl)
-  .build(); // 生成 "2024-01-01_image.jpg"
+    .withFileInfo()
+    .withDate()
+    .withCloudUrl(cloudUrl)
+    .build(); // 生成 "2024-01-01_image.jpg"
 
 // 2. Upload 包调用 Core 包执行替换
 const result = core.replaceImagesInText(
-  markdownContent,
-  imagePattern,  // 要匹配的 pattern
-  templateResult // 生成的纯文本
+    markdownContent,
+    imagePattern, // 要匹配的 pattern
+    templateResult, // 生成的纯文本
 );
 ```
 
 ### 各包职责边界
 
-| 包 | 职责 | 不做的事 |
-|---|------|----------|
-| @cmtx/core | 提供文档处理的原子操作 | 不生成具体内容，不包含业务逻辑 |
-| @cmtx/template | 提供模板渲染能力 | 不直接操作文档，不包含业务逻辑 |
-| @cmtx/upload | 编排业务逻辑 | 不直接处理文档，不实现模板语法 |
+| 包             | 职责                   | 不做的事                       |
+| -------------- | ---------------------- | ------------------------------ |
+| @cmtx/core     | 提供文档处理的原子操作 | 不生成具体内容，不包含业务逻辑 |
+| @cmtx/template | 提供模板渲染能力       | 不直接操作文档，不包含业务逻辑 |
+| @cmtx/upload   | 编排业务逻辑           | 不直接处理文档，不实现模板语法 |
 
 ---
 
@@ -237,65 +235,75 @@ const result = core.replaceImagesInText(
 ### 需要更新的文件
 
 1. **@cmtx/core/README.md**
-   - 更新定位描述：从"图片处理核心库"扩展为"文档处理原子操作库"
-   - 添加元数据处理功能说明
-   - 明确与其他包的关系
+    - 更新定位描述：从"图片处理核心库"扩展为"文档处理原子操作库"
+    - 添加元数据处理功能说明
+    - 明确与其他包的关系
 
 2. **@cmtx/template/README.md**（新建）
-   - 包定位和功能说明
-   - API 文档和使用示例
-   - 与 core/upload 的关系说明
+    - 包定位和功能说明
+    - API 文档和使用示例
+    - 与 core/upload 的关系说明
 
 3. **@cmtx/upload/README.md**
-   - 更新架构说明
-   - 明确调用 template 包生成文本的流程
-   - 更新示例代码
+    - 更新架构说明
+    - 明确调用 template 包生成文本的流程
+    - 更新示例代码
 
 ### 核心文档更新要点
 
 #### @cmtx/core README 更新
+
 ```markdown
 # @cmtx/core v0.3.0
 
 文档处理原子操作库。提供完整的图片处理、元数据处理和文档操作功能。
 
 ## 核心理念
+
 - **原子操作**：提供最小粒度的文档处理功能
 - **无业务逻辑**：专注于基础操作，不包含具体业务场景
 - **高度可组合**：可与其他包灵活组合使用
 
 ## 主要功能模块
+
 ### 1. 图片处理
+
 - 图片筛选、替换、删除
 - 支持多种图片格式和语法
 
-### 2. 元数据处理  
+### 2. 元数据处理
+
 - 标题提取、Frontmatter 生成
 - 文档 ID 管理
 
 ### 3. 文档操作
+
 - 基础的增删改查操作
 - 为上层应用提供可靠支撑
 ```
 
 #### @cmtx/template README（新建）
+
 ```markdown
 # @cmtx/template v0.1.0
 
 轻量级模板渲染引擎。提供灵活的模板变量管理和 Builder 模式 API。
 
 ## 核心特性
+
 - **纯函数设计**：无副作用，易于测试
 - **Builder 模式**：链式 API，使用直观
 - **高度可扩展**：支持下游包继承扩展
 - **零业务逻辑**：专注于模板渲染本身
 
 ## 适用场景
+
 - 文件命名生成
 - 内容格式化
 - 作为其他应用的依赖库
 
 ## 与相关包的关系
+
 - **@cmtx/core**：不依赖，提供原子操作能力
 - **@cmtx/upload**：被调用，为其提供文本生成功能
 ```
@@ -305,22 +313,26 @@ const result = core.replaceImagesInText(
 ## 实施计划
 
 ### 阶段一：包结构调整（1-2 天）
+
 - [ ] 创建 @cmtx/template 包结构
 - [ ] 实现核心模板引擎
 - [ ] 实现基础 Builder 模式
 - [ ] 编写单元测试
 
 ### 阶段二：功能迁移（2-3 天）
+
 - [ ] 将现有命名相关功能从 core 迁移到 template
 - [ ] 更新 upload 包调用方式
 - [ ] 验证功能完整性
 
 ### 阶段三：文档更新（1 天）
+
 - [ ] 更新 core 包文档
 - [ ] 创建 template 包文档
 - [ ] 更新 upload 包文档
 
 ### 阶段四：测试和验证（1 天）
+
 - [ ] 运行完整测试套件
 - [ ] 验证各包间无循环依赖
 - [ ] 确认 API 兼容性
@@ -330,19 +342,25 @@ const result = core.replaceImagesInText(
 ## 风险和缓解措施
 
 ### 风险 1：API 不兼容
+
 **缓解措施**：
+
 - 提供迁移指南
 - 保持旧 API 的兼容层（如有必要）
 - 逐步弃用旧接口
 
 ### 风险 2：性能影响
+
 **缓解措施**：
+
 - 进行性能基准测试
 - 优化核心渲染算法
 - 提供缓存机制（如需要）
 
 ### 风险 3：文档不同步
+
 **缓解措施**：
+
 - 建立文档更新检查清单
 - 在 CI 中加入文档验证
 - 定期审查文档准确性

@@ -1,0 +1,46 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "entryPointStrategy": "packages",
+    "entryPoints": [
+        "packages/core",
+        "packages/asset",
+        "packages/publish",
+        "packages/storage",
+        "packages/template",
+        "packages/mcp-server",
+        "packages/markdown-it-presigned-url",
+        "packages/markdown-it-presigned-url-adapter-nodejs",
+        "packages/fpe-wasm"
+    ],
+    "out": "docs/api",
+    "exclude": ["**/*.test.ts", "**/*.spec.ts", "**/node_modules/**"],
+    "excludeReferences": true,
+    "excludeInternal": true,
+    "excludeExternals": true,
+    "categorizeByGroup": true,
+    "sort": ["alphabetical", "visibility"],
+    "includeVersion": true,
+    "blockTags": [
+        "@public",
+        "@internal",
+        "@private",
+        "@note",
+        "@param",
+        "@returns",
+        "@remarks",
+        "@example",
+        "@see",
+        "@throws",
+        "@module",
+        "@category",
+        "@packageDocumentation",
+        "@description",
+        "@deprecated",
+        "@default"
+    ],
+    "externalSymbolLinkMappings": {
+        "@types/node": {
+            "__global.module": "#"
+        }
+    }
+}

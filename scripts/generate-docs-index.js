@@ -1,24 +1,25 @@
 #!/usr/bin/env node
+/* eslint-disable no-console */
 
 /**
  * 自动生成文档索引页面
  * 从 pnpm-workspace.yaml 和各 package.json 读取信息，生成统一的 HTML 索引
  */
 
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import yaml from 'js-yaml';
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import yaml from "js-yaml";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(__dirname, '..');
+const rootDir = path.resolve(__dirname, "..");
 
 /**
  * 读取 YAML 文件
  */
 function readYaml(filePath) {
     try {
-        const content = fs.readFileSync(filePath, 'utf8');
+        const content = fs.readFileSync(filePath, "utf8");
         return yaml.load(content);
     } catch (error) {
         console.error(`✗ 读取 YAML 失败：${filePath}`, error.message);
@@ -30,18 +31,18 @@ function readYaml(filePath) {
  * 收集所有包的信息
  */
 function collectPackages() {
-    const workspaceFile = path.join(rootDir, 'pnpm-workspace.yaml');
+    const workspaceFile = path.join(rootDir, "pnpm-workspace.yaml");
     const workspaceConfig = readYaml(workspaceFile);
 
     if (!workspaceConfig?.packages) {
-        console.error('✗ 无法读取 pnpm-workspace.yaml');
+        console.error("✗ 无法读取 pnpm-workspace.yaml");
         process.exit(1);
     }
 
     const packages = [];
 
     for (const pattern of workspaceConfig.packages) {
-        const dir = pattern.replace('/*', '');
+        const dir = pattern.replace("/*", "");
         const fullDir = path.join(rootDir, dir);
 
         if (!fs.existsSync(fullDir)) {
@@ -52,8 +53,8 @@ function collectPackages() {
         const entries = fs.readdirSync(fullDir);
 
         for (const name of entries) {
-            const pkgPath = path.join(fullDir, name, 'package.json');
-            const docsPath = path.join(fullDir, name, 'docs', 'api');
+            const pkgPath = path.join(fullDir, name, "package.json");
+            const docsPath = path.join(fullDir, name, "docs", "api");
 
             if (!fs.existsSync(pkgPath)) {
                 continue;
@@ -66,7 +67,7 @@ function collectPackages() {
             }
 
             try {
-                const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+                const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
 
                 // 跳过私有包或没有 description 的包
                 if (pkg.private && !pkg.docsPublic) {
@@ -76,7 +77,7 @@ function collectPackages() {
 
                 packages.push({
                     name: pkg.name,
-                    description: pkg.description || '暂无描述',
+                    description: pkg.description || "暂无描述",
                     version: pkg.version,
                     directory: name,
                     hasDocsApi: true,
@@ -103,9 +104,9 @@ function generateIndexHtml(packages) {
         <td class="version"><code>${pkg.version}</code></td>
         <td class="action"><a href="./${pkg.directory}/">查看文档 →</a></td>
       </tr>
-    `
+    `,
         )
-        .join('\n');
+        .join("\n");
 
     return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -397,12 +398,12 @@ function generateIndexHtml(packages) {
  * 主函数
  */
 function main() {
-    console.log('📖 开始生成文档索引...\n');
+    console.log("📖 开始生成文档索引...\n");
 
     const packages = collectPackages();
 
     if (packages.length === 0) {
-        console.error('✗ 没有找到任何公开的文档包');
+        console.error("✗ 没有找到任何公开的文档包");
         process.exit(1);
     }
 
@@ -413,10 +414,10 @@ function main() {
     console.log();
 
     const html = generateIndexHtml(packages);
-    const outputPath = path.join(rootDir, 'docs-index.html');
+    const outputPath = path.join(rootDir, "docs-index.html");
 
     try {
-        fs.writeFileSync(outputPath, html, 'utf8');
+        fs.writeFileSync(outputPath, html, "utf8");
         console.log(`✓ 索引页面已生成：${outputPath}`);
         console.log(`✓ 文件大小：${(fs.statSync(outputPath).size / 1024).toFixed(2)} KB`);
     } catch (error) {

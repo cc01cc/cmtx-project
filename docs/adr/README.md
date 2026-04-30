@@ -6,13 +6,16 @@
 
 ### 1.1. 文档导航
 
-| 文档 | 内容 | 状态 | 优先级 |
-| --- | --- | --- | --- |
-| [**总结文档**](./ADR-006-decisions_summary.md) | 所有决策的快速概览（推荐先读） | - | 入门必读 |
-| [ADR-001: 包结构](./ADR-001-package-structure.md) | CMTX 四层架构设计 | Accepted | 必读 |
-| [ADR-002: 模板系统](./ADR-002-template-system.md) | Builder 模式实现（历史版本） | Superseded by ADR-004 | 参考 |
-| [ADR-003: 元数据处理](./ADR-003-metadata-handling.md) | Frontmatter 和 ID 管理 | Proposed | 必读 |
-| [ADR-004: 模板包重新设计](./ADR-004-template-package-redesign.md) | @cmtx/template 包设计（当前版本） | Proposed | 必读 |
+| 文档                                                              | 内容                              | 状态                  | 优先级   |
+| ----------------------------------------------------------------- | --------------------------------- | --------------------- | -------- |
+| [**总结文档**](./ADR-006-decisions_summary.md)                    | 所有决策的快速概览（推荐先读）    | -                     | 入门必读 |
+| [ADR-001: 包结构](./ADR-001-package-structure.md)                 | CMTX 四层架构设计                 | Accepted              | 必读     |
+| [ADR-002: 模板系统](./ADR-002-template-system.md)                 | Builder 模式实现（历史版本）      | Superseded by ADR-004 | 参考     |
+| [ADR-003: 元数据处理](./ADR-003-metadata-handling.md)             | Frontmatter 和 ID 管理            | Proposed              | 必读     |
+| [ADR-004: 模板包重新设计](./ADR-004-template-package-redesign.md) | @cmtx/template 包设计（当前版本） | Proposed              | 必读     |
+| [ADR-011: Service 层设计](./ADR-011-service-layer-design.md)      | 底层包 Service 接口设计           | Proposed              | 参考     |
+| [ADR-012: Preset 与回调设计](./ADR-012-preset-callback-design.md) | Preset 机制和回调设计分析         | Proposed              | 当前     |
+| [ADR-013: Rule 回调复杂度](./ADR-013-rule-callback-complexity.md) | Rule 级别回调的复杂度影响分析     | Proposed              | 当前     |
 
 ## 2. 如何使用本文档
 
@@ -72,16 +75,16 @@ CMTX 项目采用**四层分离架构**：
 
 #### 依赖关系表
 
-| 层级 | 包 | 内部依赖 |
-|:---:|---|---|
-| 4 | `@cmtx/cli` | `@cmtx/core`, `@cmtx/asset`, `@cmtx/publish` |
-| 4 | `@cmtx/mcp-server` | `@cmtx/core`, `@cmtx/asset` |
-| 3 | `@cmtx/normalize` | `@cmtx/core`, `@cmtx/template` |
-| 3 | `@cmtx/publish` | `@cmtx/core`, `@cmtx/asset` |
-| 2 | `@cmtx/asset` | `@cmtx/core`, `@cmtx/storage`, `@cmtx/template` |
-| 1 | `@cmtx/core` | - |
-| 1 | `@cmtx/template` | - |
-| 1 | `@cmtx/storage` | - |
+| 层级 | 包                 | 内部依赖                                        |
+| :--: | ------------------ | ----------------------------------------------- |
+|  4   | `@cmtx/cli`        | `@cmtx/core`, `@cmtx/asset`, `@cmtx/publish`    |
+|  4   | `@cmtx/mcp-server` | `@cmtx/core`, `@cmtx/asset`                     |
+|  3   | `@cmtx/normalize`  | `@cmtx/core`, `@cmtx/template`                  |
+|  3   | `@cmtx/publish`    | `@cmtx/core`, `@cmtx/asset`                     |
+|  2   | `@cmtx/asset`      | `@cmtx/core`, `@cmtx/storage`, `@cmtx/template` |
+|  1   | `@cmtx/core`       | -                                               |
+|  1   | `@cmtx/template`   | -                                               |
+|  1   | `@cmtx/storage`    | -                                               |
 
 **循环依赖检查：无循环依赖。** 所有依赖均为单向。
 

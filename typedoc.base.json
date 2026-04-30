@@ -10,6 +10,8 @@
     "excludeExternals": true,
     "categorizeByGroup": true,
     "sort": ["alphabetical", "visibility"],
+    "searchInComments": true,
+    "useTsLinkResolution": true,
     "blockTags": [
         "@note",
         "@param",

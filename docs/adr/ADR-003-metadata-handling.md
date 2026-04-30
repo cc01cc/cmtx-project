@@ -54,9 +54,9 @@ Markdown 文档元数据管理是现代知识管理系统的核心。Frontmatter
 
 ```typescript
 // 从标题生成 frontmatter
-const result = convertHeadingToFrontmatter('# 我的文章', {
-  includeDate: true,
-  customFields: { author: '作者名' }
+const result = convertHeadingToFrontmatter("# 我的文章", {
+    includeDate: true,
+    customFields: { author: "作者名" },
 });
 // 输出：带有 frontmatter 的完整文档
 ```
@@ -65,17 +65,17 @@ const result = convertHeadingToFrontmatter('# 我的文章', {
 
 ```typescript
 // 支持多种策略
-generateDocumentId('文章标题', 'slug');    // -> 文章标题
-generateDocumentId('文章标题', 'uuid');    // -> UUID v4
-generateDocumentId('文章标题', 'hash');    // -> MD5 hash
+generateDocumentId("文章标题", "slug"); // -> 文章标题
+generateDocumentId("文章标题", "uuid"); // -> UUID v4
+generateDocumentId("文章标题", "hash"); // -> MD5 hash
 ```
 
 #### 3. 元数据提取
 
 ```typescript
-const metadata = extractMetadata('# 我的文档\n\n内容...', {
-  generateId: true,
-  idStrategy: 'slug'
+const metadata = extractMetadata("# 我的文档\n\n内容...", {
+    generateId: true,
+    idStrategy: "slug",
 });
 ```
 
@@ -90,12 +90,12 @@ const metadata = extractMetadata('# 我的文档\n\n内容...', {
 ```typescript
 // 支持复杂的元数据操作
 class MarkdownMetadataDatabase {
-  async scanDirectory(path: string): Promise<Document[]>;
-  async findById(id: string): Promise<Document>;
-  async findByTag(tag: string): Promise<Document[]>;
-  async findByAuthor(author: string): Promise<Document[]>;
-  async getBacklinks(id: string): Promise<Document[]>;
-  async validateMetadata(): Promise<ValidationResult>;
+    async scanDirectory(path: string): Promise<Document[]>;
+    async findById(id: string): Promise<Document>;
+    async findByTag(tag: string): Promise<Document[]>;
+    async findByAuthor(author: string): Promise<Document[]>;
+    async getBacklinks(id: string): Promise<Document[]>;
+    async validateMetadata(): Promise<ValidationResult>;
 }
 ```
 
@@ -167,7 +167,7 @@ queryDocuments(dirPath, filter);
 **设计**：
 
 ```typescript
-import YAML from 'js-yaml';
+import YAML from "js-yaml";
 
 // 完整的 YAML 支持
 const frontmatter = YAML.parse(text);
@@ -202,43 +202,43 @@ const updated = YAML.stringify(frontmatter);
 ```typescript
 // 提取元数据
 export interface DocumentMetadata {
-  title?: string;
-  date?: Date;
-  author?: string;
-  id?: string;
-  [key: string]: any;
+    title?: string;
+    date?: Date;
+    author?: string;
+    id?: string;
+    [key: string]: any;
 }
 
 export function extractMetadata(
-  text: string,
-  options?: {
-    generateId?: boolean;
-    idStrategy?: 'slug' | 'uuid' | 'hash' | 'custom';
-    customFields?: Record<string, any>;
-  }
-): DocumentMetadata
+    text: string,
+    options?: {
+        generateId?: boolean;
+        idStrategy?: "slug" | "uuid" | "hash" | "custom";
+        customFields?: Record<string, any>;
+    },
+): DocumentMetadata;
 
 // Frontmatter 转换
 export function convertHeadingToFrontmatter(
-  text: string,
-  options?: {
-    includeDate?: boolean;
-    customFields?: Record<string, any>;
-    format?: 'yaml' | 'toml' | 'json';
-  }
-): string
+    text: string,
+    options?: {
+        includeDate?: boolean;
+        customFields?: Record<string, any>;
+        format?: "yaml" | "toml" | "json";
+    },
+): string;
 
 // Frontmatter 解析
 export function parseFrontmatter(text: string): {
-  frontmatter: Record<string, any>;
-  content: string;
-}
+    frontmatter: Record<string, any>;
+    content: string;
+};
 
 // ID 生成（支持模板）
 export function generateDocumentId(
-  title: string,
-  template?: string  // 支持 {date}_{slug} 格式
-): string
+    title: string,
+    template?: string, // 支持 {date}_{slug} 格式
+): string;
 ```
 
 ---
@@ -249,52 +249,43 @@ export function generateDocumentId(
 
 ```typescript
 export interface DocumentInfo {
-  path: string;
-  id: string;
-  title: string;
-  date?: Date;
-  author?: string;
-  tags?: string[];
-  categories?: string[];
+    path: string;
+    id: string;
+    title: string;
+    date?: Date;
+    author?: string;
+    tags?: string[];
+    categories?: string[];
 }
 
 export interface QueryFilter {
-  id?: string;
-  title?: string;
-  author?: string;
-  tag?: string;
-  category?: string;
-  dateRange?: [Date, Date];
-  searchText?: string;
+    id?: string;
+    title?: string;
+    author?: string;
+    tag?: string;
+    category?: string;
+    dateRange?: [Date, Date];
+    searchText?: string;
 }
 
 // 列出所有文档
 export async function listDocuments(
-  dirPath: string,
-  options?: {
-    recursive?: boolean;
-    sortBy?: 'date' | 'title' | 'id';
-    descending?: boolean;
-  }
-): Promise<DocumentInfo[]>
+    dirPath: string,
+    options?: {
+        recursive?: boolean;
+        sortBy?: "date" | "title" | "id";
+        descending?: boolean;
+    },
+): Promise<DocumentInfo[]>;
 
 // 按 ID 查找
-export async function findDocumentById(
-  dirPath: string,
-  id: string
-): Promise<DocumentInfo | null>
+export async function findDocumentById(dirPath: string, id: string): Promise<DocumentInfo | null>;
 
 // 高级查询
-export async function queryDocuments(
-  dirPath: string,
-  filter: QueryFilter
-): Promise<DocumentInfo[]>
+export async function queryDocuments(dirPath: string, filter: QueryFilter): Promise<DocumentInfo[]>;
 
 // 获取反向链接
-export async function getBacklinks(
-  dirPath: string,
-  id: string
-): Promise<DocumentInfo[]>
+export async function getBacklinks(dirPath: string, id: string): Promise<DocumentInfo[]>;
 ```
 
 ---
@@ -304,54 +295,53 @@ export async function getBacklinks(
 ### 初始化文档
 
 ```typescript
-import { extractMetadata, convertHeadingToFrontmatter } from '@cmtx/core';
+import { extractMetadata, convertHeadingToFrontmatter } from "@cmtx/core";
 
 // Step 1: 提取元数据（从现有文档）
-const metadata = extractMetadata('# 我的第一篇文章\n\n内容...', {
-  generateId: true,
-  idStrategy: 'slug'
+const metadata = extractMetadata("# 我的第一篇文章\n\n内容...", {
+    generateId: true,
+    idStrategy: "slug",
 });
 // { title: '我的第一篇文章', id: '我的第一篇文章', ... }
 
 // Step 2: 转换为 Frontmatter
-const docWithFrontmatter = convertHeadingToFrontmatter(
-  '# 我的第一篇文章\n\n内容...',
-  { includeDate: true }
-);
+const docWithFrontmatter = convertHeadingToFrontmatter("# 我的第一篇文章\n\n内容...", {
+    includeDate: true,
+});
 ```
 
 ### 查询文档
 
 ```typescript
-import { listDocuments, queryDocuments } from '@cmtx/metadata';
+import { listDocuments, queryDocuments } from "@cmtx/metadata";
 
 // 列出所有文档
-const allDocs = await listDocuments('./docs', {
-  sortBy: 'date',
-  descending: true
+const allDocs = await listDocuments("./docs", {
+    sortBy: "date",
+    descending: true,
 });
 
 // 查询特定作者的文章
-const myArticles = await queryDocuments('./docs', {
-  author: 'cc01cc',
-  tag: 'markdown'
+const myArticles = await queryDocuments("./docs", {
+    author: "cc01cc",
+    tag: "markdown",
 });
 ```
 
 ### 与 naming 包集成
 
 ```typescript
-import { AINameBuilder } from '@cmtx/ai-naming';
-import { queryDocuments } from '@cmtx/metadata';
+import { AINameBuilder } from "@cmtx/ai-naming";
+import { queryDocuments } from "@cmtx/metadata";
 
 // 根据元数据生成新名称
-const article = await queryDocuments('./docs', { id: 'doc-123' })[0];
+const article = await queryDocuments("./docs", { id: "doc-123" })[0];
 
 const newName = new AINameBuilder()
-  .withDate()
-  .withAIAnalysis(aiResult)
-  .add('originalTitle', article.title)
-  .render('{date}_{ai_category}_{originalTitle}');
+    .withDate()
+    .withAIAnalysis(aiResult)
+    .add("originalTitle", article.title)
+    .render("{date}_{ai_category}_{originalTitle}");
 ```
 
 ---
@@ -384,11 +374,11 @@ tags = ["markdown", "tool"]
 
 ```json
 {
-  "title": "我的文章",
-  "date": "2026-02-06",
-  "author": "cc01cc",
-  "id": "my-article",
-  "tags": ["markdown", "tool"]
+    "title": "我的文章",
+    "date": "2026-02-06",
+    "author": "cc01cc",
+    "id": "my-article",
+    "tags": ["markdown", "tool"]
 }
 ```
 
@@ -398,24 +388,24 @@ tags = ["markdown", "tool"]
 
 ### 支持的策略
 
-| 策略 | 示例 | 优点 | 缺点 |
-|------|------|------|------|
-| **slug** | `我的第一篇文章` | 人类可读 | 可能冲突 |
-| **uuid** | `f47ac10b-58cc-4372-a567-0e02b2c3d479` | 唯一性强 | 不可读 |
-| **hash** | `a1b2c3d4` | 确定性 + 紧凑 | 可能冲突 |
-| **date-based** | `20260206_a1b2c3d4` | 可排序 + 聚类 | 需要时间戳 |
-| **custom** | 用户定义的模板 | 灵活 | 需要验证冲突 |
+| 策略           | 示例                                   | 优点          | 缺点         |
+| -------------- | -------------------------------------- | ------------- | ------------ |
+| **slug**       | `我的第一篇文章`                       | 人类可读      | 可能冲突     |
+| **uuid**       | `f47ac10b-58cc-4372-a567-0e02b2c3d479` | 唯一性强      | 不可读       |
+| **hash**       | `a1b2c3d4`                             | 确定性 + 紧凑 | 可能冲突     |
+| **date-based** | `20260206_a1b2c3d4`                    | 可排序 + 聚类 | 需要时间戳   |
+| **custom**     | 用户定义的模板                         | 灵活          | 需要验证冲突 |
 
 ### 在 @cmtx/naming 中支持模板
 
 ```typescript
-import { generateDocumentId } from '@cmtx/naming';
+import { generateDocumentId } from "@cmtx/naming";
 
 // 使用模板（由 naming 包支持）
-const id = generateDocumentId('我的文章', '{date}_{slug}');
+const id = generateDocumentId("我的文章", "{date}_{slug}");
 // -> "20260206_我的文章"
 
-const id2 = generateDocumentId('我的文章', '{year}{month}{day}_{md5_8}');
+const id2 = generateDocumentId("我的文章", "{year}{month}{day}_{md5_8}");
 // -> "20260206_a1b2c3d4"
 ```
 
@@ -427,20 +417,20 @@ const id2 = generateDocumentId('我的文章', '{year}{month}{day}_{md5_8}');
 
 ```typescript
 interface FrontmatterSchema {
-  title?: { type: 'string'; required: true };
-  date?: { type: 'date' };
-  id?: { type: 'string'; unique: true };
-  author?: { type: 'string' };
-  tags?: { type: 'array'; items: 'string' };
-  categories?: { type: 'array'; items: 'string' };
-  [key: string]: any;
+    title?: { type: "string"; required: true };
+    date?: { type: "date" };
+    id?: { type: "string"; unique: true };
+    author?: { type: "string" };
+    tags?: { type: "array"; items: "string" };
+    categories?: { type: "array"; items: "string" };
+    [key: string]: any;
 }
 
 // 验证函数（@cmtx/metadata）
 async function validateFrontmatter(
-  dirPath: string,
-  schema?: FrontmatterSchema
-): Promise<ValidationResult>
+    dirPath: string,
+    schema?: FrontmatterSchema,
+): Promise<ValidationResult>;
 ```
 
 ### 常见验证
@@ -457,30 +447,30 @@ async function validateFrontmatter(
 ### 积极影响
 
 1. ✅ **清晰的职责分工**
-   - @cmtx/core 负责基础操作
-   - @cmtx/metadata 负责查询和管理
+    - @cmtx/core 负责基础操作
+    - @cmtx/metadata 负责查询和管理
 
 2. ✅ **易于维护**
-   - core 保持简洁
-   - 查询功能可以独立演进
+    - core 保持简洁
+    - 查询功能可以独立演进
 
 3. ✅ **灵活的扩展**
-   - 支持多种 ID 策略
-   - 支持多种 frontmatter 格式
+    - 支持多种 ID 策略
+    - 支持多种 frontmatter 格式
 
 4. ✅ **与其他包的集成**
-   - 与 @cmtx/naming 无缝集成
-   - 与 @cmtx/ai-naming 协作方便
+    - 与 @cmtx/naming 无缝集成
+    - 与 @cmtx/ai-naming 协作方便
 
 ### 消极影响
 
 1. ⚠️ **查询功能分散**
-   - 用户需要了解两个包
-   - 文档维护工作增加
+    - 用户需要了解两个包
+    - 文档维护工作增加
 
 2. ⚠️ **性能考虑**
-   - 简单的查询在大型文档库中可能较慢
-   - 需要根据使用情况优化
+    - 简单的查询在大型文档库中可能较慢
+    - 需要根据使用情况优化
 
 ---
 

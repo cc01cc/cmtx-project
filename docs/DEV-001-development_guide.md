@@ -1,4 +1,4 @@
-# 开发指南
+# DEV-001: 开发指南
 
 本文档包含 CMTX 项目的开发环境设置、常用命令和开发 workflow。
 
@@ -91,40 +91,67 @@ cmtx-project/
 
 该包使用 Rust 实现 NIST SP 800-38G FF1 格式保留加密算法，通过 WASM 在 Node.js 和浏览器环境中运行。
 
-**打包难点：**
+**构建流程：**
 
-1. **WASM 构建流程**
-   - 需要 Rust 工具链（rustc、cargo）
-   - 使用 `wasm-pack` 构建 WASM 模块
-   - 生成 `pkg-web`（浏览器）和 `pkg-bundler`（bundler）两种目标
+1. **WASM 构建**（需要 Rust 工具链）
 
-2. **多目标输出**
-   ```bash
-   # 浏览器环境
-   wasm-pack build --target web --out-dir pkg-web
-   
-   # Bundler 环境（webpack/rollup/vite）
-   wasm-pack build --target bundler --out-dir pkg-bundler
-   ```
+    ```bash
+    # 进入 fpe-wasm 包目录
+    cd packages/fpe-wasm
 
-3. **TypeScript 类型生成**
-   - wasm-pack 自动生成 `.d.ts` 类型定义
-   - 需要手动调整以支持双目标（web/bundler）
+    # 构建 WASM（生成 pkg/ 目录）
+    pnpm run build:wasm
+    ```
 
-4. **发布配置**
-   - package.json 需要同时包含 `main`（bundler）和 `browser`（web）入口
-   - files 字段需要包含 `pkg-web` 和 `pkg-bundler` 目录
+2. **TypeScript 打包**（使用 tsdown）
+
+    ```bash
+    # 构建 TypeScript（复制 WASM 到 dist/）
+    pnpm run build
+    ```
+
+**输出结构：**
+
+```
+packages/fpe-wasm/
+├── pkg/                          # wasm-pack 输出（源文件）
+│   ├── cmtx_fpe_wasm.js
+│   ├── cmtx_fpe_wasm_bg.wasm
+│   └── cmtx_fpe_wasm.d.ts
+├── dist/                         # tsdown 输出（发布到 npm）
+│   ├── index.mjs                 # ESM 入口
+│   ├── index.cjs                 # CJS 入口
+│   ├── index.d.ts                # 类型定义
+│   └── pkg/                      # 复制的 WASM 文件
+│       └── cmtx_fpe_wasm_bg.wasm
+```
+
+**VS Code 扩展中的 WASM 处理：**
+
+VS Code 扩展使用 `rolldown-plugin-wasm` 自动处理 WASM 文件：
+
+```typescript
+// vscode-extension/tsdown.config.ts
+import { wasm } from "rolldown-plugin-wasm";
+
+export default defineConfig({
+    plugins: [wasm({ targetEnv: "node" })],
+    // ...
+});
+```
+
+打包后 WASM 文件位于：`dist/node_modules/@cmtx/fpe-wasm/cmtx_fpe_wasm_bg.wasm`
 
 **开发注意事项：**
 
-- 修改 Rust 源码后需要重新运行 `wasm-pack build`
-- 测试时需要根据环境选择正确的 WASM 模块
-- 浏览器环境需要处理 WASM 异步加载
+- 修改 Rust 源码后需要重新运行 `pnpm --filter @cmtx/fpe-wasm build`
+- 开发模式（F5）直接使用 `packages/fpe-wasm/pkg/` 中的 WASM
+- 生产模式（vsce package）使用打包后的 WASM
 
 ## 版本与发布
 
 - 正式发布后各包将独立版本号和更新周期
-- 发布范围：@cmtx/*（默认 public 发布）
+- 发布范围：@cmtx/\*（默认 public 发布）
 - Changelog 维护：各包内 CHANGELOG.md，遵循 Keep a Changelog 格式
 
 ## 文档要求
@@ -144,4 +171,4 @@ cmtx-project/
 - [贡献指南](../CONTRIBUTING.md) - 详细的贡献流程和代码规范
 - [架构决策记录](./adr/README.md) - 项目架构决策文档
 - [Catalogs 配置说明](./DOC-001-catalogs_configuration.md) - pnpm 依赖版本管理
-- [包标准化指南](./DOC-003-package_standard.md) - package.json 配置规范
+- [发布前校验与质量门禁指南](./DOC-003-publish-validation.md) - 包发布校验标准

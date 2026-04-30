@@ -5,34 +5,35 @@
 ### 第一部分：需求评估
 
 - [x] **Frontmatter/ID 需求分析** ⭐⭐⭐⭐⭐ (9/10 重要性)
-  - 三个核心需求合理性确认
-  - 由 subagent 详细分析验证
+    - 三个核心需求合理性确认
+    - 由 subagent 详细分析验证
 
 ### 第二部分：架构设计
 
 - [x] **三层分离架构** (ADR-001)
-  - 第一层：@cmtx/core - 极简基础操作
-  - 第二层：@cmtx/naming、@cmtx/storage 等 - 功能专家
-  - 第三层：@cmtx/cli、@cmtx/mcp-server 等 - 应用集成
-  - 无循环依赖设计验证
+    - 第一层：@cmtx/core - 极简基础操作
+    - 第二层：@cmtx/naming、@cmtx/storage 等 - 功能专家
+    - 第三层：@cmtx/cli、@cmtx/mcp-server 等 - 应用集成
+    - 无循环依赖设计验证
 
 - [x] **模板系统** (ADR-002)
-  - 对比 6 种设计方案
-  - 最终选择 **Builder 模式**（最优）
-  - 完整的实现代码示例
-  - 下游包如何扩展
+    - 对比 6 种设计方案
+    - 最终选择 **Builder 模式**（最优）
+    - 完整的实现代码示例
+    - 下游包如何扩展
 
 - [x] **元数据处理** (ADR-003)
-  - 分层设计说明
-  - Frontmatter 支持多种格式
-  - ID 生成多种策略
-  - 与 naming 包集成方案
+    - 分层设计说明
+    - Frontmatter 支持多种格式
+    - ID 生成多种策略
+    - 与 naming 包集成方案
 
 ### 第三部分：文档编写
 
 已创建 5 个高质量 markdown 文档：
 
 #### 📄 [.github/adr/README.md](.github/adr/README.md) (84 行)
+
 - ADR 目录导航
 - ADR 格式规范
 - 关键决策概览
@@ -41,6 +42,7 @@
 #### 📄 [.github/adr/ADR-001-package-structure.md](.github/adr/ADR-001-package-structure.md) (~1800 行)
 
 **核心内容**：
+
 ```
 1. 背景：CMTX 的包组织挑战
 2. 问题陈述：如何平衡简洁性与扩展性
@@ -56,6 +58,7 @@
 #### 📄 [.github/adr/ADR-002-template-system.md](.github/adr/ADR-002-template-system.md) (~2000+ 行)
 
 **核心内容**：
+
 ```
 1. 背景：模板系统的灵活性需求
 2. 问题陈述：如何让下游包无缝扩展变量
@@ -74,6 +77,7 @@
 #### 📄 [.github/adr/ADR-003-metadata-handling.md](.github/adr/ADR-003-metadata-handling.md) (~1200 行)
 
 **核心内容**：
+
 ```
 1. 背景：元数据管理的需求
 2. 问题陈述：元数据操作如何分层
@@ -91,6 +95,7 @@
 #### 📄 [.github/adr/DECISIONS-SUMMARY.md](.github/adr/DECISIONS-SUMMARY.md) (新增，~800 行)
 
 **快速导航文档**：
+
 ```
 ✅ 所有决策的快速概览
 ✅ 三层架构可视化
@@ -104,6 +109,7 @@
 #### 📄 [.github/adr/IMPLEMENTATION-ROADMAP.md](.github/adr/IMPLEMENTATION-ROADMAP.md) (新增，~900 行)
 
 **实现指南**：
+
 ```
 🚀 五个阶段的具体实现计划
 
@@ -140,26 +146,26 @@
 ### 第四部分：项目文档更新
 
 - [x] **主 README.md 更新**
-  - 添加快速导航表
-  - 链接到决策总结和实现路线图
-  - 改进 ADR 部分的组织
+    - 添加快速导航表
+    - 链接到决策总结和实现路线图
+    - 改进 ADR 部分的组织
 
 - [x] **ADR README 增强**
-  - 添加决策总结文档链接
-  - 改进导航表格格式
+    - 添加决策总结文档链接
+    - 改进导航表格格式
 
 ---
 
 ## 📊 文档统计
 
-| 文档 | 行数 | 复杂度 | 完成度 |
-| --- | --- | --- | --- |
-| ADR-001 | ~1800 | ⭐⭐⭐⭐ | 100% ✅ |
-| ADR-002 | ~2000+ | ⭐⭐⭐⭐⭐ | 100% ✅ |
-| ADR-003 | ~1200 | ⭐⭐⭐⭐ | 100% ✅ |
-| DECISIONS-SUMMARY | ~800 | ⭐⭐⭐ | 100% ✅ |
-| IMPLEMENTATION-ROADMAP | ~900 | ⭐⭐⭐⭐ | 100% ✅ |
-| 总计 | ~6700+ | 平均⭐⭐⭐⭐ | **100%** ✅ |
+| 文档                   | 行数   | 复杂度       | 完成度      |
+| ---------------------- | ------ | ------------ | ----------- |
+| ADR-001                | ~1800  | ⭐⭐⭐⭐     | 100% ✅     |
+| ADR-002                | ~2000+ | ⭐⭐⭐⭐⭐   | 100% ✅     |
+| ADR-003                | ~1200  | ⭐⭐⭐⭐     | 100% ✅     |
+| DECISIONS-SUMMARY      | ~800   | ⭐⭐⭐       | 100% ✅     |
+| IMPLEMENTATION-ROADMAP | ~900   | ⭐⭐⭐⭐     | 100% ✅     |
+| 总计                   | ~6700+ | 平均⭐⭐⭐⭐ | **100%** ✅ |
 
 ---
 
@@ -232,29 +238,33 @@
 ## 🚀 后续行动
 
 ### 立即可做（无依赖）
+
 1. ✅ 完成架构决策文档（已完成）
 2. ✅ 获得团队审批（待进行）
 
 ### 第一优先级（第一阶段）
+
 1. 创建 @cmtx/naming 包
-   - TemplateBuilder 基类（50 行）
-   - renderTemplate 函数（30 行）
-   - ID 生成函数（40 行）
-   - 文件重命名工具（60 行）
-   - 单元测试（90%+ 覆盖）
-   - 文档和示例
+    - TemplateBuilder 基类（50 行）
+    - renderTemplate 函数（30 行）
+    - ID 生成函数（40 行）
+    - 文件重命名工具（60 行）
+    - 单元测试（90%+ 覆盖）
+    - 文档和示例
 
 2. 时间估计：**6-8 小时**
 
 ### 第二优先级（第二阶段）
+
 1. 更新 @cmtx/core
-   - 移除 generateDocumentId
-   - 更新导出
-   - 更新测试
+    - 移除 generateDocumentId
+    - 更新导出
+    - 更新测试
 
 2. 时间估计：**2-3 小时**
 
 ### 第三优先级（第三阶段）
+
 1. 重构 @cmtx/upload → @cmtx/storage
 2. 时间估计：**4-6 小时**
 
@@ -263,24 +273,32 @@
 ## 📖 文档使用指南
 
 ### 对于项目管理者
+
 👉 从这里开始：
+
 1. [DECISIONS-SUMMARY.md](DECISIONS-SUMMARY.md) - 2 分钟了解全景
 2. [IMPLEMENTATION-ROADMAP.md](IMPLEMENTATION-ROADMAP.md) - 了解时间安排
 
 ### 对于开发者
+
 👉 从这里开始：
+
 1. [DECISIONS-SUMMARY.md](DECISIONS-SUMMARY.md) - 快速概览
 2. [ADR-002-template-system.md](ADR-002-template-system.md) - 理解 Builder 模式
 3. [IMPLEMENTATION-ROADMAP.md](IMPLEMENTATION-ROADMAP.md) - 具体任务分解
 
 ### 对于架构师
+
 👉 从这里开始：
+
 1. [ADR-001-package-structure.md](ADR-001-package-structure.md) - 深入理解架构
 2. [ADR-002-template-system.md](ADR-002-template-system.md) - 模式分析
 3. [ADR-003-metadata-handling.md](ADR-003-metadata-handling.md) - 集成设计
 
 ### 对于新贡献者
+
 👉 按顺序阅读：
+
 1. 项目 README.md
 2. [DECISIONS-SUMMARY.md](DECISIONS-SUMMARY.md)
 3. 相关的具体 ADR 文档
@@ -291,24 +309,28 @@
 ## ✨ 文档特点
 
 ### 📚 全面性
+
 - ✅ 6000+ 行的综合文档
 - ✅ 覆盖所有核心决策
 - ✅ 包含代码示例和使用场景
 - ✅ 提供具体的实现路线
 
 ### 📊 可读性
+
 - ✅ 清晰的目录结构
 - ✅ 丰富的图表和表格
 - ✅ 渐进式详细程度
 - ✅ 快速导航入口
 
 ### 🔗 可追踪性
+
 - ✅ 所有决策有明确的理由
 - ✅ 权衡和代价清晰
 - ✅ 后续演进路径定义
 - ✅ 相关链接完整
 
 ### 🎯 可执行性
+
 - ✅ 五个阶段的具体计划
 - ✅ 每个阶段有任务分解
 - ✅ 时间和复杂度估计
@@ -319,22 +341,26 @@
 ## 🎓 学到的最佳实践
 
 ### 1. 架构决策记录（ADR）的价值
+
 - 清晰记录"为什么"而不仅仅是"是什么"
 - 保留决策历史，便于理解和回溯
 - 促进团队达成共识
 
 ### 2. 模式选择的方法
+
 - 不急于做决定，充分评估多个选项
 - 明确列出每个选项的优缺点
 - 基于项目的具体需求选择
 
 ### 3. 文档分层
+
 - 快速摘要（1-2 分钟）
 - 核心决策（5-10 分钟）
 - 深入细节（20+ 分钟）
 - 满足不同受众的需求
 
 ### 4. 实现指南的重要性
+
 - 架构决策需要清晰的实现路径
 - 具体的任务分解降低实施成本
 - 时间和复杂度估计帮助规划
@@ -344,15 +370,18 @@
 ## 📞 后续支持
 
 ### 问题和讨论
+
 - 在 GitHub Issues 中讨论建议的更改
 - 在 PR 中解释超出当前 ADR 范围的决策
 
 ### 文档更新
+
 - 每个阶段完成后，更新 IMPLEMENTATION-ROADMAP
 - 如有重大决策变更，创建新的 ADR
 - 保持 DECISIONS-SUMMARY 与最新状态同步
 
 ### 版本管理
+
 - 每个主版本（v1.0、v1.1、v2.0）对应一个阶段
 - CHANGELOG 应参考相关的 ADR
 - 发布说明应包含架构变更的背景
@@ -368,6 +397,7 @@
 ## 📝 快速参考
 
 ### 文件位置
+
 ```
 .github/adr/
 ├── README.md                           # ADR 索引
@@ -379,6 +409,7 @@
 ```
 
 ### 快速链接
+
 - 📋 [决策总结](./DECISIONS-SUMMARY.md)
 - 🚀 [实现路线图](./IMPLEMENTATION-ROADMAP.md)
 - 🏗️ [包结构 ADR](./ADR-001-package-structure.md)

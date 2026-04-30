@@ -19,10 +19,12 @@
 当前自定义解析器的特点：
 
 **支持的结构：**
+
 - 基础类型：string, number, boolean, null
 - 数组：单行 `[a,b,c]` 和多行 `- item` 格式
 
 **不支持的结构：**
+
 - 复杂嵌套对象
 - 多行字符串（`|`, `>`）
 - 锚点和别名
@@ -44,21 +46,23 @@
 
 ### 方案选择对比
 
-| 方案 | 包大小增长 | 性能 | 维护成本 | YAML 覆盖 |
-|------|-----------|------|---------|----------|
-| 自定义正则 | 0 | 最快 | 低 | 60% |
-| +js-yaml | +62KB | 快 | 低 | 100% |
-| +yaml 库 | +50KB | 最快 | 低 | 100% |
-| +front-matter | +8KB | 快 | 低 | 90% |
+| 方案          | 包大小增长 | 性能 | 维护成本 | YAML 覆盖 |
+| ------------- | ---------- | ---- | -------- | --------- |
+| 自定义正则    | 0          | 最快 | 低       | 60%       |
+| +js-yaml      | +62KB      | 快   | 低       | 100%      |
+| +yaml 库      | +50KB      | 最快 | 低       | 100%      |
+| +front-matter | +8KB       | 快   | 低       | 90%       |
 
 ### 最终决策
 
 **@cmtx/core（基础层）**：保持自定义正则解析
+
 - 零依赖，轻量级定位
 - 支持基础类型和数组
 - 在文档中明确说明限制
 
 **@cmtx/metadata（高级层）**：引入 js-yaml 完整支持
+
 - 完整 YAML 1.2 规范
 - 支持嵌套、多行、日期等复杂结构
 - 用户按需选择使用
@@ -91,12 +95,12 @@ isValidYaml(content)                      // 验证
 
 ```json
 {
-  "@cmtx/core": "无变化",
-  "@cmtx/metadata": {
-    "dependencies": {
-      "js-yaml": "^4.1.0"
+    "@cmtx/core": "无变化",
+    "@cmtx/metadata": {
+        "dependencies": {
+            "js-yaml": "^4.1.0"
+        }
     }
-  }
 }
 ```
 
@@ -115,24 +119,24 @@ author: John
 ```
 
 ```typescript
-import { extractMetadata, upsertFrontmatterFields } from '@cmtx/core';
-const metadata = await extractMetadata('./docs/article.md');
+import { extractMetadata, upsertFrontmatterFields } from "@cmtx/core";
+const metadata = await extractMetadata("./docs/article.md");
 ```
 
 ### 复杂场景：使用 @cmtx/metadata
 
 ```yaml
 author:
-  name: John Doe
-  contact:
-    email: john@example.com
+    name: John Doe
+    contact:
+        email: john@example.com
 description: |
-  Multiline
-  content
+    Multiline
+    content
 ```
 
 ```typescript
-import { parseFullFrontmatter } from '@cmtx/metadata';
+import { parseFullFrontmatter } from "@cmtx/metadata";
 const data = parseFullFrontmatter(yamlContent);
 ```
 
@@ -176,10 +180,12 @@ const data = parseFullFrontmatter(yamlContent);
 ## 相关文件
 
 ### 新增
+
 - `packages/metadata/src/full-yaml-parser.ts`
 - `packages/metadata/tests/full-yaml-parser.test.ts`
 
 ### 修改
+
 - `packages/core/src/metadata.ts` - 添加 JSDoc
 - `packages/core/src/types.ts` - 新增 FrontmatterValue 类型
 - `packages/core/README.md` - 添加 YAML 支持范围说明

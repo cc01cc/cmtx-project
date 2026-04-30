@@ -6,14 +6,14 @@
 
 ```json
 {
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "noEmit": true,
-    "types": ["node"],
-    "baseUrl": "./"
-  },
-  "include": ["src", "bin"],
-  "exclude": ["dist"]
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "noEmit": true,
+        "types": ["node"],
+        "baseUrl": "./"
+    },
+    "include": ["src", "bin"],
+    "exclude": ["dist"]
 }
 ```
 
@@ -21,18 +21,18 @@
 
 ```json
 {
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "noEmit": false,
-    "outDir": "dist",
-    "rootDir": "src",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "types": ["node"],
-    "stripInternal": true
-  },
-  "include": ["src/**/*"],
-  "exclude": ["tests", "**/*.test.ts", "dist"]
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "noEmit": false,
+        "outDir": "dist",
+        "rootDir": "src",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "types": ["node"],
+        "stripInternal": true
+    },
+    "include": ["src/**/*"],
+    "exclude": ["tests", "**/*.test.ts", "dist"]
 }
 ```
 
@@ -50,7 +50,7 @@
 - 需要包含 bin 目录
 - 可能需要额外的类型定义
 
-### MCP-Server 包  
+### MCP-Server 包
 
 - 需要包含 bin 目录
 - 可能需要特定的模块解析配置
