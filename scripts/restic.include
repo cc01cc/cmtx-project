@@ -1,4 +1,0 @@
-# Add absolute or relative paths to include in backup/restore, one per line
-# Example:
-# /workspaces/cmtx-project
-/workspace

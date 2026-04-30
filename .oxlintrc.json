@@ -1,0 +1,87 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "options": {
+        "typeAware": true
+    },
+    "plugins": ["eslint", "typescript", "import", "unicorn", "oxc"],
+    "rules": {
+        "no-console": "warn",
+        "no-debugger": "error",
+        "no-var": "error",
+        "no-eval": "error",
+        "no-restricted-globals": [
+            "error",
+            {
+                "restrictedGlobals": {
+                    "globalEval": "Use alternatives to globalEval()"
+                }
+            }
+        ],
+        "max-params": ["warn", { "max": 5 }],
+        "complexity": ["warn", { "max": 20 }],
+        "max-depth": ["warn", { "max": 4 }],
+        "max-lines-per-function": [
+            "warn",
+            { "max": 80, "skipBlankLines": true, "skipComments": true }
+        ],
+        "max-statements": ["warn", { "max": 30 }],
+        "no-new-func": "error",
+        "no-script-url": "error",
+        "no-alert": "warn",
+        "typescript/no-explicit-any": "warn",
+        "typescript/no-unused-vars": "warn",
+        "import/no-dynamic-require": "error"
+    },
+    "ignorePatterns": [
+        "node_modules",
+        "dist",
+        "out",
+        "coverage",
+        ".git",
+        "ignore-git",
+        ".codebuddy/",
+        ".opencode/",
+        "**/.codebuddy",
+        "**/.opencode",
+        "**/.vitepress",
+        "**/.vscode-test",
+        "**/node_modules",
+        "**/dist",
+        "**/out",
+        "**/coverage",
+        "**/docs/api",
+        "**/*.min.js",
+        "**/*.tsbuildinfo",
+        "**/*.vsix",
+        "**/package-lock.json",
+        "**/pnpm-lock.yaml",
+        "**/*.html",
+        "packages/vscode-extensions",
+        "internal",
+        "worktrees"
+    ],
+    "overrides": [
+        {
+            "files": [
+                "**/*.test.ts",
+                "**/*.spec.ts",
+                "**/tests/**/*.ts",
+                "**/test/**/*.ts",
+                "**/__mocks__/**/*.ts",
+                "**/examples/**/*.ts"
+            ],
+            "rules": {
+                "typescript/no-explicit-any": "off",
+                "typescript/no-unused-vars": "off",
+                "typescript/unbound-method": "off",
+                "no-console": "off",
+                "max-lines-per-function": [
+                    "warn",
+                    { "max": 400, "skipBlankLines": true, "skipComments": true }
+                ],
+                "max-statements": ["warn", { "max": 80 }],
+                "complexity": ["warn", { "max": 40 }]
+            }
+        }
+    ]
+}
