@@ -1,202 +1,83 @@
-# Logger 重构计划：消除重复输出
+# Logger 重构计划：统一日志输出
 
-## 问题描述
+## 问题描述（已解决）
 
-当前 CMTX 扩展的日志输出会同时出现在两个地方：
-1. **OUTPUT 面板**（CMTX 通道）- 预期位置
-2. **Debug Console** - 非预期位置
+~~当前 CMTX 扩展的日志输出存在格式不一致的问题：~~
 
-这导致日志输出重复，且 Debug Console 中混杂了所有扩展的输出。
+~~1. **OUTPUT 面板**（CMTX 通道）- 有 `[CMTX]` 前缀~~
+~~2. **Debug Console** - 没有 `[CMTX]` 前缀~~
 
----
-
-## 根本原因分析
-
-### 代码流程
-
-```
-用户代码
-    │
-    └── logger.info('message')
-            │
-            ├── appendToOutputChannel() ──> OUTPUT 面板
-            │
-            └── logMethod.apply()
-                    │
-                    └── winston logger
-                            │
-                            └── Console transport ──> Debug Console
-```
-
-### 源码分析
-
-**`packages/vscode-extension/src/infra/logger.ts`**:
-
-```typescript
-export function getLogger(moduleName?: string): CmtxLogger {
-    const baseLogger = getBaseLogger(moduleName);
-
-    return new Proxy(baseLogger, {
-        get(target, prop, receiver) {
-            if (typeof prop === 'string' && isLogMethod(prop)) {
-                const method = Reflect.get(target, prop, receiver);
-                if (typeof method === 'function') {
-                    const logMethod = method as (...args: unknown[]) => unknown;
-                    return (...args: unknown[]) => {
-                        appendToOutputChannel(prop, moduleName, args);  // 1. 输出到 OutputChannel
-                        return logMethod.apply(target, args);           // 2. 调用 winston → Console
-                    };
-                }
-            }
-
-            return Reflect.get(target, prop, receiver);
-        },
-    });
-}
-```
-
-**`packages/core/src/logger.ts`**:
-
-```typescript
-if (!silent) {
-    transports.push(new winston.transports.Console());  // 默认启用 Console 输出
-}
-```
+~~这导致两个输出目标的内容和格式不一致。~~
 
 ---
 
-## 解决方案
+## 解决方案（已实施）
 
-### 方案 1：在 VS Code 扩展层设置 silent（推荐）
+### UnifiedLogger 设计
 
-**修改文件**: `packages/vscode-extension/src/extension.ts`
-
-**修改内容**:
+创建了 [`UnifiedLogger`](../src/infra/unified-logger.ts) 类，统一输出到 Output Channel 和 DEBUG CONSOLE：
 
 ```typescript
-import { initLogger } from '@cmtx/core';
+// 统一日志格式：[CMTX] [module] LEVEL: message
+[CMTX] [cmtx-config] INFO: Loaded config from: /path/to/config
+```
+
+### 核心特性
+
+1. **统一格式**：Output Channel 和 DEBUG CONSOLE 输出完全相同的内容
+2. **简单 API**：调用一个方法即可同时输出到两个目标
+3. **解耦**：不依赖 `@cmtx/core` 的 winston logger
+4. **易测试**：可以 mock `outputChannel` 和 `console` 方法进行单元测试
+5. **模块支持**：通过 `ModuleLogger` 支持模块特定日志
+
+### 使用方式
+
+```typescript
+// 获取模块 logger
+import { getModuleLogger } from "./infra/unified-logger";
+
+const logger = getModuleLogger("my-module");
+logger.info("Starting operation");
+logger.debug("Debug details", someData);
+logger.warn("Warning message");
+logger.error("Error occurred", error);
+```
+
+### 初始化
+
+在 `extension.ts` 中初始化：
+
+```typescript
+import { getUnifiedLogger } from "./infra/unified-logger";
 
 export function activate(context: vscode.ExtensionContext) {
-    // 初始化 logger，禁用 Console 输出
-    initLogger({
-        level: 'debug',
-        silent: true,  // 禁用 Console 输出，只使用 OutputChannel
-    });
-    
+    const outputChannel = vscode.window.createOutputChannel("CMTX");
+    getUnifiedLogger().setOutputChannel(outputChannel);
     // ...
 }
 ```
 
-**优点**:
-- 最小改动
-- 只影响 VS Code 扩展环境
-- `@cmtx/core` 在其他环境（CLI、MCP Server）仍可使用 Console 输出
-
-**缺点**:
-- 需要确保 `initLogger` 在 `getLogger` 之前调用
-
 ---
 
-### 方案 2：修改 VS Code 扩展层的 Proxy 逻辑
+## 迁移状态
 
-**修改文件**: `packages/vscode-extension/src/infra/logger.ts`
-
-**修改内容**:
-
-```typescript
-return (...args: unknown[]) => {
-    appendToOutputChannel(prop, moduleName, args);
-    // 移除这行，不再调用原始的 winston logger
-    // return logMethod.apply(target, args);
-};
-```
-
-**优点**:
-- 完全控制输出
-- 不依赖 `@cmtx/core` 的配置
-
-**缺点**:
-- 失去了 winston 的文件日志功能
-- 需要重新实现日志级别控制等特性
-
----
-
-### 方案 3：在 VS Code 扩展层创建独立的 Logger
-
-**修改文件**: `packages/vscode-extension/src/infra/logger.ts`
-
-**修改内容**:
-
-不使用 `@cmtx/core` 的 logger，直接实现：
-
-```typescript
-class VSCodeLogger {
-    private channel: vscode.OutputChannel;
-    
-    constructor(channel: vscode.OutputChannel) {
-        this.channel = channel;
-    }
-    
-    info(message: string, ...args: unknown[]): void {
-        this.channel.appendLine(`[INFO] ${message}`);
-    }
-    
-    error(message: string, ...args: unknown[]): void {
-        this.channel.appendLine(`[ERROR] ${message}`);
-    }
-    
-    // ...
-}
-```
-
-**优点**:
-- 完全解耦
-- 可以针对 VS Code 环境优化
-
-**缺点**:
-- 失去 `@cmtx/core` 的统一日志功能
-- 代码重复
-
----
-
-## 推荐方案
-
-**方案 1**：在 VS Code 扩展层设置 `silent: true`
-
-**理由**:
-1. 最小改动
-2. 保持 `@cmtx/core` 的统一性
-3. 其他环境（CLI、MCP Server）不受影响
-4. 实现简单
-
----
-
-## 实施步骤
-
-1. 在 `packages/vscode-extension/src/extension.ts` 中调用 `initLogger({ silent: true })`
-2. 确保 `initLogger` 在任何 `getLogger` 调用之前执行
-3. 测试验证：
-   - OUTPUT 面板有输出
-   - Debug Console 无 CMTX 相关输出（只有其他扩展的输出）
-
----
-
-## 注意事项
-
-1. **初始化顺序**：必须确保 `initLogger` 在 `getLogger` 之前调用
-2. **测试环境**：测试文件 (`src/test/runTest.ts`) 中仍有 `console.log`，这是正常的
-3. **其他包**：`@cmtx/cli` 和 `@cmtx/mcp-server` 可能需要 Console 输出，不应设置 `silent`
+| 步骤                     | 状态 |
+| ------------------------ | ---- |
+| 创建 UnifiedLogger 类    | 完成 |
+| 创建单元测试             | 完成 |
+| 更新 index.ts 导出       | 完成 |
+| 更新 extension.ts 初始化 | 完成 |
+| 全量迁移业务代码         | 完成 |
+| 删除旧 logger.ts 文件    | 完成 |
+| LINT 检查                | 通过 |
+| BUILD                    | 通过 |
+| TEST                     | 通过 |
+| TYPECHECK                | 通过 |
 
 ---
 
 ## 相关文件
 
-- `packages/vscode-extension/src/extension.ts`
-- `packages/vscode-extension/src/infra/logger.ts`
-- `packages/core/src/logger.ts`
-
----
-
-## 创建日期
-
-2026-04-08
+- [`packages/vscode-extension/src/infra/unified-logger.ts`](../src/infra/unified-logger.ts) - UnifiedLogger 实现
+- [`packages/vscode-extension/tests/unit/infra/unified-logger.test.ts`](../tests/unit/infra/unified-logger.test.ts) - 单元测试
+- [`plans/PLAN-021-unify-debug-console-log-prefix.md`](../../../plans/PLAN-021-unify-debug-console-log-prefix.md) - 实施计划

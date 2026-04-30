@@ -1,0 +1,71 @@
+.vscode/**
+.vscode-test/**
+src/**
+.gitignore
+.yarnrc
+vsc-extension-quickstart.md
+**/tsconfig.json
+**/.eslintrc.json
+**/*.map
+**/*.ts
+samples/**
+dist/extension.js.map
+test/**
+patches/**
+pnpm-lock.yaml
+*.vsix
+CHANGELOG.md
+vite.config.ts
+tsconfig.json
+tsconfig.base.json
+.github/**
+.eslintcache
+.vscode-test.mjs
+eslint.config.mjs
+scripts/**
+test-results/**
+packages/**
+CLAUDE.md
+CONTRIBUTION.md
+pnpm-workspace.yaml
+
+# 排除类型定义文件（运行时不需要）
+**/*.d.ts
+**/*.d.cts
+**/*.d.mts
+**/*.d.ts.map
+**/*.d.cts.map
+**/*.d.mts.map
+
+# 排除文档和元数据文件
+**/README.md
+**/CHANGELOG.md
+**/CONTRIBUTING.md
+**/docs/**
+**/.gitignore
+
+# 排除测试相关
+**/test/**
+**/tests/**
+**/coverage/**
+
+# 排除手动复制的依赖包（已改用 autocorrect-wasm 包的自动加载机制）
+lib/**
+
+# 排除双格式输出中的 ESM 目录（如果依赖包有 dist/ 作为 ESM 输出）
+# 扩展使用 CJS，所以保留 dist/ 目录
+# **/dist-cjs/**  # 如果依赖有 CJS 双格式输出，可以排除
+
+# 排除配置文件
+**/.npmrc
+**/.yarnrc
+**/pnpm-lock.yaml
+**/pnpm-workspace.yaml
+**/patches/**
+**/vite.config.ts
+**/eslint.config.mjs
+**/.eslintcache
+
+# 排除额外的开发配置文件（vsix 不需要）
+tsconfig.test.json
+typedoc.json

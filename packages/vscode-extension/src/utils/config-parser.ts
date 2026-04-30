@@ -1,4 +1,7 @@
-import type { CloudStorageConfig as BaseCloudStorageConfig } from '@cmtx/storage';
+import { getModuleLogger } from "../infra/unified-logger.js";
+import type { CloudStorageConfig as BaseCloudStorageConfig } from "@cmtx/storage";
+
+const logger = getModuleLogger("config-parser");
 
 // 扩展基础配置，支持额外的 path 和 forceHttps 字段
 export interface CloudStorageConfig extends BaseCloudStorageConfig {
@@ -8,26 +11,26 @@ export interface CloudStorageConfig extends BaseCloudStorageConfig {
     forceHttps?: boolean;
 }
 
-function parseProvider(obj: Record<string, unknown>): CloudStorageConfig['provider'] {
-    if (obj.provider === 'aliyun') {
-        console.log('[CMTX] Provider "aliyun" 已自动映射为 "aliyun-oss"');
-        return 'aliyun-oss';
+function parseProvider(obj: Record<string, unknown>): CloudStorageConfig["provider"] {
+    if (obj.provider === "aliyun") {
+        logger.info('[CMTX] Provider "aliyun" 已自动映射为 "aliyun-oss"');
+        return "aliyun-oss";
     }
 
-    if (typeof obj.provider === 'string' && ['aliyun-oss', 'tencent-cos'].includes(obj.provider)) {
-        return obj.provider as CloudStorageConfig['provider'];
+    if (typeof obj.provider === "string" && ["aliyun-oss", "tencent-cos"].includes(obj.provider)) {
+        return obj.provider as CloudStorageConfig["provider"];
     }
 
-    return 'aliyun-oss';
+    return "aliyun-oss";
 }
 
 function parseStringField(obj: Record<string, unknown>, key: string): string {
-    return typeof obj[key] === 'string' ? (obj[key] as string) : '';
+    return typeof obj[key] === "string" ? (obj[key] as string) : "";
 }
 
 function parseOptionalString(obj: Record<string, unknown>, key: string): string | undefined {
     const value = obj[key];
-    if (typeof value === 'string' && value.length > 0) {
+    if (typeof value === "string" && value.length > 0) {
         return value;
     }
     return undefined;
@@ -36,28 +39,28 @@ function parseOptionalString(obj: Record<string, unknown>, key: string): string 
 function parseBooleanField(
     obj: Record<string, unknown>,
     key: string,
-    defaultValue: boolean
+    defaultValue: boolean,
 ): boolean {
-    return typeof obj[key] === 'boolean' ? (obj[key] as boolean) : defaultValue;
+    return typeof obj[key] === "boolean" ? (obj[key] as boolean) : defaultValue;
 }
 
 function buildConfig(
     obj: Record<string, unknown>,
-    provider: CloudStorageConfig['provider']
+    provider: CloudStorageConfig["provider"],
 ): CloudStorageConfig | null {
-    const bucket = parseStringField(obj, 'bucket');
-    const region = parseStringField(obj, 'region');
+    const bucket = parseStringField(obj, "bucket");
+    const region = parseStringField(obj, "region");
 
     if (!bucket || !region) {
         return null;
     }
 
-    const path = parseOptionalString(obj, 'path');
-    const forceHttps = parseBooleanField(obj, 'forceHttps', true);
-    const accessKeyId = parseOptionalString(obj, 'accessKeyId');
-    const accessKeySecret = parseOptionalString(obj, 'accessKeySecret');
+    const path = parseOptionalString(obj, "path");
+    const forceHttps = parseBooleanField(obj, "forceHttps", true);
+    const accessKeyId = parseOptionalString(obj, "accessKeyId");
+    const accessKeySecret = parseOptionalString(obj, "accessKeySecret");
 
-    let domain = parseStringField(obj, 'domain');
+    let domain = parseStringField(obj, "domain");
     if (!domain) {
         domain = generateDefaultDomain(provider, bucket, region);
     }
@@ -75,8 +78,8 @@ function buildConfig(
 }
 
 export function parseCloudStorageConfig(rawConfig: unknown): CloudStorageConfig {
-    if (typeof rawConfig === 'string') {
-        if (rawConfig.trim() === '') {
+    if (typeof rawConfig === "string") {
+        if (rawConfig.trim() === "") {
             return createDefaultCloudStorageConfig();
         }
 
@@ -87,7 +90,7 @@ export function parseCloudStorageConfig(rawConfig: unknown): CloudStorageConfig 
         }
     }
 
-    if (rawConfig && typeof rawConfig === 'object') {
+    if (rawConfig && typeof rawConfig === "object") {
         const obj = rawConfig as Record<string, unknown>;
         const provider = parseProvider(obj);
         const config = buildConfig(obj, provider);
@@ -102,25 +105,25 @@ export function parseCloudStorageConfig(rawConfig: unknown): CloudStorageConfig 
 
 export function createDefaultCloudStorageConfig(): CloudStorageConfig {
     return {
-        provider: 'aliyun-oss',
-        domain: '',
-        bucket: '',
-        region: '',
+        provider: "aliyun-oss",
+        domain: "",
+        bucket: "",
+        region: "",
         forceHttps: true,
     };
 }
 
 export function generateDefaultDomain(
-    provider: CloudStorageConfig['provider'],
+    provider: CloudStorageConfig["provider"],
     bucket: string,
-    region: string
+    region: string,
 ): string {
     switch (provider) {
-        case 'aliyun-oss':
+        case "aliyun-oss":
             return `${bucket}.${region}.aliyuncs.com`;
-        case 'tencent-cos':
+        case "tencent-cos":
             return `${bucket}.cos.${region}.myqcloud.com`;
         default:
-            return '';
+            return "";
     }
 }

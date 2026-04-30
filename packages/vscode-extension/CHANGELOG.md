@@ -1,5 +1,33 @@
 # @cmtx/vscode-extension 更新日志 / Changelog
 
+## [0.1.1] - 2026-05-01
+
+### Added
+
+- **autocorrect-wasm**: 集成 `@cmtx/autocorrect-wasm`，替换 `@huacnlee/autocorrect`
+- **WASM 加载**: 新增统一的 WASM 加载机制，增强错误处理和调试日志
+- **UnifiedLogger**: 重构日志系统，统一 Output Channel 和 DEBUG CONSOLE 输出
+- **进度追踪**: 上传进度跟踪支持，配置驱动的冲突处理
+- **完成统计**: 上传完成后显示详细统计信息
+- **内置规则加载**: 增强内置规则加载功能
+
+### Changed
+
+- **构建系统**: 迁移至 tsdown，实现 ESM/CJS 双格式构建
+- **CJS 兼容**: 新增 CJS Alias 插件解决 ESM/CJS 混用问题
+- **WASM 路径**: 统一 WASM 加载路径，支持 VS Code 扩展环境
+- **日志系统**: 统一日志与通知系统
+- **配置模板**: 配置模板统一从 `@cmtx/asset` 导入
+
+### Fixed
+
+- 修复 `ali-oss` 类型导入错误在扩展构建中的问题
+- 修复 VS Code 扩展 ESM/CJS bundle 错误
+
+### Removed
+
+- 移除 `@huacnlee/autocorrect` 依赖
+
 ## 0.1.0 - 2026-04-11
 
 ### 初始发布
@@ -27,27 +55,27 @@
 
 #### 命令
 
-| 命令 | 描述 |
-|------|------|
-| `CMTX: Upload local images` | 上传文档中的所有本地图片 |
-| `CMTX: Upload selected images` | 上传选中文字中的图片 |
-| `CMTX: Download remote images` | 下载远程图片到本地 |
-| `CMTX: Convert images to HTML format` | 将 Markdown 图片转换为 HTML |
+| 命令                                      | 描述                        |
+| ----------------------------------------- | --------------------------- |
+| `CMTX: Upload local images`               | 上传文档中的所有本地图片    |
+| `CMTX: Upload selected images`            | 上传选中文字中的图片        |
+| `CMTX: Download remote images`            | 下载远程图片到本地          |
+| `CMTX: Convert images to HTML format`     | 将 Markdown 图片转换为 HTML |
 | `CMTX: Convert images to Markdown format` | 将 HTML 图片转换为 Markdown |
-| `CMTX: Set image width` | 使用 QuickPick 设置图片宽度 |
-| `CMTX: Increase image width` | 增加图片宽度 (Ctrl+Up) |
-| `CMTX: Decrease image width` | 减小图片宽度 (Ctrl+Down) |
-| `CMTX: Analyze document images` | 分析文档中的图片 |
-| `CMTX: Find image references` | 查找选中图片的所有引用 |
-| `CMTX: Initialize configuration` | 创建 CMTX 配置文件 |
+| `CMTX: Set image width`                   | 使用 QuickPick 设置图片宽度 |
+| `CMTX: Increase image width`              | 增加图片宽度 (Ctrl+Up)      |
+| `CMTX: Decrease image width`              | 减小图片宽度 (Ctrl+Down)    |
+| `CMTX: Analyze document images`           | 分析文档中的图片            |
+| `CMTX: Find image references`             | 查找选中图片的所有引用      |
+| `CMTX: Initialize configuration`          | 创建 CMTX 配置文件          |
 
 #### 快捷键
 
-| 快捷键 | 命令 |
-|--------|------|
+| 快捷键         | 命令             |
+| -------------- | ---------------- |
 | `Ctrl+Shift+H` | 转换为 HTML 格式 |
-| `Ctrl+Up` | 增加图片宽度 |
-| `Ctrl+Down` | 减小图片宽度 |
+| `Ctrl+Up`      | 增加图片宽度     |
+| `Ctrl+Down`    | 减小图片宽度     |
 
 #### 依赖
 
@@ -85,27 +113,27 @@
 
 #### Commands
 
-| Command | Description |
-|---------|-------------|
-| `CMTX: Upload local images` | Upload all local images in document |
-| `CMTX: Upload selected images` | Upload images in selected text |
-| `CMTX: Download remote images` | Download remote images to local |
-| `CMTX: Convert images to HTML format` | Convert Markdown images to HTML |
-| `CMTX: Convert images to Markdown format` | Convert HTML images to Markdown |
-| `CMTX: Set image width` | Set image width with QuickPick |
-| `CMTX: Increase image width` | Increase image width (Ctrl+Up) |
-| `CMTX: Decrease image width` | Decrease image width (Ctrl+Down) |
-| `CMTX: Analyze document images` | Analyze images in document |
-| `CMTX: Find image references` | Find all references to selected image |
-| `CMTX: Initialize configuration` | Create CMTX configuration file |
+| Command                                   | Description                           |
+| ----------------------------------------- | ------------------------------------- |
+| `CMTX: Upload local images`               | Upload all local images in document   |
+| `CMTX: Upload selected images`            | Upload images in selected text        |
+| `CMTX: Download remote images`            | Download remote images to local       |
+| `CMTX: Convert images to HTML format`     | Convert Markdown images to HTML       |
+| `CMTX: Convert images to Markdown format` | Convert HTML images to Markdown       |
+| `CMTX: Set image width`                   | Set image width with QuickPick        |
+| `CMTX: Increase image width`              | Increase image width (Ctrl+Up)        |
+| `CMTX: Decrease image width`              | Decrease image width (Ctrl+Down)      |
+| `CMTX: Analyze document images`           | Analyze images in document            |
+| `CMTX: Find image references`             | Find all references to selected image |
+| `CMTX: Initialize configuration`          | Create CMTX configuration file        |
 
 #### Keyboard Shortcuts
 
-| Shortcut | Command |
-|----------|---------|
+| Shortcut       | Command                |
+| -------------- | ---------------------- |
 | `Ctrl+Shift+H` | Convert to HTML format |
-| `Ctrl+Up` | Increase image width |
-| `Ctrl+Down` | Decrease image width |
+| `Ctrl+Up`      | Increase image width   |
+| `Ctrl+Down`    | Decrease image width   |
 
 #### Dependencies
 

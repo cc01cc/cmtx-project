@@ -8,9 +8,9 @@ export function substituteEnvVars(value: string): string {
 
     return value.replace(regex, (_match, content) => {
         // Check if there's a default value
-        const colonIndex = content.indexOf(':-');
+        const colonIndex = content.indexOf(":-");
         const varName = colonIndex >= 0 ? content.slice(0, colonIndex) : content;
-        const defaultValue = colonIndex >= 0 ? content.slice(colonIndex + 2) : '';
+        const defaultValue = colonIndex >= 0 ? content.slice(colonIndex + 2) : "";
 
         const envValue = process.env[varName];
         return envValue !== undefined ? envValue : defaultValue;
@@ -21,7 +21,7 @@ export function substituteEnvVars(value: string): string {
  * Recursively substitute environment variables in an object
  */
 export function substituteEnvVarsInObject<T>(obj: T): T {
-    if (typeof obj === 'string') {
+    if (typeof obj === "string") {
         return substituteEnvVars(obj) as unknown as T;
     }
 
@@ -29,7 +29,7 @@ export function substituteEnvVarsInObject<T>(obj: T): T {
         return obj.map((item) => substituteEnvVarsInObject(item)) as unknown as T;
     }
 
-    if (obj !== null && typeof obj === 'object') {
+    if (obj !== null && typeof obj === "object") {
         const result: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(obj)) {
             result[key] = substituteEnvVarsInObject(value);

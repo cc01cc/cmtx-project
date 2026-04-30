@@ -1,5 +1,9 @@
-import * as vscode from 'vscode';
-import { getUploadConfig } from '../infra';
+import * as vscode from "vscode";
+import {
+    getCurrentWorkspaceFolder,
+    getStorageConfig,
+    loadCmtxConfig,
+} from "../infra/cmtx-config.js";
 
 export class StatusBarController {
     private statusBarItem: vscode.StatusBarItem;
@@ -7,22 +11,24 @@ export class StatusBarController {
     constructor() {
         this.statusBarItem = vscode.window.createStatusBarItem(
             vscode.StatusBarAlignment.Right,
-            100
+            100,
         );
-        this.statusBarItem.command = 'cmtx.configInit';
-        this.update();
+        this.statusBarItem.command = "cmtx.configInit";
+        void this.update();
         this.statusBarItem.show();
     }
 
     async update(): Promise<void> {
-        const config = await getUploadConfig();
+        const workspaceFolder = getCurrentWorkspaceFolder();
+        const cmtxConfig = workspaceFolder ? await loadCmtxConfig(workspaceFolder) : undefined;
+        const storage = cmtxConfig ? getStorageConfig(cmtxConfig) : undefined;
 
-        if (config.providerConfig.bucket && config.providerConfig.region) {
-            this.statusBarItem.text = `$(cloud) CMTX: ${config.providerConfig.bucket}`;
-            this.statusBarItem.tooltip = `CMTX configured for ${config.providerConfig.provider}`;
+        if (storage?.config.bucket && storage?.config.region) {
+            this.statusBarItem.text = `$(cloud) CMTX: ${storage.config.bucket}`;
+            this.statusBarItem.tooltip = `CMTX configured for ${storage.adapter}`;
         } else {
-            this.statusBarItem.text = '$(cloud) CMTX: Not configured';
-            this.statusBarItem.tooltip = 'Click to initialize configuration';
+            this.statusBarItem.text = "$(cloud) CMTX: Not configured";
+            this.statusBarItem.tooltip = "Click to initialize configuration";
         }
     }
 

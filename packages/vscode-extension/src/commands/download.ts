@@ -1,24 +1,24 @@
-import { createDownloadService } from '@cmtx/asset/download';
-import * as vscode from 'vscode';
-import { showError, showInfo, validateMarkdownEditor } from '../infra';
+import { createDownloadService } from "@cmtx/asset/download";
+import * as vscode from "vscode";
+import { showError, showInfo, validateMarkdownEditor } from "../infra/index.js";
 
 export async function downloadImages(): Promise<void> {
     const editor = validateMarkdownEditor();
     if (!editor) {
-        showError('Please open a Markdown file first');
+        await showError("Please open a Markdown file first");
         return;
     }
 
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(editor.document.uri);
     if (!workspaceFolder) {
-        showError('Please open a workspace folder');
+        await showError("Please open a workspace folder");
         return;
     }
 
     const outputDir = await vscode.window.showInputBox({
-        prompt: 'Enter output directory for downloaded images',
-        value: './images',
-        placeHolder: './images',
+        prompt: "Enter output directory for downloaded images",
+        value: "./images",
+        placeHolder: "./images",
     });
 
     if (!outputDir) {
@@ -31,7 +31,7 @@ export async function downloadImages(): Promise<void> {
         await vscode.window.withProgress(
             {
                 location: vscode.ProgressLocation.Notification,
-                title: 'Downloading images...',
+                title: "Downloading images...",
                 cancellable: true,
             },
             async (progress, token) => {
@@ -54,16 +54,16 @@ export async function downloadImages(): Promise<void> {
                 }
 
                 if (result.failed > 0) {
-                    showError(
-                        `Downloaded ${result.success}/${result.total}, ${result.failed} failed`
+                    await showError(
+                        `Downloaded ${result.success}/${result.total}, ${result.failed} failed`,
                     );
                 } else {
-                    showInfo(`Downloaded ${result.success} images to ${outputDir}`);
+                    await showInfo(`Downloaded ${result.success} images to ${outputDir}`);
                 }
-            }
+            },
         );
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        showError(`Download failed: ${message}`);
+        await showError(`Download failed: ${message}`);
     }
 }

@@ -1,15 +1,10 @@
-export { analyzeDocument } from './analyze';
-export { applyPreset } from './apply-preset';
-export { applyRule } from './apply-rule';
-export { editConfig, initConfig, openConfigUI } from './config';
-export { deleteImage } from './delete';
-export { downloadImages } from './download';
-export { findImageReferences } from './find-references';
-export { formatToHtml, formatToMarkdown } from './format';
-export { clearPresignedCacheCommand } from './presigned-cache';
-export { setImageWidth, zoomIn, zoomOut } from './resize';
-export {
-    addSectionNumbersCommand,
-    removeSectionNumbersCommand,
-} from './section-numbers';
-export { uploadAllImages, uploadSelectedImages } from './upload';
+export { applyPreset } from "./apply-preset.js";
+export { initConfig } from "./config.js";
+export { deleteImage } from "./delete.js";
+export { downloadImages } from "./download.js";
+export { formatToHtml } from "./format.js";
+export { clearPresignedCacheCommand } from "./presigned-cache.js";
+export { setImageWidth, zoomIn, zoomOut } from "./resize.js";
+export * from "./rules/index.js";
+export { addSectionNumbersCommand, removeSectionNumbersCommand } from "./section-numbers.js";
+export { uploadSelectedImages } from "./upload.js";

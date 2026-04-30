@@ -10,13 +10,13 @@ VS Code 的 Markdown 预览功能基于 [markdown-it](https://github.com/markdow
 
 **重要**：Markdown Preview 是 **Webview**，不是原生 UI。
 
-| 特性 | 原生 UI | Webview | Markdown Preview |
-|------|---------|---------|------------------|
-| **渲染技术** | VS Code 原生组件 | 自定义 HTML/CSS/JS | 自定义 HTML/CSS/JS |
-| **运行进程** | VS Code 主进程 | 独立渲染进程 | 独立渲染进程 |
-| **通信方式** | 直接 API 调用 | postMessage | postMessage |
-| **markdown-it** | ❌ 不支持 | ✅ 支持 | ✅ 使用 markdown-it |
-| **自定义渲染规则** | ❌ 不支持 | ✅ 支持 | ✅ 支持 |
+| 特性               | 原生 UI          | Webview            | Markdown Preview    |
+| ------------------ | ---------------- | ------------------ | ------------------- |
+| **渲染技术**       | VS Code 原生组件 | 自定义 HTML/CSS/JS | 自定义 HTML/CSS/JS  |
+| **运行进程**       | VS Code 主进程   | 独立渲染进程       | 独立渲染进程        |
+| **通信方式**       | 直接 API 调用    | postMessage        | postMessage         |
+| **markdown-it**    | ❌ 不支持        | ✅ 支持            | ✅ 使用 markdown-it |
+| **自定义渲染规则** | ❌ 不支持        | ✅ 支持            | ✅ 支持             |
 
 ### 2.2 架构位置
 
@@ -27,7 +27,7 @@ VS Code 主进程
             - 加载 markdown-it
             - 执行 markdown-it 插件
             - 渲染 Markdown 为 HTML
-            
+
 Extension Host (Node.js)
     - 注册 markdown-it 插件
     - 提供插件配置和回调函数
@@ -40,15 +40,15 @@ Extension Host (Node.js)
 
 ```typescript
 // extension.ts
-import * as vscode from 'vscode';
-import type MarkdownIt from 'markdown-it';
+import * as vscode from "vscode";
+import type MarkdownIt from "markdown-it";
 
 export function activate(context: vscode.ExtensionContext) {
     return {
         extendMarkdownIt(md: MarkdownIt) {
             // 注册你的插件
             return md.use(myPlugin, options);
-        }
+        },
     };
 }
 ```
@@ -57,22 +57,22 @@ export function activate(context: vscode.ExtensionContext) {
 
 ```typescript
 // my-plugin.ts
-import type MarkdownIt from 'markdown-it';
+import type MarkdownIt from "markdown-it";
 
 export function myPlugin(md: MarkdownIt, options: any) {
     // 保存原始渲染规则
     const originalImageRule = md.renderer.rules.image;
-    
+
     // 覆盖 image 渲染规则
     md.renderer.rules.image = (tokens, idx, options, env, self) => {
         const token = tokens[idx];
-        const src = token.attrGet('src');
-        
+        const src = token.attrGet("src");
+
         // 修改图片 URL
         if (src && shouldModify(src)) {
-            token.attrSet('src', modifyUrl(src));
+            token.attrSet("src", modifyUrl(src));
         }
-        
+
         // 调用原始渲染规则
         return originalImageRule(tokens, idx, options, env, self);
     };
@@ -89,11 +89,8 @@ export function activate(context: vscode.ExtensionContext) {
     return {
         extendMarkdownIt(md: MarkdownIt) {
             // 注册多个插件（链式调用）
-            return md
-                .use(plugin1, options1)
-                .use(plugin2, options2)
-                .use(plugin3, options3);
-        }
+            return md.use(plugin1, options1).use(plugin2, options2).use(plugin3, options3);
+        },
     };
 }
 ```
@@ -110,11 +107,11 @@ export function activate(context: vscode.ExtensionContext) {
 // 好的做法：保存原始规则
 export function safePlugin(md: MarkdownIt) {
     const originalRule = md.renderer.rules.image;
-    
+
     md.renderer.rules.image = (tokens, idx, options, env, self) => {
         // 你的自定义逻辑
         modifyToken(tokens[idx]);
-        
+
         // 调用原始规则（而不是直接渲染）
         return originalRule(tokens, idx, options, env, self);
     };
@@ -126,6 +123,7 @@ export function safePlugin(md: MarkdownIt) {
 ### 5.1 为什么需要通信？
 
 markdown-it 插件运行在 Webview（浏览器环境），而某些功能需要：
+
 - 访问文件系统
 - 调用 Node.js SDK
 - 访问网络资源（受 CSP 限制）
@@ -150,7 +148,7 @@ export function activate(context: vscode.ExtensionContext) {
                     return await fetchFromAPI(key);
                 },
             });
-        }
+        },
     };
 }
 ```
@@ -167,17 +165,17 @@ export interface PluginOptions {
 export function myPlugin(md: MarkdownIt, options: PluginOptions) {
     md.renderer.rules.image = (tokens, idx, opts, env, self) => {
         const token = tokens[idx];
-        const src = token.attrGet('src');
-        
+        const src = token.attrGet("src");
+
         // 调用回调函数（实际在 Extension Host 执行）
         const data = options.getData(src);
-        
+
         // 异步请求
         options.requestData(src).then((result) => {
             // 处理结果
             refreshPreview();
         });
-        
+
         return self.renderToken(tokens, idx, opts);
     };
 }
@@ -201,10 +199,10 @@ export function goodPlugin(md: MarkdownIt, options: Options) {
 
 // 坏的设计：直接依赖 Node.js 模块
 export function badPlugin(md: MarkdownIt) {
-    const fs = require('fs');  // 在 Webview 中会报错！
-    
+    const fs = require("fs"); // 在 Webview 中会报错！
+
     md.renderer.rules.image = (tokens, idx, opts, env, self) => {
-        const data = fs.readFileSync('...');  // 错误！
+        const data = fs.readFileSync("..."); // 错误！
         return self.renderToken(tokens, idx, opts);
     };
 }
@@ -231,16 +229,16 @@ export function goodPlugin(md: MarkdownIt, options: PluginOptions) {
 ```typescript
 export function robustPlugin(md: MarkdownIt, options: Options) {
     const originalRule = md.renderer.rules.image;
-    
+
     md.renderer.rules.image = (tokens, idx, opts, env, self) => {
         try {
             // 你的逻辑
             modifyToken(tokens[idx]);
         } catch (error) {
             // 出错时返回原始渲染
-            console.error('Plugin error:', error);
+            console.error("Plugin error:", error);
         }
-        
+
         return originalRule(tokens, idx, opts, env, self);
     };
 }
@@ -253,15 +251,13 @@ export function robustPlugin(md: MarkdownIt, options: Options) {
 **A**: 可以，使用链式调用：
 
 ```typescript
-return md
-    .use(plugin1)
-    .use(plugin2)
-    .use(plugin3);
+return md.use(plugin1).use(plugin2).use(plugin3);
 ```
 
 ### Q2: 插件之间会有冲突吗？
 
 **A**: 可能会有，如果多个插件修改同一个渲染规则。解决方案：
+
 - 保存原始规则
 - 在自定义逻辑后调用原始规则
 - 注意插件注册顺序
@@ -283,4 +279,4 @@ return md
 
 ---
 
-*创建日期：2026-04-08*
+_创建日期：2026-04-08_

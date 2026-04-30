@@ -1,8 +1,8 @@
 # VSCE 与 pnpm Workspace 集成指南
 
-**文档编号**: DEV-005  \
-**创建日期**: 2026-04-12  \
-**最后更新**: 2026-04-12  \
+**文档编号**: DEV-005 \
+**创建日期**: 2026-04-12 \
+**最后更新**: 2026-04-28 \
 **状态**: 已完成
 
 ---
@@ -31,9 +31,9 @@ Exit status 1
 
 ```json
 {
-  "scripts": {
-    "package": "vsce package --no-dependencies"
-  }
+    "scripts": {
+        "package": "vsce package --no-dependencies"
+    }
 }
 ```
 
@@ -50,12 +50,12 @@ vsce 在打包时会执行以下步骤来收集和打包依赖：
 ```typescript
 // vsce/src/npm.ts
 export async function detectYarn(cwd: string): Promise<boolean> {
-  for (const name of ['yarn.lock', '.yarnrc', '.yarnrc.yaml', '.pnp.cjs', '.yarn']) {
-    if (await exists(path.join(cwd, name))) {
-      return true;
+    for (const name of ["yarn.lock", ".yarnrc", ".yarnrc.yaml", ".pnp.cjs", ".yarn"]) {
+        if (await exists(path.join(cwd, name))) {
+            return true;
+        }
     }
-  }
-  return false;
+    return false;
 }
 ```
 
@@ -66,12 +66,14 @@ vsce 检测 `yarn.lock` 等文件来决定使用 yarn 还是 npm。
 ```typescript
 // vsce/src/npm.ts
 function getNpmDependencies(cwd: string): Promise<string[]> {
-  return checkNPM()
-    .then(() => exec(
-      'npm list --production --parseable --depth=99999 --loglevel=error',
-      { cwd, maxBuffer: 5000 * 1024 }
-    ))
-    .then(({ stdout }) => stdout.split(/[\r\n]/).filter(dir => path.isAbsolute(dir)));
+    return checkNPM()
+        .then(() =>
+            exec("npm list --production --parseable --depth=99999 --loglevel=error", {
+                cwd,
+                maxBuffer: 5000 * 1024,
+            }),
+        )
+        .then(({ stdout }) => stdout.split(/[\r\n]/).filter((dir) => path.isAbsolute(dir)));
 }
 ```
 
@@ -179,8 +181,8 @@ export async function getDependencies(
 
 ```typescript
 // vsce/src/package.ts
-if (dependencies === 'none') {
-  return [cwd];  // 只打包当前目录，不检查依赖
+if (dependencies === "none") {
+    return [cwd]; // 只打包当前目录，不检查依赖
 }
 ```
 
@@ -197,7 +199,7 @@ if (dependencies === 'none') {
 
 ### 3.1. 构建流程分析
 
-在 monorepo 环境中，扩展代码已经通过 esbuild 打包：
+在 monorepo 环境中，扩展代码已经通过 tsdown 打包：
 
 ```
 src/extension.ts
@@ -205,40 +207,39 @@ src/extension.ts
   + @cmtx/asset
   + @cmtx/storage
   + ali-oss (依赖)
-  ↓ esbuild (bundle: true)
-dist/extension.js  ← 所有依赖已打包进单个文件
+  ↓ tsdown (bundle: true)
+dist/extension.cjs  ← 所有依赖已打包进单个文件
 ```
 
-### 3.2. esbuild 配置
+### 3.2. tsdown 配置
 
-```javascript
-// esbuild.config.mjs
-{
-  entryPoints: ['src/extension.ts'],
-  bundle: true,        // ← 打包所有依赖
-  format: 'cjs',
-  minify: production,
-  outfile: 'dist/extension.js',
-  external: [         // ← 排除 VS Code 提供的依赖
-    'vscode',
-    'proxy-agent',
-    'trash',
-    '@stroncium/procfs',
-    // ...
-  ],
-}
+tsdown 使用 `alwaysBundle: [/.*/]` 将所有依赖打包进单个文件，并通过 `copy` 配置复制 WASM 文件：
+
+```typescript
+// tsdown.config.ts
+import { defineConfig } from "tsdown";
+
+export default defineConfig({
+    entry: {
+        extension: "src/extension.ts",
+    },
+    format: ["cjs"],
+    clean: true,
+    platform: "node",
+    target: "node22",
+    shims: false,
+    sourcemap: true,
+    deps: {
+        onlyBundle: false,
+        neverBundle: ["vscode", "node:*"],
+        alwaysBundle: [/.*/],
+    },
+    copy: [
+        "../fpe-wasm/pkg/cmtx_fpe_wasm_bg.wasm",
+        "../autocorrect-wasm/pkg/cmtx_autocorrect_wasm_bg.wasm",
+    ],
+});
 ```
-
-**external 列表说明**：
-
-| 模块 | 为什么 external |
-|------|----------------|
-| `vscode` | VS Code API，运行时提供 |
-| `proxy-agent` | vsce 工具依赖，扩展主机环境已包含 |
-| `trash` | 系统级文件删除工具 |
-| `@stroncium/procfs` | 进程文件系统访问（系统级） |
-| `xdg-trashdir` | XDG 回收站目录（Linux 系统级） |
-| `globby`, `p-map` | 通过 esbuild 打包，不 external |
 
 ### 3.3. 验证依赖打包
 
@@ -260,31 +261,23 @@ cat temp/extension/dist/extension.js | grep "ali-oss"
 
 ### 3.4. WASM 文件打包验证
 
-WASM 文件通过 esbuild 插件复制：
+WASM 文件通过 tsdown 的 `copy` 配置自动复制到 `dist/` 目录：
 
-```javascript
-// esbuild.config.mjs
-plugins: [
-  {
-    name: 'copy-wasm',
-    setup(build) {
-      build.onEnd(() => {
-        // 复制 WASM 文件到 dist 目录
-        const wasmSource = join(process.cwd(), '../fpe-wasm/pkg/cmtx_fpe_wasm_bg.wasm');
-        const wasmDest = join(process.cwd(), 'dist/cmtx_fpe_wasm_bg.wasm');
-        copyFileSync(wasmSource, wasmDest);
-        console.log('Copied WASM file to dist/');
-      });
-    },
-  },
-]
+```bash
+# 构建脚本会自动复制 WASM 文件
+pnpm run build
+# 执行: tsdown（其中 copy 配置自动复制 WASM 文件到 dist/）
 ```
 
 **验证 WASM 文件**：
 
 ```bash
 # 检查 dist/ 目录
-ls -la dist/cmtx_fpe_wasm*
+ls -la dist/cmtx_fpe_wasm_bg.wasm
+ls -la dist/cmtx_autocorrect_wasm_bg.wasm
+
+# 运行构建校验脚本
+node scripts/verify-build.mjs
 
 # 检查 VSIX 内容
 unzip -l cmtx-vscode-0.1.0.vsix | grep wasm
@@ -298,41 +291,51 @@ unzip -l cmtx-vscode-0.1.0.vsix | grep wasm
 
 ```json
 {
-  "name": "cmtx-vscode",
-  "version": "0.1.0",
-  "publisher": "cc01cc",
-  "scripts": {
-    "build": "node esbuild.config.mjs && node scripts/verify-build.mjs",
-    "package": "vsce package --no-dependencies",
-    "publish": "vsce publish --no-dependencies"
-  },
-  "dependencies": {
-    "@cmtx/asset": "workspace:*",
-    "@cmtx/core": "workspace:*",
-    "@cmtx/storage": "workspace:*",
-    "ali-oss": "catalog:"
-  }
+    "name": "cmtx-vscode",
+    "version": "0.1.0",
+    "publisher": "cc01cc",
+    "scripts": {
+        "build": "tsdown",
+        "package": "pnpm run build && node scripts/package.mjs",
+        "package:stable": "pnpm run build && node scripts/package.mjs stable",
+        "package:pre-release": "pnpm run build && node scripts/package.mjs prerelease",
+        "publish:pre-release": "vsce publish --pre-release",
+        "publish:stable": "vsce publish"
+    },
+    "dependencies": {
+        "@cmtx/asset": "workspace:*",
+        "@cmtx/core": "workspace:*",
+        "@cmtx/publish": "workspace:*",
+        "@cmtx/storage": "workspace:*",
+        "ali-oss": "catalog:"
+    }
 }
 ```
 
 ### 4.2. .vscodeignore 配置
 
+当前 `.vscodeignore` 配置已排除 `docs/`（开发文档不进入 VSIX），参见实际文件：
+
 ```
-**/.gitignore
-**/*.map
-**/test/**
-**/tests/**
-**/src/**
-**/scripts/**
-**/docs/**
-**/coverage/**
+# 排除测试和源码
+src/**
+test/**
+tests/**
 **/.vscode-test/**
-**/*.ts
-**/*.mjs
+
+# 排除文档
+**/docs/**
+
+# 排除配置文件
+scripts/**
+patches/**
 *.json
-**/builtin/builtin/**
-**/CONFIG.md
-**/README.en.md
+pnpm-lock.yaml
+
+# 排除类型定义
+**/*.d.ts
+**/*.d.cts
+**/*.d.mts
 ```
 
 ### 4.3. pnpm workspace 配置
@@ -340,8 +343,8 @@ unzip -l cmtx-vscode-0.1.0.vsix | grep wasm
 ```yaml
 # pnpm-workspace.yaml
 packages:
-  - "packages/*"
-  - "private-workspace"
+    - "packages/*"
+    - "private-workspace"
 ```
 
 ---
@@ -383,10 +386,10 @@ grep -c "ali-oss" dist/extension.js  # 应该 > 0
 
 **不推荐**。
 
-| 方案 | 优点 | 缺点 |
-|------|------|------|
-| **使用 `--no-dependencies`** | ✅ 简单，无需额外配置<br>✅ 与现有 pnpm 工作流兼容<br>✅ 打包速度快<br>✅ 社区最佳实践 | ⚠️ 需要理解原理 |
-| **添加 yarn 构建** | ❌ 增加维护成本<br>❌ 需要维护两套锁文件<br>❌ pnpm 和 yarn 依赖解析可能不一致<br>❌ CI/CD 复杂度翻倍 | ❌ 不解决根本问题 |
+| 方案                         | 优点                                                                                                  | 缺点              |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------- |
+| **使用 `--no-dependencies`** | ✅ 简单，无需额外配置<br>✅ 与现有 pnpm 工作流兼容<br>✅ 打包速度快<br>✅ 社区最佳实践                | ⚠️ 需要理解原理   |
+| **添加 yarn 构建**           | ❌ 增加维护成本<br>❌ 需要维护两套锁文件<br>❌ pnpm 和 yarn 依赖解析可能不一致<br>❌ CI/CD 复杂度翻倍 | ❌ 不解决根本问题 |
 
 **为什么 `--no-dependencies` 是最佳实践？**
 
@@ -453,6 +456,6 @@ code --uninstall-extension cc01cc.cmtx-vscode
 
 ## 8. 变更历史
 
-| 日期 | 版本 | 变更内容 | 作者 |
-|------|------|---------|------|
+| 日期       | 版本  | 变更内容 | 作者      |
+| ---------- | ----- | -------- | --------- |
 | 2026-04-12 | 1.0.0 | 初始版本 | CMTX Team |

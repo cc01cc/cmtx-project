@@ -1,34 +1,36 @@
+export type { CmtxConfig } from "@cmtx/asset/config";
 export {
-    type CmtxConfig,
     ensureCmtxConfig,
     getAddSectionNumbersConfig,
     loadCmtxConfig,
-} from './cmtx-config';
-export {
-    type CloudStorageConfig,
-    getPresignedUrlConfig,
-    getResizeConfig,
-    getUploadConfig,
-    type PresignedUrlConfig,
-    type ResizeConfig,
     setupConfigListener,
-    type UploadConfig,
-} from './config';
+} from "./cmtx-config.js";
+export type { ConfigValidationError } from "@cmtx/asset/config";
 export {
-    type ConfigValidationError,
     formatValidationErrors,
     showConfigValidationErrors,
     validateConfig,
-} from './config-validator';
-export { setOutputChannel as setConfigWatcherOutputChannel } from './config-watcher';
+} from "./config-validator.js";
+export { setOutputChannel as setConfigWatcherOutputChannel } from "./config-watcher.js";
 export {
     applyDocumentChanges,
     applyEditsIfNeeded,
-    confirm,
-    showError,
-    showInfo,
-    showWarning,
     validateEditor,
     validateMarkdownEditor,
-} from './editor';
-export { getLogger, setOutputChannel } from './logger';
+} from "./editor.js";
+export {
+    confirm,
+    type NotificationOptions,
+    showInfo,
+    showError,
+    showQuickPick,
+    showWarning,
+} from "./notification.js";
+export {
+    type FileLogOptions,
+    getModuleLogger,
+    getUnifiedLogger,
+    initFileLogging,
+    ModuleLogger,
+    UnifiedLogger,
+} from "./unified-logger.js";

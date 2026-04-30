@@ -1,9 +1,13 @@
-import * as vscode from 'vscode';
-import { getCurrentWorkspaceFolder, getStorageConfig, loadCmtxConfig } from '../infra/cmtx-config';
-import { showError, showInfo, showWarning } from '../infra/editor';
-import { getLogger } from '../infra/logger';
+import * as vscode from "vscode";
+import {
+    getCurrentWorkspaceFolder,
+    getStorageConfig,
+    loadCmtxConfig,
+} from "../infra/cmtx-config.js";
+import { showError, showInfo, showWarning } from "../infra/notification.js";
+import { getModuleLogger } from "../infra/unified-logger.js";
 
-const logger = getLogger('delete');
+const logger = getModuleLogger("delete");
 
 interface DeleteContext {
     editor: vscode.TextEditor;
@@ -24,22 +28,22 @@ interface ValidationResult {
     context?: DeleteContext;
 }
 
-function validateDeleteContext(): ValidationResult {
+async function validateDeleteContext(): Promise<ValidationResult> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-        showError('No active editor');
+        await showError("No active editor");
         return { valid: false };
     }
 
     const document = editor.document;
-    if (document.languageId !== 'markdown') {
-        showError('Active document is not a Markdown file');
+    if (document.languageId !== "markdown") {
+        await showError("Active document is not a Markdown file");
         return { valid: false };
     }
 
     const workspaceFolder = getCurrentWorkspaceFolder();
     if (!workspaceFolder) {
-        showError('Please open a workspace folder');
+        await showError("Please open a workspace folder");
         return { valid: false };
     }
 
@@ -48,12 +52,12 @@ function validateDeleteContext(): ValidationResult {
     const imageMatch = line.match(/!\[([^\]]*)\]\(([^)]+)\)/);
 
     if (!imageMatch) {
-        showError('No image found at cursor position');
+        await showError("No image found at cursor position");
         return { valid: false };
     }
 
     const imagePath = imageMatch[2];
-    const isLocal = !imagePath.startsWith('http');
+    const isLocal = !imagePath.startsWith("http");
 
     return {
         valid: true,
@@ -70,13 +74,13 @@ async function checkImageStorage(context: DeleteContext): Promise<boolean> {
     const storage = cmtxConfig ? getStorageConfig(cmtxConfig) : undefined;
 
     if (!storage) {
-        showError('No storage configuration found. Cannot delete remote images.');
+        await showError("No storage configuration found. Cannot delete remote images.");
         return false;
     }
 
-    const isInOurStorage = context.imagePath.includes(storage.config.bucket ?? '');
+    const isInOurStorage = context.imagePath.includes(storage.config.bucket ?? "");
     if (!isInOurStorage) {
-        showWarning('This remote image is not in your configured storage. Cannot delete.');
+        await showWarning("This remote image is not in your configured storage. Cannot delete.");
         return false;
     }
 
@@ -96,16 +100,16 @@ async function executeDeleteFlow(context: DeleteContext): Promise<void> {
 
     const confirmed = await showDeleteConfirmation(target);
     if (!confirmed) {
-        showInfo('Delete cancelled');
+        await showInfo("Delete cancelled");
         return;
     }
 
     await performDelete(target, workspaceFolder);
-    showInfo(`Successfully deleted: ${imagePath}`);
+    await showInfo(`Successfully deleted: ${imagePath}`);
 }
 
 export async function deleteImage(): Promise<void> {
-    const validation = validateDeleteContext();
+    const validation = await validateDeleteContext();
     if (!validation.valid) {
         return;
     }
@@ -121,22 +125,22 @@ export async function deleteImage(): Promise<void> {
         await executeDeleteFlow(context);
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        logger.error('Failed to delete image:', error);
-        showError(`Failed to delete image: ${message}`);
+        logger.error("Failed to delete image:", error);
+        await showError(`Failed to delete image: ${message}`);
     }
 }
 
 async function findImageReferences(
     _currentDocument: vscode.TextDocument,
     imagePath: string,
-    workspaceFolder: vscode.WorkspaceFolder
+    workspaceFolder: vscode.WorkspaceFolder,
 ): Promise<vscode.TextDocument[]> {
     const referencingDocs: vscode.TextDocument[] = [];
 
     // Search all markdown files in workspace
     const files = await vscode.workspace.findFiles(
-        new vscode.RelativePattern(workspaceFolder, '**/*.md'),
-        '**/node_modules/**'
+        new vscode.RelativePattern(workspaceFolder, "**/*.md"),
+        "**/node_modules/**",
     );
 
     for (const file of files) {
@@ -153,43 +157,40 @@ async function findImageReferences(
 }
 
 async function showDeleteConfirmation(target: DeleteTarget): Promise<boolean> {
-    const location = target.isLocal ? 'Local file' : 'Remote storage';
+    const location = target.isLocal ? "Local file" : "Remote storage";
     const referenceCount = target.referencedIn.length;
 
-    let message = `Delete ${target.isLocal ? 'local' : 'remote'} image?\n\n`;
+    let message = `Delete ${target.isLocal ? "local" : "remote"} image?\n\n`;
     message += `Path: ${target.path}\n`;
     message += `Location: ${location}\n`;
 
     if (referenceCount > 1) {
         message += `\n⚠️ This image is referenced in ${referenceCount} files!`;
-        message += '\nDeleting it will break these references.';
+        message += "\nDeleting it will break these references.";
     } else if (referenceCount === 1) {
-        message += '\n✓ This image is only referenced in the current file.';
+        message += "\n✓ This image is only referenced in the current file.";
     }
 
-    const items: vscode.MessageItem[] = [
-        { title: 'Delete', isCloseAffordance: false },
-        { title: 'Cancel', isCloseAffordance: true },
-    ];
+    const items = ["Delete", "Cancel"];
 
     // Add "Force Delete" option for images with multiple references
     if (referenceCount > 1) {
-        items.unshift({ title: 'Force Delete (break references)', isCloseAffordance: false });
+        items.unshift("Force Delete (break references)");
     }
 
-    const result = await vscode.window.showWarningMessage(message, { modal: true }, ...items);
+    const result = await showWarning(message, items, { modal: true });
 
-    return result?.title === 'Delete' || result?.title === 'Force Delete (break references)';
+    return result === "Delete" || result === "Force Delete (break references)";
 }
 
 async function performDelete(
     target: DeleteTarget,
-    workspaceFolder: vscode.WorkspaceFolder
+    workspaceFolder: vscode.WorkspaceFolder,
 ): Promise<void> {
     if (target.isLocal) {
         // Delete local file
-        const fs = await import('node:fs/promises');
-        const path = await import('node:path');
+        const fs = await import("node:fs/promises");
+        const path = await import("node:path");
 
         const fullPath = path.isAbsolute(target.path)
             ? target.path
@@ -201,9 +202,9 @@ async function performDelete(
         // Delete from remote storage
         // This would require implementing storage adapter deletion
         // For now, show a message that manual deletion is needed
-        showWarning(
-            'Remote image deletion requires storage adapter implementation. ' +
-                'Please delete manually from your storage console.'
+        await showWarning(
+            "Remote image deletion requires storage adapter implementation. " +
+                "Please delete manually from your storage console.",
         );
     }
 
@@ -214,7 +215,7 @@ async function performDelete(
         const content = doc.getText();
 
         // Find and remove image references
-        const imageRegex = new RegExp(`!\\[[^\\]]*\\]\\(${escapeRegExp(target.path)}\\)`, 'g');
+        const imageRegex = new RegExp(`!\\[[^\\]]*\\]\\(${escapeRegExp(target.path)}\\)`, "g");
         const matches = content.matchAll(imageRegex);
 
         for (const match of matches) {
@@ -234,5 +235,5 @@ async function performDelete(
 }
 
 function escapeRegExp(string: string): string {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

@@ -1,7 +1,9 @@
-import type { Logger } from '@cmtx/markdown-it-presigned-url';
-import type { PresignedUrlAdapterOptions } from '@cmtx/markdown-it-presigned-url-adapter-nodejs';
-import { UrlCacheManager, UrlSigner } from '@cmtx/markdown-it-presigned-url-adapter-nodejs';
-import * as vscode from 'vscode';
+/* eslint-disable no-console */
+
+import type { Logger } from "@cmtx/markdown-it-presigned-url";
+import type { PresignedUrlAdapterOptions } from "@cmtx/markdown-it-presigned-url-adapter-nodejs";
+import { UrlCacheManager, UrlSigner } from "@cmtx/markdown-it-presigned-url-adapter-nodejs";
+import * as vscode from "vscode";
 
 export interface VsCodeAdapterConfig extends PresignedUrlAdapterOptions {
     outputChannel: vscode.OutputChannel;
@@ -14,11 +16,8 @@ export interface VsCodeAdapter {
     clearCache: () => void;
 }
 
-export function createVsCodeAdapter(config: VsCodeAdapterConfig): VsCodeAdapter {
-    const { outputChannel, ...adapterOptions } = config;
-
-    // 创建 logger，同时输出到 OutputChannel 和 Debug Console
-    const logger: Logger = {
+function createLogger(outputChannel: vscode.OutputChannel): Logger {
+    return {
         debug: (message: string, ...args: unknown[]) => {
             const formatted = `[CMTX] [Adapter] DEBUG: ${message}`;
             outputChannel.appendLine(formatted);
@@ -40,20 +39,12 @@ export function createVsCodeAdapter(config: VsCodeAdapterConfig): VsCodeAdapter 
             console.error(formatted, ...args);
         },
     };
+}
 
-    // 创建带 logger 的 options
-    const optionsWithLogger: PresignedUrlAdapterOptions = {
-        ...adapterOptions,
-        logger,
-    };
-
-    // 创建缓存管理器和签名器
-    const cacheManager = new UrlCacheManager(logger);
-    const urlSigner = new UrlSigner(optionsWithLogger, cacheManager);
-
+function createSchedulePreviewRefresh(cacheManager: UrlCacheManager, logger: Logger): () => void {
     let previewRefreshScheduled = false;
 
-    const schedulePreviewRefresh = (): void => {
+    return (): void => {
         if (previewRefreshScheduled) {
             return;
         }
@@ -62,15 +53,21 @@ export function createVsCodeAdapter(config: VsCodeAdapterConfig): VsCodeAdapter 
         setTimeout(async () => {
             try {
                 await cacheManager.waitForAllPending();
-                logger.info('所有预签名 URL 请求完成，刷新预览');
-                await vscode.commands.executeCommand('markdown.preview.refresh');
+                logger.info("所有预签名 URL 请求完成，刷新预览");
+                await vscode.commands.executeCommand("markdown.preview.refresh");
             } finally {
                 previewRefreshScheduled = false;
             }
         }, 0);
     };
+}
 
-    const getSignedUrl = (src: string): string | null => {
+function createGetSignedUrl(
+    cacheManager: UrlCacheManager,
+    urlSigner: UrlSigner,
+    logger: Logger,
+): (src: string) => string | null {
+    return (src: string): string | null => {
         if (!cacheManager || !urlSigner) {
             return null;
         }
@@ -87,15 +84,20 @@ export function createVsCodeAdapter(config: VsCodeAdapterConfig): VsCodeAdapter 
 
         return null;
     };
+}
 
-    const requestSignedUrl = async (src: string): Promise<string> => {
+function createRequestSignedUrl(
+    cacheManager: UrlCacheManager,
+    urlSigner: UrlSigner,
+    maxRetryCount: number | undefined,
+    logger: Logger,
+): (src: string) => Promise<string> {
+    return async (src: string): Promise<string> => {
         const pendingRequest = cacheManager.getPendingRequest(src);
 
         if (!pendingRequest) {
-            if (!cacheManager.canRetry(src, adapterOptions.maxRetryCount)) {
-                logger.warn(
-                    `已达到最大重试次数（${adapterOptions.maxRetryCount}），停止预签名请求：${src}`
-                );
+            if (!cacheManager.canRetry(src, maxRetryCount ?? 3)) {
+                logger.warn(`已达到最大重试次数（${maxRetryCount ?? 3}），停止预签名请求：${src}`);
                 return src;
             }
 
@@ -108,7 +110,7 @@ export function createVsCodeAdapter(config: VsCodeAdapterConfig): VsCodeAdapter 
                 if (signedUrl === src) {
                     const retryCount = cacheManager.recordFailure(src);
                     logger.warn(
-                        `预签名未生效，已回退原始 URL：${src}，失败次数 ${retryCount}/${adapterOptions.maxRetryCount}`
+                        `预签名未生效，已回退原始 URL：${src}，失败次数 ${retryCount}/${maxRetryCount ?? 3}`,
                     );
                 } else {
                     cacheManager.resetRetry(src);
@@ -119,7 +121,7 @@ export function createVsCodeAdapter(config: VsCodeAdapterConfig): VsCodeAdapter 
             } catch (err) {
                 const retryCount = cacheManager.recordFailure(src);
                 logger.error(
-                    `预签名 URL 生成失败（${retryCount}/${adapterOptions.maxRetryCount}）：${err}`
+                    `预签名 URL 生成失败（${retryCount}/${maxRetryCount ?? 3}）：${String(err)}`,
                 );
                 cacheManager.removePendingRequest(src);
                 return src;
@@ -129,11 +131,30 @@ export function createVsCodeAdapter(config: VsCodeAdapterConfig): VsCodeAdapter 
             return pendingRequest;
         }
     };
+}
+
+export function createVsCodeAdapter(config: VsCodeAdapterConfig): VsCodeAdapter {
+    const { outputChannel, ...adapterOptions } = config;
+
+    const logger = createLogger(outputChannel);
+
+    const optionsWithLogger: PresignedUrlAdapterOptions = {
+        ...adapterOptions,
+        logger,
+    };
+
+    const cacheManager = new UrlCacheManager(logger);
+    const urlSigner = new UrlSigner(optionsWithLogger, cacheManager);
 
     return {
-        getSignedUrl,
-        requestSignedUrl,
-        onSignedUrlReady: schedulePreviewRefresh,
+        getSignedUrl: createGetSignedUrl(cacheManager, urlSigner, logger),
+        requestSignedUrl: createRequestSignedUrl(
+            cacheManager,
+            urlSigner,
+            adapterOptions.maxRetryCount,
+            logger,
+        ),
+        onSignedUrlReady: createSchedulePreviewRefresh(cacheManager, logger),
         clearCache: () => cacheManager.clear(),
     };
 }

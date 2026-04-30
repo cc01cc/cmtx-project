@@ -1,3 +1,3 @@
-export { ImageCodeActionProvider } from './code-action';
-export { extendMarkdownIt } from './markdown-preview';
-export { StatusBarController } from './status-bar';
+export { ImageCodeActionProvider } from "./code-action.js";
+export { extendMarkdownIt } from "./markdown-preview.js";
+export { StatusBarController } from "./status-bar.js";

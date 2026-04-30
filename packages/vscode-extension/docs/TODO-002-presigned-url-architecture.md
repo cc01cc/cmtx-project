@@ -95,7 +95,7 @@ private getSignedUrl(src: string | null): string | null {
     if (cachedUrl) {
         return cachedUrl;
     }
-    
+
     // 异步请求
     if (this.options.requestSignedUrl) {
         this.options
@@ -104,7 +104,7 @@ private getSignedUrl(src: string | null): string | null {
                 scheduleRefresh(this.options.onSignedUrlReady);
             });
     }
-    
+
     return null; // 返回 null，使用原始 URL
 }
 ```
@@ -125,13 +125,14 @@ export function createVsCodeAdapter(options: VsCodeAdapterOptions) {
         },
         onSignedUrlReady: () => {
             // 刷新 Markdown 预览
-            vscode.commands.executeCommand('markdown.preview.refresh');
+            vscode.commands.executeCommand("markdown.preview.refresh");
         },
     };
 }
 ```
 
 **关键点**：
+
 - markdown-it 插件**不直接**使用 postMessage
 - 而是通过**回调函数**与 Extension Host 通信
 - VS Code Adapter 负责实现回调函数，内部使用 VS Code API
@@ -175,11 +176,11 @@ private getSignedUrl(src: string | null): string | null {
 
 ### 3.1 当前存在的问题
 
-| 问题 | 说明 | 影响 |
-|------|------|------|
+| 问题             | 说明                                                          | 影响                         |
+| ---------------- | ------------------------------------------------------------- | ---------------------------- |
 | **日志输出混杂** | markdown-it 插件的日志通过 Logger 适配器输出到 Extension Host | Debug Console 会显示所有日志 |
-| **缓存一致性** | markdown-it 插件和 Extension Host 都有缓存逻辑 | 可能导致缓存不一致 |
-| **错误处理** | 异步错误处理依赖回调 | 错误传播链较长 |
+| **缓存一致性**   | markdown-it 插件和 Extension Host 都有缓存逻辑                | 可能导致缓存不一致           |
+| **错误处理**     | 异步错误处理依赖回调                                          | 错误传播链较长               |
 
 ### 3.2 改进建议
 
@@ -188,13 +189,14 @@ private getSignedUrl(src: string | null): string | null {
 **问题**：markdown-it 插件的日志会输出到 Debug Console，与其他扩展日志混杂。
 
 **建议**：
+
 - 在 `DEV-001-vscode_extension_debugging.md` 中已说明，使用 OutputChannel 隔离
 - markdown-it 插件的 Logger 适配器应该使用 OutputChannel
 
 ```typescript
 // vscode-adapter.ts
 export function createLoggerAdapter(): Logger {
-    const channel = vscode.window.createOutputChannel('CMTX Presigned URL');
+    const channel = vscode.window.createOutputChannel("CMTX Presigned URL");
     return {
         debug: (message, ...args) => channel.appendLine(`[DEBUG] ${message}`),
         info: (message, ...args) => channel.appendLine(`[INFO] ${message}`),
@@ -209,6 +211,7 @@ export function createLoggerAdapter(): Logger {
 **问题**：markdown-it 插件和 Extension Host 都有缓存，可能导致不一致。
 
 **建议**：
+
 - 统一缓存管理在 Extension Host 的 `UrlCacheManager`
 - markdown-it 插件只负责调用回调，不管理缓存状态
 
@@ -217,6 +220,7 @@ export function createLoggerAdapter(): Logger {
 **问题**：异步错误处理依赖回调，错误传播链较长。
 
 **建议**：
+
 - 在 `requestSignedUrl` 中添加更明确的错误处理
 - 记录失败次数，避免无限重试
 
@@ -233,7 +237,7 @@ export function activate(context: vscode.ExtensionContext) {
     return {
         extendMarkdownIt(md: MarkdownIt) {
             return md.use(myPlugin);
-        }
+        },
     };
 }
 ```
@@ -261,6 +265,7 @@ export function extendMarkdownIt(md: MarkdownIt): MarkdownIt {
 > "Webviews communicate with extensions via message passing."
 
 **当前实现**：
+
 - 通过回调函数 `getSignedUrl`/`requestSignedUrl` 实现通信
 - 本质上是**同步/异步函数调用**，不是直接的 postMessage
 
@@ -277,6 +282,7 @@ export function extendMarkdownIt(md: MarkdownIt): MarkdownIt {
 **仓库**：[bierner/markdown-preview-mermaid](https://github.com/bierner/markdown-preview-mermaid)
 
 **架构**：
+
 ```
 Extension Host
     ↓
@@ -286,6 +292,7 @@ Extension Host
 ```
 
 **对比**：
+
 - 相似点：都是 markdown-it 插件 + Extension Host 协作
 - 不同点：Mermaid 是纯渲染，不需要外部 API
 
@@ -294,6 +301,7 @@ Extension Host
 **仓库**：[shd101wyy/vscode-markdown-preview-enhanced](https://github.com/shd101wyy/vscode-markdown-preview-enhanced)
 
 **架构**：
+
 ```
 Extension Host
     ↓
@@ -305,6 +313,7 @@ Extension Host
 ```
 
 **对比**：
+
 - 相似点：都是 markdown-it 插件 + Extension Host 协作，都调用外部 API
 - 不同点：MPE 功能更复杂，支持更多格式
 
@@ -316,19 +325,20 @@ Extension Host
 
 ### 6.1 当前架构评估
 
-| 方面 | 评估 | 说明 |
-|------|------|------|
-| **markdown-it 插件设计** | ✅ 正确 | 纯渲染，无 Node.js 依赖 |
-| **与 Extension Host 通信** | ✅ 正确 | 通过回调函数，利用 VS Code 封装 |
-| **云存储 SDK 调用** | ✅ 正确 | 在 Extension Host 中进行 |
-| **缓存管理** | ⚠️ 可优化 | 缓存逻辑分散在两处 |
-| **日志输出** | ⚠️ 可优化 | 应使用 OutputChannel 隔离 |
+| 方面                       | 评估      | 说明                            |
+| -------------------------- | --------- | ------------------------------- |
+| **markdown-it 插件设计**   | ✅ 正确   | 纯渲染，无 Node.js 依赖         |
+| **与 Extension Host 通信** | ✅ 正确   | 通过回调函数，利用 VS Code 封装 |
+| **云存储 SDK 调用**        | ✅ 正确   | 在 Extension Host 中进行        |
+| **缓存管理**               | ⚠️ 可优化 | 缓存逻辑分散在两处              |
+| **日志输出**               | ⚠️ 可优化 | 应使用 OutputChannel 隔离       |
 
 ### 6.2 是否需要重构？
 
 **答案**：**不需要大重构**，当前架构基本正确。
 
 **建议的小改进**：
+
 1. 日志输出使用 OutputChannel 隔离
 2. 简化缓存逻辑，统一管理在 Extension Host
 3. 添加更明确的错误处理
@@ -336,11 +346,13 @@ Extension Host
 ### 6.3 markdown-it 插件的未来
 
 **当前状态**：
+
 - ✅ 可以直接导入使用
 - ✅ 与 VS Code 扩展配合良好
 - ✅ 符合官方 API 设计
 
 **未来考虑**：
+
 - 如果需要在其他环境（如 Web 应用）中使用，当前设计已经支持
 - 如果需要支持更多云存储提供商，只需在 Extension Host 中添加 SDK
 
@@ -355,5 +367,5 @@ Extension Host
 
 ---
 
-*创建日期：2026-04-08*
-*基于实际代码分析和官方文档对比*
+_创建日期：2026-04-08_
+_基于实际代码分析和官方文档对比_

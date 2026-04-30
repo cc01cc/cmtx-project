@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { vi } from "vitest";
 
 const mockCommands = {
     executeCommand: vi.fn().mockResolvedValue(undefined),

@@ -35,8 +35,8 @@
 
 ```typescript
 // 在扩展代码中
-console.log('Extension activated');
-console.log('Current document:', vscode.window.activeTextEditor?.document.fileName);
+console.log("Extension activated");
+console.log("Current document:", vscode.window.activeTextEditor?.document.fileName);
 ```
 
 ---
@@ -54,9 +54,9 @@ console.log('Current document:', vscode.window.activeTextEditor?.document.fileNa
 **代码示例**:
 
 ```typescript
-const channel = vscode.window.createOutputChannel('MyExtension');
-channel.appendLine('Extension activated');
-channel.appendLine('Processing started...');
+const channel = vscode.window.createOutputChannel("MyExtension");
+channel.appendLine("Extension activated");
+channel.appendLine("Processing started...");
 
 // 显示输出通道
 channel.show();
@@ -82,13 +82,13 @@ channel.show();
 **代码示例**:
 
 ```typescript
-const terminal = vscode.window.createTerminal('Build');
-terminal.sendText('npm run build');
+const terminal = vscode.window.createTerminal("Build");
+terminal.sendText("npm run build");
 terminal.show();
 
 // 执行命令并获取输出
-const { exec } = require('child_process');
-exec('git status', (error, stdout, stderr) => {
+const { exec } = require("child_process");
+exec("git status", (error, stdout, stderr) => {
     console.log(stdout);
 });
 ```
@@ -166,52 +166,48 @@ exec('git status', (error, stdout, stderr) => {
 
 ```json
 {
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Run Extension",
-      "type": "extensionHost",
-      "request": "launch",
-      "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}"
-      ],
-      "outFiles": [
-        "${workspaceFolder}/dist/**/*.js"
-      ],
-      "preLaunchTask": "${defaultBuildTask}",
-      // 使用 internalConsole 将 console.log 输出到 DEBUG CONSOLE
-      "console": "internalConsole"
-    }
-  ]
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Extension",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+            "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+            "preLaunchTask": "${defaultBuildTask}",
+            // 使用 internalConsole 将 console.log 输出到 DEBUG CONSOLE
+            "console": "internalConsole"
+        }
+    ]
 }
 ```
 
 ### 5.2 扩展中的日志输出最佳实践
 
 ```typescript
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
 export function activate(context: vscode.ExtensionContext) {
     // 创建专用输出通道
-    const outputChannel = vscode.window.createOutputChannel('CMTX');
-    
+    const outputChannel = vscode.window.createOutputChannel("CMTX");
+
     // 记录扩展激活
     outputChannel.appendLine(`[${new Date().toISOString()}] Extension activated`);
-    
+
     // 注册命令
-    const disposable = vscode.commands.registerCommand('cmtx.upload', async () => {
+    const disposable = vscode.commands.registerCommand("cmtx.upload", async () => {
         outputChannel.appendLine(`[${new Date().toISOString()}] Upload command triggered`);
-        
+
         try {
             // 执行上传逻辑
             const result = await performUpload();
             outputChannel.appendLine(`[${new Date().toISOString()}] Upload completed: ${result}`);
         } catch (error) {
             outputChannel.appendLine(`[${new Date().toISOString()}] Upload failed: ${error}`);
-            console.error('Upload error:', error); // 同时输出到 DEBUG CONSOLE
+            console.error("Upload error:", error); // 同时输出到 DEBUG CONSOLE
         }
     });
-    
+
     context.subscriptions.push(disposable);
     context.subscriptions.push(outputChannel);
 }
@@ -234,10 +230,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 因为 **调试器运行在 Host VS Code**，而不是 Extension Development Host：
 
-| 窗口 | 调试器位置 | DEBUG CONSOLE 状态 |
-|------|-----------|-------------------|
-| **Host VS Code** | 调试器在这里运行 | 显示所有扩展的 console.log 输出 |
-| **Extension Development Host** | 只是被调试的目标 | **空的**（没有调试器） |
+| 窗口                           | 调试器位置       | DEBUG CONSOLE 状态              |
+| ------------------------------ | ---------------- | ------------------------------- |
+| **Host VS Code**               | 调试器在这里运行 | 显示所有扩展的 console.log 输出 |
+| **Extension Development Host** | 只是被调试的目标 | **空的**（没有调试器）          |
 
 ### 6.3 如何调试 WebView?
 
@@ -256,33 +252,34 @@ export function activate(context: vscode.ExtensionContext) {
 
 `console.log()` 和 `outputChannel.appendLine()` 是两个**完全独立**的输出机制：
 
-| 方式 | 输出目标 | 说明 |
-|------|----------|------|
-| `console.log()` | DEBUG CONSOLE | Node.js 标准输出，被调试器捕获 |
-| `outputChannel.appendLine()` | OUTPUT 面板 | VS Code API 专用通道 |
+| 方式                         | 输出目标      | 说明                           |
+| ---------------------------- | ------------- | ------------------------------ |
+| `console.log()`              | DEBUG CONSOLE | Node.js 标准输出，被调试器捕获 |
+| `outputChannel.appendLine()` | OUTPUT 面板   | VS Code API 专用通道           |
 
 **示例对比**：
 
 ```typescript
 // 这行会输出到 DEBUG CONSOLE
-console.log('Debug message');
+console.log("Debug message");
 
 // 这行会输出到 OUTPUT 面板
-outputChannel.appendLine('Output message');
+outputChannel.appendLine("Output message");
 ```
 
 **如果只使用 OutputChannel**：
 
 ```typescript
 export function activate(context: vscode.ExtensionContext) {
-    const channel = vscode.window.createOutputChannel('MyExt');
-    
+    const channel = vscode.window.createOutputChannel("MyExt");
+
     // 只用 OutputChannel，不用 console.log
-    channel.appendLine('Extension activated');
+    channel.appendLine("Extension activated");
 }
 ```
 
 结果：
+
 - OUTPUT 面板 → 有输出
 - DEBUG CONSOLE → **无输出**（空的）
 
@@ -290,13 +287,13 @@ export function activate(context: vscode.ExtensionContext) {
 
 ```typescript
 export function activate(context: vscode.ExtensionContext) {
-    const channel = vscode.window.createOutputChannel('MyExt');
-    
+    const channel = vscode.window.createOutputChannel("MyExt");
+
     // 开发调试时用 console.log（DEBUG CONSOLE 可见）
-    console.log('Extension activating...');
-    
+    console.log("Extension activating...");
+
     // 用户可见的日志用 OutputChannel
-    channel.appendLine('Extension activated');
+    channel.appendLine("Extension activated");
     channel.show(); // 自动打开 OUTPUT 面板
 }
 ```
@@ -307,29 +304,29 @@ export function activate(context: vscode.ExtensionContext) {
 
 ```typescript
 export function activate(context: vscode.ExtensionContext) {
-    const channel = vscode.window.createOutputChannel('MyExt');
-    
+    const channel = vscode.window.createOutputChannel("MyExt");
+
     // 重定向 console.log 到 OutputChannel
     const originalLog = console.log;
     console.log = (...args) => {
-        const message = args.map(a => String(a)).join(' ');
+        const message = args.map((a) => String(a)).join(" ");
         channel.appendLine(`[LOG] ${message}`);
         // originalLog(...args); // 可选：同时保留 DEBUG CONSOLE 输出
     };
-    
-    console.log('这条会出现在 OUTPUT 面板');
+
+    console.log("这条会出现在 OUTPUT 面板");
     // DEBUG CONSOLE 不会有输出（除非取消注释 originalLog 那一行）
 }
 ```
 
 **总结**：
 
-| 代码中使用 | DEBUG CONSOLE | OUTPUT 面板 |
-|------------|---------------|-------------|
-| 只用 `console.log` | 有 | 无 |
-| 只用 `outputChannel.appendLine` | **无** | 有 |
-| 两者都用 | 有 | 有 |
-| 重定向 `console.log` → OutputChannel | 无（除非保留原输出） | 有 |
+| 代码中使用                           | DEBUG CONSOLE        | OUTPUT 面板 |
+| ------------------------------------ | -------------------- | ----------- |
+| 只用 `console.log`                   | 有                   | 无          |
+| 只用 `outputChannel.appendLine`      | **无**               | 有          |
+| 两者都用                             | 有                   | 有          |
+| 重定向 `console.log` → OutputChannel | 无（除非保留原输出） | 有          |
 
 ### 6.6 F5 调试时 Debug Console 输出在哪个窗口？
 
@@ -346,6 +343,7 @@ export function activate(context: vscode.ExtensionContext) {
 > "**Debug console**: enables viewing and interacting with the output of your code running in the debugger."
 
 **官方文档明确确认**：
+
 - F5 会打开一个新的 Extension Development Host 窗口
 - Debug Console 显示调试输出
 
@@ -355,10 +353,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 以下内容基于调试架构推断和实际观察：
 
-| 窗口 | 调试器位置 | Debug Console |
-|------|-----------|---------------|
-| **Host VS Code** | 调试器在这里运行 | 显示被调试扩展的 console.log |
-| **Extension Development Host** | 只是被调试的目标 | 空（没有调试器） |
+| 窗口                           | 调试器位置       | Debug Console                |
+| ------------------------------ | ---------------- | ---------------------------- |
+| **Host VS Code**               | 调试器在这里运行 | 显示被调试扩展的 console.log |
+| **Extension Development Host** | 只是被调试的目标 | 空（没有调试器）             |
 
 **架构图**：
 
@@ -387,11 +385,11 @@ Extension Development Host 的 Extension Host
 
 **为什么这样设计？**
 
-| 原因 | 说明 |
-|------|------|
+| 原因           | 说明                                                          |
+| -------------- | ------------------------------------------------------------- |
 | **调试器隔离** | 调试器在 Host VS Code 中，不会影响 Extension Development Host |
-| **方便调试** | 调试器、断点、变量查看都在你熟悉的开发环境中 |
-| **输出集中** | 所有调试输出在 Host VS Code 的 Debug Console，方便查看 |
+| **方便调试**   | 调试器、断点、变量查看都在你熟悉的开发环境中                  |
+| **输出集中**   | 所有调试输出在 Host VS Code 的 Debug Console，方便查看        |
 
 ### 6.7 Debug Console 显示的是所有扩展的输出
 
@@ -405,12 +403,12 @@ Extension Development Host 的 Extension Host
 
 以下内容基于实际调试环境的观察：
 
-| 输出来源 | 示例 |
-|----------|------|
+| 输出来源             | 示例                                         |
+| -------------------- | -------------------------------------------- |
 | **你正在开发的扩展** | `INFO [presigned-url] 初始化预签名 URL 功能` |
-| **其他已启用的扩展** | `Kilo Code extension is now active` |
-| **Node.js 警告** | `[DEP0040] DeprecationWarning` |
-| **VS Code 系统信息** | `[reconnection-grace-time] Extension host` |
+| **其他已启用的扩展** | `Kilo Code extension is now active`          |
+| **Node.js 警告**     | `[DEP0040] DeprecationWarning`               |
+| **VS Code 系统信息** | `[reconnection-grace-time] Extension host`   |
 
 **架构图**：
 
@@ -439,25 +437,25 @@ Extension Development Host
 **方法 1：添加前缀**
 
 ```typescript
-console.log('[CMTX] Your message here');
+console.log("[CMTX] Your message here");
 ```
 
 **方法 2：使用 OutputChannel（推荐）**
 
 ```typescript
-const channel = vscode.window.createOutputChannel('CMTX');
-channel.appendLine('Your message here');
+const channel = vscode.window.createOutputChannel("CMTX");
+channel.appendLine("Your message here");
 ```
 
 这样你的扩展日志会出现在 **OUTPUT 面板的 CMTX 通道**，而不是 Debug Console，完全隔离其他扩展的输出。
 
 **总结**：
 
-| 问题 | 答案 |
-|------|------|
+| 问题                               | 答案                                       |
+| ---------------------------------- | ------------------------------------------ |
 | Debug Console 只显示你开发的扩展？ | **否**，显示整个 Extension Host 的所有输出 |
-| 如何区分你的扩展输出？ | 添加前缀或使用 OutputChannel |
-| 这会影响调试吗？ | 不影响，但可能需要过滤查看 |
+| 如何区分你的扩展输出？             | 添加前缀或使用 OutputChannel               |
+| 这会影响调试吗？                   | 不影响，但可能需要过滤查看                 |
 
 ---
 
@@ -465,10 +463,10 @@ channel.appendLine('Your message here');
 
 ### 7.1 核心原则
 
-| 面板 | 设计目的 | 官方推荐用途 |
-|------|----------|--------------|
+| 面板              | 设计目的           | 官方推荐用途                     |
+| ----------------- | ------------------ | -------------------------------- |
 | **OutputChannel** | **用户可见的日志** | 扩展运行状态、操作结果、错误信息 |
-| **Debug Console** | **开发调试信息** | 开发阶段的调试输出、临时检查 |
+| **Debug Console** | **开发调试信息**   | 开发阶段的调试输出、临时检查     |
 
 > 官方文档强调：OutputChannel 是"readonly textual information"的容器，用于向用户展示信息。
 
@@ -476,11 +474,11 @@ channel.appendLine('Your message here');
 
 微软官方扩展的日志实现方式：
 
-| 扩展 | 日志实现 | 特点 |
-|------|----------|------|
-| **vscode-python** | 自定义 Logger (6 文件, 322 LoC) | 支持日志级别、模块分层 |
-| **vscode-cpptools** | 单文件 Logger (141 LoC) | 相对简单，但功能完整 |
-| **prettier-vscode** | 简单 Logger (74 LoC) | 社区推荐的简洁实现 |
+| 扩展                | 日志实现                        | 特点                   |
+| ------------------- | ------------------------------- | ---------------------- |
+| **vscode-python**   | 自定义 Logger (6 文件, 322 LoC) | 支持日志级别、模块分层 |
+| **vscode-cpptools** | 单文件 Logger (141 LoC)         | 相对简单，但功能完整   |
+| **prettier-vscode** | 简单 Logger (74 LoC)            | 社区推荐的简洁实现     |
 
 **关键发现**：官方扩展**主要使用 OutputChannel**，`console.log` 仅用于开发调试。
 
@@ -490,17 +488,18 @@ channel.appendLine('Your message here');
 
 ```typescript
 // 创建带日志级别的 OutputChannel
-const logChannel = vscode.window.createOutputChannel('MyExtension', { log: true });
+const logChannel = vscode.window.createOutputChannel("MyExtension", { log: true });
 
 // 使用不同级别记录日志
-logChannel.trace('Detailed trace info');
-logChannel.debug('Debug information');
-logChannel.info('General information');
-logChannel.warn('Warning message');
-logChannel.error('Error occurred', error);
+logChannel.trace("Detailed trace info");
+logChannel.debug("Debug information");
+logChannel.info("General information");
+logChannel.warn("Warning message");
+logChannel.error("Error occurred", error);
 ```
 
 **优势**：
+
 - 支持日志级别（trace/debug/info/warn/error）
 - 用户可通过设置控制日志级别
 - 统一格式，自动包含时间戳
@@ -510,22 +509,22 @@ logChannel.error('Error occurred', error);
 
 #### OutputChannel 应该输出什么？
 
-| 内容类型 | 示例 | 说明 |
-|----------|------|------|
-| 扩展生命周期事件 | "Extension activated" | 用户知道扩展已启动 |
-| 命令执行结果 | "Upload complete: 5 images uploaded" | 操作反馈 |
-| 错误信息 | "Upload failed: network timeout" | 清晰的错误描述 |
-| 配置变更 | "Configuration updated" | 状态变化通知 |
-| 长时间操作进度 | "Processing... (3/10)" | 进度反馈 |
+| 内容类型         | 示例                                 | 说明               |
+| ---------------- | ------------------------------------ | ------------------ |
+| 扩展生命周期事件 | "Extension activated"                | 用户知道扩展已启动 |
+| 命令执行结果     | "Upload complete: 5 images uploaded" | 操作反馈           |
+| 错误信息         | "Upload failed: network timeout"     | 清晰的错误描述     |
+| 配置变更         | "Configuration updated"              | 状态变化通知       |
+| 长时间操作进度   | "Processing... (3/10)"               | 进度反馈           |
 
 #### Debug Console 应该输出什么？
 
-| 内容类型 | 示例 | 说明 |
-|----------|------|------|
+| 内容类型     | 示例                                   | 说明         |
+| ------------ | -------------------------------------- | ------------ |
 | 开发调试信息 | `console.log('Debug: value =', value)` | 临时检查变量 |
-| 断点调试 | 断点处查看变量 | 交互式调试 |
-| 性能分析 | `console.time('operation')` | 测量执行时间 |
-| 临时测试代码 | 快速验证代码逻辑 | 开发阶段使用 |
+| 断点调试     | 断点处查看变量                         | 交互式调试   |
+| 性能分析     | `console.time('operation')`            | 测量执行时间 |
+| 临时测试代码 | 快速验证代码逻辑                       | 开发阶段使用 |
 
 ### 7.5 推荐设计模式
 
@@ -533,50 +532,48 @@ logChannel.error('Error occurred', error);
 
 ```typescript
 // logger.ts
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
 class Logger {
     private channel: vscode.OutputChannel;
     private isDev: boolean;
-    
+
     constructor(name: string) {
         this.channel = vscode.window.createOutputChannel(name);
-        this.isDev = process.env.NODE_ENV === 'development';
+        this.isDev = process.env.NODE_ENV === "development";
     }
-    
+
     info(message: string, ...args: unknown[]): void {
         const formatted = this.format(message, args);
         this.channel.appendLine(formatted);
-        
+
         // 开发时同时输出到 DEBUG CONSOLE
         if (this.isDev) {
             console.log(`[INFO] ${formatted}`);
         }
     }
-    
+
     error(message: string, error?: Error): void {
-        const formatted = error 
-            ? `${message}: ${error.message}` 
-            : message;
+        const formatted = error ? `${message}: ${error.message}` : message;
         this.channel.appendLine(`[ERROR] ${formatted}`);
-        
+
         if (this.isDev) {
             console.error(`[ERROR] ${formatted}`, error);
         }
     }
-    
+
     private format(message: string, args: unknown[]): string {
         const timestamp = new Date().toISOString();
-        const argsStr = args.map(a => String(a)).join(' ');
+        const argsStr = args.map((a) => String(a)).join(" ");
         return `[${timestamp}] ${message} ${argsStr}`.trim();
     }
-    
+
     show(): void {
         this.channel.show();
     }
 }
 
-export const logger = new Logger('MyExtension');
+export const logger = new Logger("MyExtension");
 ```
 
 #### 模式 2：使用 LogOutputChannel（VS Code 1.74+）
@@ -584,24 +581,24 @@ export const logger = new Logger('MyExtension');
 ```typescript
 export function activate(context: vscode.ExtensionContext) {
     // 创建支持日志级别的 OutputChannel
-    const logChannel = vscode.window.createOutputChannel('MyExtension', { log: true });
+    const logChannel = vscode.window.createOutputChannel("MyExtension", { log: true });
     context.subscriptions.push(logChannel);
-    
+
     // 不同级别的日志
-    logChannel.info('Extension activated');
-    logChannel.warn('Configuration not found, using defaults');
-    logChannel.error('Failed to load data', new Error('Network error'));
+    logChannel.info("Extension activated");
+    logChannel.warn("Configuration not found, using defaults");
+    logChannel.error("Failed to load data", new Error("Network error"));
 }
 ```
 
 ### 7.6 最佳实践总结
 
-| 场景 | 推荐做法 |
-|------|----------|
-| **用户可见的日志** | 使用 `OutputChannel.appendLine()` |
-| **开发调试信息** | 使用 `console.log()` |
-| **统一日志管理** | 封装 Logger 类，同时支持两者 |
-| **现代扩展（VS Code 1.74+）** | 使用 `LogOutputChannel` API |
+| 场景                          | 推荐做法                          |
+| ----------------------------- | --------------------------------- |
+| **用户可见的日志**            | 使用 `OutputChannel.appendLine()` |
+| **开发调试信息**              | 使用 `console.log()`              |
+| **统一日志管理**              | 封装 Logger 类，同时支持两者      |
+| **现代扩展（VS Code 1.74+）** | 使用 `LogOutputChannel` API       |
 
 ---
 

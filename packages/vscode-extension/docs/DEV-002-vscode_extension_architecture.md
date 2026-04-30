@@ -66,14 +66,14 @@ VS Code 扩展运行在**Extension Host**进程中，与 VS Code 主进程隔离
 export function activate(context: vscode.ExtensionContext) {
     // 1. 扩展代码在远程执行
     const data = await getGitRepositories(); // 访问远程文件系统
-    
+
     // 2. 通过 API 通知本地 VS Code 主进程渲染 UI
     const treeDataProvider = {
-        getChildren: () => data // 数据通过 JSON-RPC 传输到本地
+        getChildren: () => data, // 数据通过 JSON-RPC 传输到本地
     };
-    
+
     // 3. UI 在本地渲染
-    vscode.window.createTreeView('gitlens', { treeDataProvider });
+    vscode.window.createTreeView("gitlens", { treeDataProvider });
 }
 ```
 
@@ -95,7 +95,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 ```json
 {
-  "extensionKind": ["ui", "workspace"]
+    "extensionKind": ["ui", "workspace"]
 }
 ```
 
@@ -108,23 +108,23 @@ export function activate(context: vscode.ExtensionContext) {
 
 ```typescript
 enum ExtensionKind {
-    UI = 1,        // Extension runs where the UI runs
-    Workspace = 2  // Extension runs where the remote extension host runs
+    UI = 1, // Extension runs where the UI runs
+    Workspace = 2, // Extension runs where the remote extension host runs
 }
 ```
 
 **代码中使用**：
 
 ```typescript
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
 export function activate(context: vscode.ExtensionContext) {
-    const extension = vscode.extensions.getExtension('my.extension');
-    
+    const extension = vscode.extensions.getExtension("my.extension");
+
     if (extension.extensionKind === vscode.ExtensionKind.UI) {
-        console.log('I am a UI Extension (running locally)');
+        console.log("I am a UI Extension (running locally)");
     } else if (extension.extensionKind === vscode.ExtensionKind.Workspace) {
-        console.log('I am a Workspace Extension (running remotely)');
+        console.log("I am a Workspace Extension (running remotely)");
     }
 }
 ```
@@ -135,7 +135,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 ```json
 {
-  "extensionKind": ["ui", "workspace"]
+    "extensionKind": ["ui", "workspace"]
 }
 ```
 
@@ -216,7 +216,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 ```typescript
 // Workspace Extension 想访问本地 localhost:3000
-const localUri = vscode.Uri.parse('http://localhost:3000');
+const localUri = vscode.Uri.parse("http://localhost:3000");
 
 // 使用 asExternalUri 转发
 const externalUri = await vscode.env.asExternalUri(localUri);
@@ -230,7 +230,7 @@ const response = await fetch(externalUri.toString());
 ```typescript
 // Workspace Extension 可以访问剪贴板（通过 VS Code API）
 const text = await vscode.env.clipboard.readText();
-await vscode.env.clipboard.writeText('copied text');
+await vscode.env.clipboard.writeText("copied text");
 ```
 
 **文件选择对话框**
@@ -239,21 +239,21 @@ await vscode.env.clipboard.writeText('copied text');
 // Workspace Extension 可以打开本地文件选择对话框
 const files = await vscode.window.showOpenDialog({
     canSelectFiles: true,
-    canSelectFolders: false
+    canSelectFolders: false,
 });
 // 用户选择的是本地文件，但 VS Code 会处理路径转换
 ```
 
 #### 关键区别总结
 
-| 场景                                | UI Extension    | Workspace Extension                         |
-| ----------------------------------- | --------------- | ------------------------------------------- |
-| 访问 `~/Documents/file.txt`         | ✓ 直接访问     | ✗ 不能直接访问                             |
-| 访问工作区文件 `/workspace/file.md` | ✗ 不能直接访问 | ✓ 直接访问                                 |
-| 执行 `git status`                   | 在本地执行      | 在远程执行                                  |
-| 访问 `localhost:3000`               | 访问本地服务    | 访问远程服务（或通过 `asExternalUri` 转发） |
-| 访问剪贴板                          | ✓              | ✓（通过 VS Code API）                      |
-| 打开文件选择对话框                  | ✓              | ✓（通过 VS Code API）                      |
+| 场景                                | UI Extension   | Workspace Extension                         |
+| ----------------------------------- | -------------- | ------------------------------------------- |
+| 访问 `~/Documents/file.txt`         | ✓ 直接访问     | ✗ 不能直接访问                              |
+| 访问工作区文件 `/workspace/file.md` | ✗ 不能直接访问 | ✓ 直接访问                                  |
+| 执行 `git status`                   | 在本地执行     | 在远程执行                                  |
+| 访问 `localhost:3000`               | 访问本地服务   | 访问远程服务（或通过 `asExternalUri` 转发） |
+| 访问剪贴板                          | ✓              | ✓（通过 VS Code API）                       |
+| 打开文件选择对话框                  | ✓              | ✓（通过 VS Code API）                       |
 
 #### Workspace Extension 的功能能力
 
@@ -261,23 +261,23 @@ const files = await vscode.window.showOpenDialog({
 
 | 能力           | 是否支持 | 说明                             |
 | -------------- | -------- | -------------------------------- |
-| 注册命令       | ✓       | 完全支持                         |
-| 使用快捷键     | ✓       | 通过 `keybindings` contribution  |
-| 修改文档内容   | ✓       | 通过 `TextEditor.edit()`         |
-| 访问编辑器     | ✓       | `vscode.window.activeTextEditor` |
-| 访问工作区文件 | ✓       | 完全支持                         |
-| 提供 CodeLens  | ✓       | 完全支持                         |
-| 提供代码补全   | ✓       | 完全支持                         |
-| 提供 Tree View | ✓       | 完全支持                         |
-| 显示通知       | ✓       | 完全支持                         |
+| 注册命令       | ✓        | 完全支持                         |
+| 使用快捷键     | ✓        | 通过 `keybindings` contribution  |
+| 修改文档内容   | ✓        | 通过 `TextEditor.edit()`         |
+| 访问编辑器     | ✓        | `vscode.window.activeTextEditor` |
+| 访问工作区文件 | ✓        | 完全支持                         |
+| 提供 CodeLens  | ✓        | 完全支持                         |
+| 提供代码补全   | ✓        | 完全支持                         |
+| 提供 Tree View | ✓        | 完全支持                         |
+| 显示通知       | ✓        | 完全支持                         |
 
 **UI Extension vs Workspace Extension 的真正区别**：
 
 | 维度               | UI Extension        | Workspace Extension   |
 | ------------------ | ------------------- | --------------------- |
 | **代码运行位置**   | 本地 Extension Host | 远程 Extension Host   |
-| **访问工作区文件** | ✗ 不能直接访问     | ✓ 可以直接访问       |
-| **访问本地资源**   | ✓ 可以访问         | 有限（需要特殊 API）  |
+| **访问工作区文件** | ✗ 不能直接访问      | ✓ 可以直接访问        |
+| **访问本地资源**   | ✓ 可以访问          | 有限（需要特殊 API）  |
 | **UI 响应延迟**    | 低（本地执行）      | 稍高（JSON-RPC 通信） |
 | **功能能力**       | 几乎相同            | 几乎相同              |
 
@@ -359,16 +359,13 @@ const treeDataProvider: vscode.TreeDataProvider<MyItem> = {
     getTreeItem: (item) => item,
     getChildren: (item) => {
         if (!item) {
-            return [
-                new vscode.TreeItem('Root 1'),
-                new vscode.TreeItem('Root 2')
-            ];
+            return [new vscode.TreeItem("Root 1"), new vscode.TreeItem("Root 2")];
         }
         return [];
-    }
+    },
 };
 
-vscode.window.createTreeView('myView', { treeDataProvider });
+vscode.window.createTreeView("myView", { treeDataProvider });
 ```
 
 **结果**：
@@ -381,12 +378,9 @@ vscode.window.createTreeView('myView', { treeDataProvider });
 
 ```typescript
 // 使用 Webview 创建完全自定义的 UI
-const panel = vscode.window.createWebviewPanel(
-    'myWebview',
-    'My Panel',
-    vscode.ViewColumn.One,
-    { enableScripts: true }
-);
+const panel = vscode.window.createWebviewPanel("myWebview", "My Panel", vscode.ViewColumn.One, {
+    enableScripts: true,
+});
 
 panel.webview.html = `
     <!DOCTYPE html>
@@ -605,17 +599,17 @@ export function activate(context: vscode.ExtensionContext) {
                 const originalRender = md.renderer.rules.image;
                 md.renderer.rules.image = (tokens, idx, options, env, self) => {
                     const token = tokens[idx];
-                    const srcIndex = token.attrIndex('src');
+                    const srcIndex = token.attrIndex("src");
                     const src = token.attrs[srcIndex][1];
-                    
+
                     // 通过 postMessage 请求 Extension Host 生成 presigned URL
                     const newSrc = getPresignedUrl(src);
                     token.attrs[srcIndex][1] = newSrc;
-                    
+
                     return originalRender(tokens, idx, options, env, self);
                 };
             });
-        }
+        },
     };
 }
 ```
@@ -644,9 +638,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 ```typescript
 // Extension Host 向 Webview 发送消息
-panel.webview.postMessage({ 
-    command: 'update', 
-    data: value 
+panel.webview.postMessage({
+    command: "update",
+    data: value,
 });
 ```
 
@@ -655,9 +649,9 @@ panel.webview.postMessage({
 ```typescript
 // 在 Webview HTML 中
 const vscode = acquireVsCodeApi();
-vscode.postMessage({ 
-    command: 'save', 
-    text: editor.value 
+vscode.postMessage({
+    command: "save",
+    text: editor.value,
 });
 ```
 
@@ -665,8 +659,8 @@ vscode.postMessage({
 
 ```typescript
 // Extension Host 接收消息
-panel.webview.onDidReceiveMessage(message => {
-    if (message.command === 'save') {
+panel.webview.onDidReceiveMessage((message) => {
+    if (message.command === "save") {
         // 处理保存逻辑
     }
 });
@@ -737,7 +731,7 @@ panel.webview.onDidReceiveMessage(message => {
 
 ```json
 {
-  "extensionKind": ["workspace"]
+    "extensionKind": ["workspace"]
 }
 ```
 
@@ -870,26 +864,26 @@ WSL2 和 DevContainer 都是**远程开发场景**，之前的架构说明完全
 
 ```typescript
 // Windows 本地开发
-const configPath = 'C:\\Users\\username\\.cmtxrc';
+const configPath = "C:\\Users\\username\\.cmtxrc";
 
 // WSL2/DevContainer 开发
-const configPath = '/home/username/.cmtxrc';
+const configPath = "/home/username/.cmtxrc";
 
 // 推荐：跨平台方式
-import * as path from 'path';
-import * as os from 'os';
-const configPath = path.join(os.homedir(), '.cmtxrc');
+import * as path from "path";
+import * as os from "os";
+const configPath = path.join(os.homedir(), ".cmtxrc");
 ```
 
 #### 文件系统访问差异
 
 ```typescript
 // Windows 本地开发 - 可以使用 Node.js fs
-import * as fs from 'fs';
-const content = fs.readFileSync('C:\\path\\to\\file', 'utf-8');
+import * as fs from "fs";
+const content = fs.readFileSync("C:\\path\\to\\file", "utf-8");
 
 // WSL2/DevContainer 开发 - 推荐使用 vscode.workspace.fs
-const uri = vscode.Uri.file('/path/to/file');
+const uri = vscode.Uri.file("/path/to/file");
 const content = await vscode.workspace.fs.readFile(uri);
 ```
 
@@ -901,20 +895,20 @@ const content = await vscode.workspace.fs.readFile(uri);
 #### CLI 工具执行差异
 
 ```typescript
-import { exec } from 'child_process';
+import { exec } from "child_process";
 
 // Windows 本地开发
-exec('where git', (err, stdout) => {
+exec("where git", (err, stdout) => {
     console.log(stdout); // C:\Program Files\Git\cmd\git.exe
 });
 
 // WSL2/DevContainer 开发
-exec('which git', (err, stdout) => {
+exec("which git", (err, stdout) => {
     console.log(stdout); // /usr/bin/git
 });
 
 // 推荐：使用跨平台命令
-exec('git --version', (err, stdout) => {
+exec("git --version", (err, stdout) => {
     console.log(stdout); // git version 2.x.x
 });
 ```
@@ -926,21 +920,21 @@ exec('git --version', (err, stdout) => {
 const home = process.env.USERPROFILE; // C:\Users\username
 
 // WSL2/DevContainer 开发
-const home = process.env.HOME;        // /home/username
+const home = process.env.HOME; // /home/username
 
 // 推荐：使用跨平台 API
-const home = os.homedir();            // 自动适配
+const home = os.homedir(); // 自动适配
 ```
 
 #### 换行符差异
 
 ```typescript
 // 问题：Windows 使用 CRLF，Linux 使用 LF
-const content = 'line1\r\nline2';  // Windows
-const content = 'line1\nline2';    // Linux
+const content = "line1\r\nline2"; // Windows
+const content = "line1\nline2"; // Linux
 
 // 解决方案：统一使用 LF
-const content = 'line1\nline2';
+const content = "line1\nline2";
 ```
 
 ### 9.5 extensionKind 配置建议
@@ -966,7 +960,7 @@ const content = 'line1\nline2';
 
 ```json
 {
-  "extensionKind": ["workspace"]
+    "extensionKind": ["workspace"]
 }
 ```
 

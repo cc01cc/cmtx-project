@@ -1,40 +1,74 @@
 {
     "name": "cmtx-vscode",
     "displayName": "CMTX for VS Code",
+    "version": "0.1.1",
+    "private": true,
     "description": "Markdown Toolkit",
-    "version": "0.1.0",
-    "publisher": "cc01cc",
-    "engines": {
-        "vscode": "^1.103.0"
-    },
-    "icon": "assets/logo-white-background.png",
-    "extensionKind": [
-        "workspace"
+    "categories": [
+        "Formatters",
+        "Other",
+        "Programming Languages"
     ],
-    "activationEvents": [
-        "onStartupFinished",
-        "onLanguage:markdown"
-    ],
+    "license": "Apache-2.0",
     "repository": {
         "type": "git",
         "url": "https://github.com/cc01cc/cmtx-project"
     },
-    "main": "./dist/extension.js",
-    "files": [
-        "dist/extension.js",
-        "dist/node_modules/**",
-        "assets/**",
-        "README.md",
-        "CHANGELOG.md",
-        "LICENSE"
-    ],
+    "publisher": "cc01cc",
+    "type": "module",
+    "main": "./dist/extension.cjs",
+    "scripts": {
+        "build": "tsdown",
+        "build:test": "tsc -p tsconfig.test.json",
+        "watch": "tsdown --watch",
+        "package": "pnpm run build && node scripts/package.mjs",
+        "package:dev": "pnpm run build && node scripts/package.mjs dev",
+        "package:prod": "pnpm run build && node scripts/package.mjs prod",
+        "package:stable": "pnpm run build && node scripts/package.mjs stable",
+        "package:pre-release": "pnpm run build && node scripts/package.mjs prerelease",
+        "publish:pre-release": "vsce publish --no-dependencies --pre-release",
+        "publish:stable": "vsce publish --no-dependencies",
+        "typecheck": "tsc --noEmit -p tsconfig.json",
+        "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
+        "test": "vitest run",
+        "test:unit": "vitest run tests/unit",
+        "test:coverage": "vitest run --coverage",
+        "test:integration": "pnpm build:test && node dist/test/test/runTest.js",
+        "test:watch": "vitest"
+    },
+    "dependencies": {
+        "@cmtx/asset": "workspace:*",
+        "@cmtx/core": "workspace:*",
+        "@cmtx/fpe-wasm": "workspace:*",
+        "@cmtx/markdown-it-presigned-url": "workspace:*",
+        "@cmtx/markdown-it-presigned-url-adapter-nodejs": "workspace:*",
+        "@cmtx/publish": "workspace:*",
+        "@cmtx/storage": "workspace:*",
+        "ali-oss": "catalog:",
+        "tinyglobby": "catalog:",
+        "trash": "catalog:"
+    },
+    "devDependencies": {
+        "@types/ali-oss": "catalog:",
+        "@types/mocha": "10.0.10",
+        "@types/node": "catalog:",
+        "@types/sinon": "21.0.1",
+        "@types/vscode": "1.103.0",
+        "@vscode/test-electron": "2.5.2",
+        "@vscode/vsce": "^3.9.1",
+        "mocha": "11.7.5",
+        "patch-package": "8.0.1",
+        "rolldown-plugin-wasm": "0.2.1",
+        "sinon": "21.0.3",
+        "tsdown": "0.21.10",
+        "typescript": "catalog:",
+        "vitest": "catalog:"
+    },
+    "optionalDependencies": {
+        "proxy-agent": "^8.0.1"
+    },
     "contributes": {
         "commands": [
-            {
-                "command": "cmtx.upload",
-                "title": "Upload local images",
-                "category": "CMTX"
-            },
             {
                 "command": "cmtx.uploadSelected",
                 "title": "Upload selected images",
@@ -48,11 +82,6 @@
             {
                 "command": "cmtx.formatToHtml",
                 "title": "Convert images to HTML format",
-                "category": "CMTX"
-            },
-            {
-                "command": "cmtx.formatToMarkdown",
-                "title": "Convert images to Markdown format",
                 "category": "CMTX"
             },
             {
@@ -76,33 +105,8 @@
                 "category": "CMTX"
             },
             {
-                "command": "cmtx.applyRule",
-                "title": "Apply rule...",
-                "category": "CMTX"
-            },
-            {
-                "command": "cmtx.analyze",
-                "title": "Analyze document images",
-                "category": "CMTX"
-            },
-            {
-                "command": "cmtx.findReferences",
-                "title": "Find image references",
-                "category": "CMTX"
-            },
-            {
                 "command": "cmtx.configInit",
                 "title": "Create configuration...",
-                "category": "CMTX"
-            },
-            {
-                "command": "cmtx.configEdit",
-                "title": "Edit configuration file",
-                "category": "CMTX"
-            },
-            {
-                "command": "cmtx.configUI",
-                "title": "Open configuration UI",
                 "category": "CMTX"
             },
             {
@@ -133,6 +137,71 @@
             {
                 "command": "cmtx.removeSectionNumbers",
                 "title": "Remove section numbers",
+                "category": "CMTX"
+            },
+            {
+                "command": "cmtx.rule.upload-images",
+                "title": "Upload images",
+                "category": "CMTX"
+            },
+            {
+                "command": "cmtx.rule.frontmatter-id",
+                "title": "Generate frontmatter ID",
+                "category": "CMTX"
+            },
+            {
+                "command": "cmtx.rule.frontmatter-title",
+                "title": "Convert title to frontmatter",
+                "category": "CMTX"
+            },
+            {
+                "command": "cmtx.rule.strip-frontmatter",
+                "title": "Strip frontmatter",
+                "category": "CMTX"
+            },
+            {
+                "command": "cmtx.rule.promote-headings",
+                "title": "Promote headings",
+                "category": "CMTX"
+            },
+            {
+                "command": "cmtx.rule.add-section-numbers",
+                "title": "Add section numbers",
+                "category": "CMTX"
+            },
+            {
+                "command": "cmtx.rule.remove-section-numbers",
+                "title": "Remove section numbers",
+                "category": "CMTX"
+            },
+            {
+                "command": "cmtx.rule.convert-images",
+                "title": "Convert images to HTML",
+                "category": "CMTX"
+            },
+            {
+                "command": "cmtx.rule.frontmatter-date",
+                "title": "Add frontmatter date",
+                "category": "CMTX"
+            },
+            {
+                "command": "cmtx.rule.frontmatter-updated",
+                "title": "Add frontmatter updated date",
+                "category": "CMTX"
+            },
+            {
+                "command": "cmtx.rule.download-images",
+                "title": "Download remote images",
+                "category": "CMTX"
+            },
+            {
+                "command": "cmtx.rule.delete-image",
+                "title": "Delete image",
+                "category": "CMTX"
+            },
+            {
+                "command": "cmtx.rule.resize-image",
+                "title": "Resize image",
                 "category": "CMTX"
             }
         ],
@@ -173,29 +242,14 @@
                     "group": "resize@3"
                 },
                 {
-                    "command": "cmtx.findReferences",
-                    "when": "editorLangId == markdown",
-                    "group": "reference@1"
-                },
-                {
                     "command": "cmtx.formatToHtml",
                     "when": "editorLangId == markdown && editorHasSelection",
                     "group": "format@1"
                 },
                 {
-                    "command": "cmtx.formatToMarkdown",
-                    "when": "editorLangId == markdown && editorHasSelection",
-                    "group": "format@2"
-                },
-                {
                     "command": "cmtx.applyPreset",
                     "when": "editorLangId == markdown",
                     "group": "preset@1"
-                },
-                {
-                    "command": "cmtx.applyRule",
-                    "when": "editorLangId == markdown",
-                    "group": "rule@1"
                 }
             ]
         },
@@ -228,50 +282,15 @@
         },
         "markdown.markdownItPlugins": true
     },
-    "scripts": {
-        "build": "node esbuild.config.mjs && node scripts/copy-wasm.mjs && node scripts/verify-build.mjs",
-        "build:test": "tsc -p tsconfig.test.json",
-        "watch": "node esbuild.config.mjs --watch",
-        "package": "npm run build && node scripts/package.mjs",
-        "package:dev": "npm run build && node scripts/package.mjs dev",
-        "package:prod": "npm run build && node scripts/package.mjs prod",
-        "package:stable": "npm run build && node scripts/package.mjs stable",
-        "package:prerelease": "npm run build && node scripts/package.mjs prerelease",
-        "publish:prerelease": "vsce publish --pre-release",
-        "publish:stable": "vsce publish",
-        "typecheck": "tsc --noEmit -p tsconfig.json",
-        "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
-        "lint": "biome check src --fix",
-        "test": "vitest run",
-        "test:unit": "vitest run tests/unit",
-        "test:coverage": "vitest run --coverage",
-        "test:integration": "pnpm build:test && node dist/test/test/runTest. js",
-        "test:watch": "vitest"
-    },
-    "dependencies": {
-        "@cmtx/asset": "workspace:*",
-        "@cmtx/core": "workspace:*",
-        "@cmtx/markdown-it-presigned-url": "workspace:*",
-        "@cmtx/markdown-it-presigned-url-adapter-nodejs": "workspace:*",
-        "@cmtx/publish": "workspace:*",
-        "@cmtx/storage": "workspace:*",
-        "ali-oss": "catalog:",
-        "trash": "catalog:"
-    },
-    "devDependencies": {
-        "@cmtx/fpe-wasm": "workspace:*",
-        "@types/ali-oss": "catalog:",
-        "@types/mocha": "10.0.10",
-        "@types/node": "catalog:",
-        "@types/sinon": "21.0.1",
-        "@types/vscode": "^1.103.0",
-        "@vscode/test-electron": "2.5.2",
-        "@vscode/vsce": "^3.9.1",
-        "esbuild": "catalog:",
-        "mocha": "11.7.5",
-        "sinon": "21.0.3",
-        "typescript": "catalog:",
-        "vitest": "catalog:"
-    },
-    "license": "Apache-2.0"
+    "activationEvents": [
+        "onLanguage:markdown",
+        "onStartupFinished"
+    ],
+    "extensionKind": [
+        "workspace"
+    ],
+    "icon": "assets/logo-white-background.png",
+    "engines": {
+        "vscode": "^1.110.0"
+    }
 }

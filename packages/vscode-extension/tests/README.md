@@ -35,6 +35,7 @@ pnpm test:integration
 ## 测试覆盖率
 
 当前测试覆盖率目标：
+
 - **语句覆盖率**：> 80%
 - **函数覆盖率**：> 80%
 - **分支覆盖率**：> 70%
@@ -73,6 +74,7 @@ packages/vscode-extension/
 ### 单元测试
 
 单元测试应该：
+
 - 测试纯逻辑函数，不依赖 VS Code API
 - 使用 Vitest 框架
 - 遵循 AAA 模式（Arrange-Act-Assert）
@@ -80,18 +82,18 @@ packages/vscode-extension/
 示例：
 
 ```typescript
-import { describe, expect, it } from 'vitest';
-import { myFunction } from '../../src/utils/my-module';
+import { describe, expect, it } from "vitest";
+import { myFunction } from "../../src/utils/my-module";
 
-describe('myFunction', () => {
-    it('should handle valid input', () => {
-        const result = myFunction('valid input');
-        expect(result).toBe('expected output');
+describe("myFunction", () => {
+    it("should handle valid input", () => {
+        const result = myFunction("valid input");
+        expect(result).toBe("expected output");
     });
 
-    it('should handle edge cases', () => {
-        const result = myFunction('');
-        expect(result).toBe('default');
+    it("should handle edge cases", () => {
+        const result = myFunction("");
+        expect(result).toBe("default");
     });
 });
 ```
@@ -99,6 +101,7 @@ describe('myFunction', () => {
 ### 集成测试
 
 集成测试应该：
+
 - 使用 Mocha 框架（VS Code 官方支持）
 - 在真实 VS Code 环境中运行
 - 测试 Commands、Providers 和配置
@@ -106,20 +109,20 @@ describe('myFunction', () => {
 示例：
 
 ```typescript
-import * as assert from 'assert';
-import * as vscode from 'vscode';
+import * as assert from "assert";
+import * as vscode from "vscode";
 
-suite('My Command Integration Tests', () => {
-    test('Command should execute successfully', async () => {
+suite("My Command Integration Tests", () => {
+    test("Command should execute successfully", async () => {
         const doc = await vscode.workspace.openTextDocument({
-            content: '# Test',
-            language: 'markdown',
+            content: "# Test",
+            language: "markdown",
         });
         await vscode.window.showTextDocument(doc);
 
-        await vscode.commands.executeCommand('cmtx.myCommand');
+        await vscode.commands.executeCommand("cmtx.myCommand");
 
-        await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+        await vscode.commands.executeCommand("workbench.action.closeAllEditors");
     });
 });
 ```
@@ -162,6 +165,7 @@ A: 确保安装了 `@vitest/coverage-v8` 包。
 ✅ **Phase 3 完成**：E2E 测试框架准备就绪，可在真实环境中测试
 
 **预期收益**：
+
 - 编译时错误检测率 80%+
 - 开发效率提升 50%
 - 测试覆盖率 > 60%（实际达到 100%）

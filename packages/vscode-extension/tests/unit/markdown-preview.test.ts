@@ -1,18 +1,18 @@
-import type MarkdownIt from 'markdown-it';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type * as vscode from 'vscode';
-import type { PresignedUrlConfig } from '../../src/infra';
+import type MarkdownIt from "markdown-it";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type * as vscode from "vscode";
+import type { CmtxPresignedUrlConfig } from "@cmtx/asset/config";
 import {
     clearPresignedCache,
     deactivatePresignedUrl,
     extendMarkdownIt,
     initializePresignedUrl,
     reloadPresignedUrlConfig,
-} from '../../src/providers/markdown-preview';
+} from "../../src/providers/markdown-preview";
 
-describe('markdown-preview', () => {
+describe("markdown-preview", () => {
     let mockOutputChannel: vscode.OutputChannel;
-    let mockConfig: PresignedUrlConfig;
+    let mockConfig: CmtxPresignedUrlConfig;
     let mockMd: MarkdownIt;
 
     beforeEach(() => {
@@ -24,15 +24,14 @@ describe('markdown-preview', () => {
             show: vi.fn(),
             hide: vi.fn(),
             dispose: vi.fn(),
-            name: 'CMTX',
+            name: "CMTX",
         } as unknown as vscode.OutputChannel;
 
-        // Mock config without aliyun provider
+        // Mock config without any domains
         mockConfig = {
-            imageFormat: 'all',
+            imageFormat: "all",
             expire: 600,
             maxRetryCount: 3,
-            providerConfigs: [],
         };
 
         // Mock MarkdownIt
@@ -59,24 +58,24 @@ describe('markdown-preview', () => {
         deactivatePresignedUrl();
     });
 
-    describe('initializePresignedUrl', () => {
-        it('should initialize with empty config', () => {
+    describe("initializePresignedUrl", () => {
+        it("should initialize with empty config", () => {
             expect(() => {
                 initializePresignedUrl(mockConfig, mockOutputChannel);
             }).not.toThrow();
         });
 
-        it('should initialize with aliyun provider and valid credentials', () => {
-            const configWithAliyun: PresignedUrlConfig = {
+        it("should initialize with aliyun provider and valid credentials", () => {
+            const configWithAliyun: CmtxPresignedUrlConfig = {
                 ...mockConfig,
-                providerConfigs: [
+                domains: [
                     {
-                        provider: 'aliyun-oss',
-                        domain: 'test-bucket.oss-cn-hangzhou.aliyuncs.com',
-                        bucket: 'test-bucket',
-                        region: 'oss-cn-hangzhou',
-                        accessKeyId: 'test-key-id',
-                        accessKeySecret: 'test-key-secret',
+                        domain: "test-bucket.oss-cn-hangzhou.aliyuncs.com",
+                        provider: "aliyun-oss",
+                        bucket: "test-bucket",
+                        region: "oss-cn-hangzhou",
+                        accessKeyId: "test-key-id",
+                        accessKeySecret: "test-key-secret",
                     },
                 ],
             };
@@ -86,15 +85,15 @@ describe('markdown-preview', () => {
             }).not.toThrow();
         });
 
-        it('should not throw when aliyun provider missing credentials', () => {
-            const configWithAliyunNoCreds: PresignedUrlConfig = {
+        it("should not throw when aliyun provider missing credentials", () => {
+            const configWithAliyunNoCreds: CmtxPresignedUrlConfig = {
                 ...mockConfig,
-                providerConfigs: [
+                domains: [
                     {
-                        provider: 'aliyun-oss',
-                        domain: 'test-bucket.oss-cn-hangzhou.aliyuncs.com',
-                        bucket: 'test-bucket',
-                        region: 'oss-cn-hangzhou',
+                        domain: "test-bucket.oss-cn-hangzhou.aliyuncs.com",
+                        provider: "aliyun-oss",
+                        bucket: "test-bucket",
+                        region: "oss-cn-hangzhou",
                     },
                 ],
             };
@@ -108,24 +107,23 @@ describe('markdown-preview', () => {
             expect(true).toBe(true);
         });
 
-        it('should handle multiple aliyun providers', () => {
-            const configWithMultiple: PresignedUrlConfig = {
+        it("should handle multiple aliyun providers", () => {
+            const configWithMultiple: CmtxPresignedUrlConfig = {
                 ...mockConfig,
-                providerConfigs: [
+                domains: [
                     {
-                        provider: 'aliyun-oss',
-                        domain: 'bucket1.oss-cn-hangzhou.aliyuncs.com',
-                        bucket: 'bucket1',
-                        region: 'oss-cn-hangzhou',
-                        accessKeyId: 'key1',
-                        accessKeySecret: 'secret1',
+                        domain: "bucket1.oss-cn-hangzhou.aliyuncs.com",
+                        provider: "aliyun-oss",
+                        bucket: "bucket1",
+                        region: "oss-cn-hangzhou",
+                        accessKeyId: "key1",
+                        accessKeySecret: "secret1",
                     },
                     {
-                        provider: 'aliyun-oss',
-                        domain: 'bucket2.oss-cn-beijing.aliyuncs.com',
-                        bucket: 'bucket2',
-                        region: 'oss-cn-beijing',
-                        // Missing credentials
+                        domain: "bucket2.oss-cn-beijing.aliyuncs.com",
+                        provider: "aliyun-oss",
+                        bucket: "bucket2",
+                        region: "oss-cn-beijing",
                     },
                 ],
             };
@@ -140,14 +138,14 @@ describe('markdown-preview', () => {
         });
     });
 
-    describe('extendMarkdownIt', () => {
-        it('should return original md when config not initialized', () => {
+    describe("extendMarkdownIt", () => {
+        it("should return original md when config not initialized", () => {
             const result = extendMarkdownIt(mockMd);
             expect(result).toBe(mockMd);
             expect(mockMd.use).not.toHaveBeenCalled();
         });
 
-        it('should not apply plugin when config has no providers', () => {
+        it("should not apply plugin when config has no providers", () => {
             initializePresignedUrl(mockConfig, mockOutputChannel);
             const result = extendMarkdownIt(mockMd);
             expect(result).toBe(mockMd);
@@ -155,17 +153,17 @@ describe('markdown-preview', () => {
             expect(mockMd.use).not.toHaveBeenCalled();
         });
 
-        it('should apply plugin with valid providers', () => {
-            const configWithProvider: PresignedUrlConfig = {
+        it("should apply plugin with valid providers", () => {
+            const configWithProvider: CmtxPresignedUrlConfig = {
                 ...mockConfig,
-                providerConfigs: [
+                domains: [
                     {
-                        provider: 'aliyun-oss',
-                        domain: 'test-bucket.oss-cn-hangzhou.aliyuncs.com',
-                        bucket: 'test-bucket',
-                        region: 'oss-cn-hangzhou',
-                        accessKeyId: 'test-key',
-                        accessKeySecret: 'test-secret',
+                        domain: "test-bucket.oss-cn-hangzhou.aliyuncs.com",
+                        provider: "aliyun-oss",
+                        bucket: "test-bucket",
+                        region: "oss-cn-hangzhou",
+                        accessKeyId: "test-key",
+                        accessKeySecret: "test-secret",
                     },
                 ],
             };
@@ -177,22 +175,22 @@ describe('markdown-preview', () => {
         });
     });
 
-    describe('clearPresignedCache', () => {
-        it('should warn when adapter not initialized', () => {
+    describe("clearPresignedCache", () => {
+        it("should warn when adapter not initialized", () => {
             clearPresignedCache();
             // Should log warning - check through logger
             expect(() => clearPresignedCache()).not.toThrow();
         });
 
-        it('should clear cache when adapter is initialized', () => {
+        it("should clear cache when adapter is initialized", () => {
             initializePresignedUrl(mockConfig, mockOutputChannel);
             // Should not throw when clearing cache
             expect(() => clearPresignedCache()).not.toThrow();
         });
     });
 
-    describe('deactivatePresignedUrl', () => {
-        it('should clean up state', () => {
+    describe("deactivatePresignedUrl", () => {
+        it("should clean up state", () => {
             initializePresignedUrl(mockConfig, mockOutputChannel);
             deactivatePresignedUrl();
 
@@ -203,32 +201,32 @@ describe('markdown-preview', () => {
         });
     });
 
-    describe('reloadPresignedUrlConfig', () => {
-        it('should reload config', () => {
-            const initialConfig: PresignedUrlConfig = {
+    describe("reloadPresignedUrlConfig", () => {
+        it("should reload config", () => {
+            const initialConfig: CmtxPresignedUrlConfig = {
                 ...mockConfig,
-                providerConfigs: [
+                domains: [
                     {
-                        provider: 'aliyun-oss',
-                        domain: 'initial.oss-cn-hangzhou.aliyuncs.com',
-                        bucket: 'initial',
-                        region: 'oss-cn-hangzhou',
-                        accessKeyId: 'key',
-                        accessKeySecret: 'secret',
+                        domain: "initial.oss-cn-hangzhou.aliyuncs.com",
+                        provider: "aliyun-oss",
+                        bucket: "initial",
+                        region: "oss-cn-hangzhou",
+                        accessKeyId: "key",
+                        accessKeySecret: "secret",
                     },
                 ],
             };
 
-            const newConfig: PresignedUrlConfig = {
+            const newConfig: CmtxPresignedUrlConfig = {
                 ...mockConfig,
-                providerConfigs: [
+                domains: [
                     {
-                        provider: 'aliyun-oss',
-                        domain: 'new.oss-cn-beijing.aliyuncs.com',
-                        bucket: 'new',
-                        region: 'oss-cn-beijing',
-                        accessKeyId: 'new-key',
-                        accessKeySecret: 'new-secret',
+                        domain: "new.oss-cn-beijing.aliyuncs.com",
+                        provider: "aliyun-oss",
+                        bucket: "new",
+                        region: "oss-cn-beijing",
+                        accessKeyId: "new-key",
+                        accessKeySecret: "new-secret",
                     },
                 ],
             };
@@ -243,26 +241,23 @@ describe('markdown-preview', () => {
         });
     });
 
-    describe('variable name consistency', () => {
-        it('should use correct variable names in validateCredentialPresence', () => {
+    describe("variable name consistency", () => {
+        it("should use correct variable names in validateCredentialPresence", () => {
             // This test ensures the bug with "alyunProviders" vs "aliyunProviders" doesn't happen again
-            const configWithAliyun: PresignedUrlConfig = {
+            const configWithAliyun: CmtxPresignedUrlConfig = {
                 ...mockConfig,
-                providerConfigs: [
+                domains: [
                     {
-                        provider: 'aliyun-oss',
-                        domain: 'test.oss-cn-hangzhou.aliyuncs.com',
-                        bucket: 'test',
-                        region: 'oss-cn-hangzhou',
-                        // No credentials - should trigger error logging
+                        domain: "test-bucket.oss-cn-hangzhou.aliyuncs.com",
+                        provider: "aliyun-oss",
+                        bucket: "test-bucket",
+                        region: "oss-cn-hangzhou",
                     },
                 ],
             };
-
-            // Should not throw ReferenceError
-            expect(() => {
-                initializePresignedUrl(configWithAliyun, mockOutputChannel);
-            }).not.toThrow(ReferenceError);
+            expect(() => initializePresignedUrl(configWithAliyun, mockOutputChannel)).not.toThrow(
+                ReferenceError,
+            );
 
             // Verify the function executed without throwing
             // The error logging goes through getLogger, not directly to outputChannel

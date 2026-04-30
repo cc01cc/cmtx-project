@@ -1,11 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type * as vscode from 'vscode';
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type * as vscode from "vscode";
 import {
     createVsCodeAdapter,
     type VsCodeAdapterConfig,
-} from '../../../src/presigned-url/create-vscode-adapter';
+} from "../../../src/presigned-url/create-vscode-adapter";
 
-describe('createVsCodeAdapter', () => {
+describe("createVsCodeAdapter", () => {
     let mockOutputChannel: vscode.OutputChannel;
     let config: VsCodeAdapterConfig;
 
@@ -18,16 +18,22 @@ describe('createVsCodeAdapter', () => {
             show: vi.fn(),
             hide: vi.fn(),
             dispose: vi.fn(),
-            name: 'CMTX',
+            name: "CMTX",
         } as unknown as vscode.OutputChannel;
 
         config = {
-            providerConfigs: [
+            storageConfigs: {
+                default: {
+                    provider: "aliyun-oss" as const,
+                    bucket: "test-bucket",
+                    region: "oss-cn-hangzhou",
+                    domain: "test-bucket.oss-cn-hangzhou.aliyuncs.com",
+                },
+            },
+            domains: [
                 {
-                    provider: 'aliyun-oss' as const,
-                    bucket: 'test-bucket',
-                    region: 'oss-cn-hangzhou',
-                    domain: 'test-bucket.oss-cn-hangzhou.aliyuncs.com',
+                    domain: "test-bucket.oss-cn-hangzhou.aliyuncs.com",
+                    useStorage: "default",
                 },
             ],
             expire: 600,
@@ -40,16 +46,16 @@ describe('createVsCodeAdapter', () => {
         vi.clearAllMocks();
     });
 
-    describe('getSignedUrl', () => {
-        it('should return null when no cache exists', () => {
+    describe("getSignedUrl", () => {
+        it("should return null when no cache exists", () => {
             const adapter = createVsCodeAdapter(config);
-            const result = adapter.getSignedUrl('https://example.com/image.png');
+            const result = adapter.getSignedUrl("https://example.com/image.png");
             expect(result).toBeNull();
         });
 
-        it('should return cached URL when cache exists', async () => {
+        it("should return cached URL when cache exists", async () => {
             const adapter = createVsCodeAdapter(config);
-            const originalUrl = 'https://test-bucket.oss-cn-hangzhou.aliyuncs.com/image.png';
+            const originalUrl = "https://test-bucket.oss-cn-hangzhou.aliyuncs.com/image.png";
 
             // First request to populate cache
             await adapter.requestSignedUrl(originalUrl);
@@ -57,14 +63,14 @@ describe('createVsCodeAdapter', () => {
             // Now should return the signed URL from cache
             const cachedResult = adapter.getSignedUrl(originalUrl);
             expect(cachedResult).not.toBeNull();
-            expect(cachedResult).toContain('Signature=');
+            expect(cachedResult).toContain("Signature=");
         });
     });
 
-    describe('requestSignedUrl', () => {
-        it('should handle unknown domain gracefully', async () => {
+    describe("requestSignedUrl", () => {
+        it("should handle unknown domain gracefully", async () => {
             const adapter = createVsCodeAdapter(config);
-            const unknownUrl = 'https://unknown-domain.com/image.png';
+            const unknownUrl = "https://unknown-domain.com/image.png";
 
             const result = await adapter.requestSignedUrl(unknownUrl);
 
@@ -72,9 +78,9 @@ describe('createVsCodeAdapter', () => {
             expect(result).toBe(unknownUrl);
         });
 
-        it('should handle concurrent requests for same URL', async () => {
+        it("should handle concurrent requests for same URL", async () => {
             const adapter = createVsCodeAdapter(config);
-            const url = 'https://test-bucket.oss-cn-hangzhou.aliyuncs.com/image.png';
+            const url = "https://test-bucket.oss-cn-hangzhou.aliyuncs.com/image.png";
 
             // Make two concurrent requests
             const promise1 = adapter.requestSignedUrl(url);
@@ -88,44 +94,44 @@ describe('createVsCodeAdapter', () => {
         });
     });
 
-    describe('logger integration', () => {
-        it('should log to output channel with correct format', async () => {
+    describe("logger integration", () => {
+        it("should log to output channel with correct format", async () => {
             const adapter = createVsCodeAdapter(config);
-            const url = 'https://test-bucket.oss-cn-hangzhou.aliyuncs.com/image.png';
+            const url = "https://test-bucket.oss-cn-hangzhou.aliyuncs.com/image.png";
 
             await adapter.requestSignedUrl(url);
 
             // Check log format
             const calls = (mockOutputChannel.appendLine as ReturnType<typeof vi.fn>).mock.calls;
             const hasCorrectFormat = calls.some(
-                (call: string[]) => call[0].includes('[CMTX]') && call[0].includes('[Adapter]')
+                (call: string[]) => call[0].includes("[CMTX]") && call[0].includes("[Adapter]"),
             );
             expect(hasCorrectFormat).toBe(true);
         });
 
-        it('should log different levels appropriately', async () => {
+        it("should log different levels appropriately", async () => {
             const adapter = createVsCodeAdapter(config);
-            const unknownUrl = 'https://unknown-domain.com/image.png';
+            const unknownUrl = "https://unknown-domain.com/image.png";
 
             // This should trigger warn level log
             await adapter.requestSignedUrl(unknownUrl);
 
             expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(
-                expect.stringContaining('WARN')
+                expect.stringContaining("WARN"),
             );
         });
     });
 
-    describe('adapter initialization', () => {
-        it('should initialize with correct configuration', async () => {
+    describe("adapter initialization", () => {
+        it("should initialize with correct configuration", async () => {
             const adapter = createVsCodeAdapter(config);
-            const url = 'https://test-bucket.oss-cn-hangzhou.aliyuncs.com/image.png';
+            const url = "https://test-bucket.oss-cn-hangzhou.aliyuncs.com/image.png";
 
             await adapter.requestSignedUrl(url);
 
             // Verify initialization logs
             expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(
-                expect.stringContaining('URL 签名器初始化完成')
+                expect.stringContaining("URL 签名器初始化完成"),
             );
         });
     });

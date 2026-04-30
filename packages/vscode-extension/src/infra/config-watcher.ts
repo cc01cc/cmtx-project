@@ -1,8 +1,9 @@
-import * as vscode from 'vscode';
-import { getCurrentWorkspaceFolder, loadCmtxConfig } from './cmtx-config';
-import { getLogger } from './logger';
+import * as vscode from "vscode";
+import { getCurrentWorkspaceFolder, loadCmtxConfig } from "./cmtx-config.js";
+import { showError, showQuickPick } from "./notification.js";
+import { getModuleLogger } from "./unified-logger.js";
 
-const logger = getLogger('config-watcher');
+const logger = getModuleLogger("config-watcher");
 
 // Shared output channel - set by extension.ts
 let sharedOutputChannel: vscode.OutputChannel | undefined;
@@ -21,12 +22,12 @@ export function setOutputChannel(channel: vscode.OutputChannel): void {
 export function createConfigWatcher(context: vscode.ExtensionContext): vscode.Disposable {
     const workspaceFolder = getCurrentWorkspaceFolder();
     if (!workspaceFolder) {
-        logger.info('No workspace folder, skipping config watcher');
+        logger.info("No workspace folder, skipping config watcher");
         return { dispose: () => {} };
     }
 
     // Create pattern for .cmtx/config.yaml
-    const configPattern = new vscode.RelativePattern(workspaceFolder, '.cmtx/config.yaml');
+    const configPattern = new vscode.RelativePattern(workspaceFolder, ".cmtx/config.yaml");
 
     logger.info(`Creating config watcher for: ${configPattern.pattern}`);
 
@@ -52,7 +53,7 @@ export function createConfigWatcher(context: vscode.ExtensionContext): vscode.Di
     // Register to context for auto-disposal
     context.subscriptions.push(watcher);
 
-    logger.info('Config watcher created successfully');
+    logger.info("Config watcher created successfully");
 
     return watcher;
 }
@@ -61,12 +62,12 @@ export function createConfigWatcher(context: vscode.ExtensionContext): vscode.Di
  * Notify user that config has changed and needs reload
  */
 async function notifyConfigChanged(): Promise<void> {
-    const action = await vscode.window.showQuickPick(['立即重载窗口', '稍后手动重载'], {
-        placeHolder: 'CMTX 配置文件已修改，需要重新加载窗口才能生效',
-        ignoreFocusOut: true,
-    });
-    if (action === '立即重载窗口') {
-        await vscode.commands.executeCommand('workbench.action.reloadWindow');
+    const action = await showQuickPick("CMTX 配置文件已修改，需要重新加载窗口才能生效", [
+        "立即重载窗口",
+        "稍后手动重载",
+    ]);
+    if (action === "立即重载窗口") {
+        await vscode.commands.executeCommand("workbench.action.reloadWindow");
     }
 }
 
@@ -74,13 +75,13 @@ async function notifyConfigChanged(): Promise<void> {
  * Load config from disk (no caching)
  */
 export async function loadConfig(
-    workspaceFolder: vscode.WorkspaceFolder
+    workspaceFolder: vscode.WorkspaceFolder,
 ): Promise<Awaited<ReturnType<typeof loadCmtxConfig>>> {
     try {
         const config = await loadCmtxConfig(workspaceFolder, sharedOutputChannel);
         return config;
     } catch (error) {
-        logger.error('Failed to load config:', error);
+        logger.error("Failed to load config:", error);
         return undefined;
     }
 }
@@ -91,7 +92,7 @@ export async function loadConfig(
 export async function refreshConfig(): Promise<void> {
     const workspaceFolder = getCurrentWorkspaceFolder();
     if (!workspaceFolder) {
-        vscode.window.showErrorMessage('Please open a workspace folder first');
+        await showError("Please open a workspace folder first");
         return;
     }
 
@@ -100,17 +101,17 @@ export async function refreshConfig(): Promise<void> {
         const config = await loadCmtxConfig(workspaceFolder, sharedOutputChannel);
         if (config) {
             // Notify user to reload
-            const action = await vscode.window.showQuickPick(['立即重载窗口', '稍后手动重载'], {
-                placeHolder: 'CMTX 配置已刷新，需要重新加载窗口才能生效',
-                ignoreFocusOut: true,
-            });
-            if (action === '立即重载窗口') {
-                await vscode.commands.executeCommand('workbench.action.reloadWindow');
+            const action = await showQuickPick("CMTX 配置已刷新，需要重新加载窗口才能生效", [
+                "立即重载窗口",
+                "稍后手动重载",
+            ]);
+            if (action === "立即重载窗口") {
+                await vscode.commands.executeCommand("workbench.action.reloadWindow");
             }
         }
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        logger.error('Failed to refresh config:', error);
-        vscode.window.showErrorMessage(`Failed to refresh CMTX config: ${message}`);
+        logger.error("Failed to refresh config:", error);
+        await showError(`Failed to refresh CMTX config: ${message}`);
     }
 }

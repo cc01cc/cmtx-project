@@ -1,5 +1,5 @@
 export interface ImageElement {
-    type: 'markdown' | 'html';
+    type: "markdown" | "html";
     originalText: string;
     src: string;
     alt?: string;
@@ -16,7 +16,7 @@ export function parseImageElements(text: string): ImageElement[] {
 
     while ((match = markdownRegex.exec(text)) !== null) {
         elements.push({
-            type: 'markdown',
+            type: "markdown",
             originalText: match[0],
             src: match[2],
             alt: match[1],
@@ -30,7 +30,7 @@ export function parseImageElements(text: string): ImageElement[] {
 
         if (srcMatch) {
             elements.push({
-                type: 'html',
+                type: "html",
                 originalText: match[0],
                 src: srcMatch[1],
                 alt: altMatch?.[1],
@@ -53,13 +53,13 @@ export function detectCurrentWidth(elements: ImageElement[], widths: number[]): 
 
 export function calculateTargetWidth(
     currentWidth: number,
-    direction: 'in' | 'out',
-    widths: number[]
+    direction: "in" | "out",
+    widths: number[],
 ): number {
     const sorted = [...widths].sort((a, b) => a - b);
     const currentIndex = sorted.findIndex((w) => w >= currentWidth);
 
-    if (direction === 'in') {
+    if (direction === "in") {
         if (currentIndex === -1) {
             return sorted[sorted.length - 1];
         }
