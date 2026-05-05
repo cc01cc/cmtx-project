@@ -47,9 +47,10 @@
 
 import { readFile, stat } from "node:fs/promises";
 import { basename, extname } from "node:path";
-import type { LocalImageMatchWithAbsPath } from "@cmtx/core";
+import type { LocalFileImageMatch } from "../file/types.js";
 import { renderTemplate } from "@cmtx/template";
-import { generateMD5 } from "../shared/index.js";
+import { dummyLogger, type Logger } from "@cmtx/core";
+import { DEFAULT_NAMING_TEMPLATE, generateMD5 } from "../shared/index.js";
 import type { BaseNamingVariables } from "../shared/types.js";
 import type { StorageConfig } from "./config.js";
 
@@ -128,6 +129,19 @@ export interface NameTemplateVariables extends BaseNamingVariables {
     day: string;
 }
 
+export function warnAndCleanUnresolved(imageName: string, logger?: Logger): string {
+    const log = logger ?? dummyLogger;
+    const unresolved = imageName.match(/\{([^}]+)\}/g);
+    if (unresolved) {
+        for (const placeholder of unresolved) {
+            const varName = placeholder.slice(1, -1);
+            log.warn(`[NamingHandler] 未知变量: {${varName}}`);
+        }
+        return imageName.replace(/\{[^}]+\}/g, "");
+    }
+    return imageName;
+}
+
 /**
  * 根据命名模式生成远程文件名
  */
@@ -135,8 +149,9 @@ export function generateRemoteImageName(
     fileInfo: FileInfo,
     imageData: Buffer,
     storage: StorageConfig,
+    logger: Logger = dummyLogger,
 ): string {
-    const namingTemplate = storage.namingTemplate || "{name}.{ext}";
+    const namingTemplate = storage.namingTemplate || DEFAULT_NAMING_TEMPLATE;
 
     // 填充模板变量
     const variables: NameTemplateVariables = {
@@ -153,28 +168,30 @@ export function generateRemoteImageName(
         md5_16: generateMD5(imageData, 16),
     };
 
-    // 使用 @cmtx/template/renderTemplate 进行模板渲染
-    return renderTemplate(namingTemplate, variables, {
+    const imageName = renderTemplate(namingTemplate, variables, {
         postProcess: (result) => result.replace(/\/+/g, "/"),
     });
+
+    return warnAndCleanUnresolved(imageName, logger);
 }
 
 /**
  * 生成完整的远程路径
  */
 export async function generateNameAndRemotePath(
-    localImageWithAbs: LocalImageMatchWithAbsPath,
+    localImageWithAbs: LocalFileImageMatch,
     storageOptions: StorageConfig,
     prefix?: string,
+    logger: Logger = dummyLogger,
 ): Promise<{
     name: string;
     remotePath: string;
     nameTemplateVariables: NameTemplateVariables;
 }> {
-    const fileInfo = await getFileInfo(localImageWithAbs.absLocalPath);
+    const fileInfo = await getFileInfo(localImageWithAbs.absPath);
 
     try {
-        const imageData = await readFile(localImageWithAbs.absLocalPath);
+        const imageData = await readFile(localImageWithAbs.absPath);
 
         // 生成模板变量
         const variables: NameTemplateVariables = {
@@ -191,9 +208,14 @@ export async function generateNameAndRemotePath(
             md5_16: generateMD5(imageData, 16),
         };
 
-        const imageName = renderTemplate(storageOptions.namingTemplate || "{fileName}", variables, {
-            postProcess: (result) => result.replace(/\/+/g, "/"),
-        });
+        const rendered = renderTemplate(
+            storageOptions.namingTemplate || DEFAULT_NAMING_TEMPLATE,
+            variables,
+            {
+                postProcess: (result) => result.replace(/\/+/g, "/"),
+            },
+        );
+        const imageName = warnAndCleanUnresolved(rendered, logger);
 
         // 构造最终路径
         const normalizedPrefix = (prefix || "").endsWith("/") ? prefix : prefix ? `${prefix}/` : "";
@@ -204,7 +226,7 @@ export async function generateNameAndRemotePath(
         };
     } catch (error) {
         throw new Error(
-            `Failed to read file at ${localImageWithAbs.absLocalPath}: ${(error as Error).message}`,
+            `Failed to read file at ${localImageWithAbs.absPath}: ${(error as Error).message}`,
             { cause: error },
         );
     }

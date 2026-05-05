@@ -6,7 +6,8 @@
  * 定义 CMTX 配置文件的完整类型结构，包括存储池、上传、预签名 URL、图片缩放、规则和预设配置。
  */
 
-// RuleConfig 本地定义，避免循环依赖 @cmtx/publish
+import { DEFAULT_NAMING_TEMPLATE } from "../shared/constants.js";
+// RuleConfig 本地定义，避免循环依赖 @cmtx/rule-engine
 /**
  * Rule 配置（用于全局 rules 配置）
  * 每个 Rule 直接对应其配置参数
@@ -46,49 +47,6 @@ export interface ReplaceConfig {
     };
 }
 
-// ==================== 图片删除配置 ====================
-
-/**
- * 图片删除配置
- */
-export interface DeleteConfig {
-    /** 是否启用删除 */
-    enabled?: boolean;
-    /** 删除策略：trash | permanent */
-    strategy?: "trash" | "permanent";
-    /** 回收站目录 */
-    trashDir?: string;
-}
-
-// ==================== 上传配置 ====================
-
-/**
- * 上传配置
- */
-export interface CmtxUploadConfig {
-    /** 图片格式：markdown | html */
-    imageFormat?: "markdown" | "html";
-    /** 批量限制 */
-    batchLimit?: number;
-    // TODO: 添加 fileWriteTimeout — storage 适配器层实现超时后，在此处增加字段
-    /** 图片 alt 模板 */
-    imageAltTemplate?: string;
-    /** 命名模板 */
-    namingTemplate?: string;
-    /** 是否自动上传 */
-    auto?: boolean;
-    /** 冲突处理策略 */
-    conflictStrategy?: "skip" | "overwrite";
-    /** 指定使用哪个 storage (by ID) */
-    useStorage?: string;
-    /** 上传前缀路径 */
-    prefix?: string;
-    /** 图片替换配置（上传后替换图片属性） */
-    replace?: ReplaceConfig;
-    /** 图片删除配置（上传后删除本地图片） */
-    delete?: DeleteConfig;
-}
-
 // ==================== 预签名 URL 配置 ====================
 
 /**
@@ -97,20 +55,12 @@ export interface CmtxUploadConfig {
 export interface CmtxPresignedUrlDomain {
     /** 域名 */
     domain: string;
-    /** 云服务商 */
-    provider: string;
-    /** Bucket 名称 */
-    bucket?: string;
-    /** 区域 */
-    region?: string;
+    /** 引用 storages 中的 storage ID */
+    useStorage: string;
     /** 路径前缀 */
     path?: string;
     /** 强制使用 HTTPS */
     forceHttps?: boolean;
-    /** Access Key ID */
-    accessKeyId?: string;
-    /** Access Key Secret */
-    accessKeySecret?: string;
 }
 
 /**
@@ -127,28 +77,6 @@ export interface CmtxPresignedUrlConfig {
     domains?: CmtxPresignedUrlDomain[];
 }
 
-// ==================== 图片缩放配置 ====================
-
-/**
- * 图片缩放域名配置
- */
-export interface CmtxResizeDomain {
-    /** 域名 */
-    domain: string;
-    /** 云服务商 */
-    provider: "aliyun-oss" | "tencent-cos" | "html";
-}
-
-/**
- * 图片缩放配置
- */
-export interface CmtxResizeConfig {
-    /** 缩放宽度列表 */
-    widths?: number[];
-    /** 域名列表 */
-    domains?: CmtxResizeDomain[];
-}
-
 // ==================== 主配置接口 ====================
 
 /**
@@ -160,12 +88,8 @@ export interface CmtxConfig {
     version: string;
     /** 存储池配置 */
     storages?: Record<string, CmtxStorageConfig>;
-    /** 上传配置 */
-    upload?: CmtxUploadConfig;
     /** 预签名 URL 配置 */
     presignedUrls?: CmtxPresignedUrlConfig;
-    /** 图片缩放配置 */
-    resize?: CmtxResizeConfig;
     /** 全局 Rules 配置 */
     rules?: Record<string, RuleConfig>;
     /** Presets（Rule 集合） */
@@ -212,34 +136,11 @@ export interface RuleStepConfig {
  */
 export const DEFAULT_CONFIG: CmtxConfig = {
     version: "v2",
-    upload: {
-        imageFormat: "markdown",
-        batchLimit: 5,
-        imageAltTemplate: "",
-        namingTemplate: "{name}.{ext}",
-        auto: false,
-        conflictStrategy: "skip",
-        useStorage: "default",
-        prefix: "",
-        replace: {
-            fields: {
-                src: "{cloudSrc}",
-                alt: "{originalAlt}",
-            },
-        },
-        delete: {
-            enabled: false,
-        },
-    },
-    resize: {
-        widths: [360, 480, 640, 800, 960, 1200],
-        domains: [],
-    },
     presignedUrls: {
         expire: 600,
         maxRetryCount: 3,
         imageFormat: "all",
-        domains: [],
+        domains: [{ domain: "example.com", useStorage: "default" }],
     },
     rules: {
         "strip-frontmatter": {},
@@ -255,7 +156,24 @@ export const DEFAULT_CONFIG: CmtxConfig = {
             convertToHtml: false,
         },
         "upload-images": {
-            width: 800,
+            imageFormat: "markdown",
+            batchLimit: 5,
+            imageAltTemplate: "",
+            namingTemplate: DEFAULT_NAMING_TEMPLATE,
+            auto: false,
+            conflictStrategy: "skip",
+            useStorage: "default",
+            prefix: "",
+            replace: {
+                fields: {
+                    src: "{cloudSrc}",
+                    alt: "{originalAlt}",
+                },
+            },
+        },
+        "resize-image": {
+            widths: [360, 480, 640, 800, 960, 1200],
+            domains: [],
         },
         "add-section-numbers": {
             minLevel: 2,
@@ -283,6 +201,9 @@ export const DEFAULT_CONFIG: CmtxConfig = {
         autocorrect: {
             configPath: ".autocorrectrc",
             strict: false,
+        },
+        "download-images": {
+            useStorage: "default",
         },
     },
     presets: {},

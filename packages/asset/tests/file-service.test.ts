@@ -40,23 +40,20 @@ describe("FileService", () => {
             const images = await fileService.filterImagesFromFile(filePath);
 
             expect(images).toHaveLength(2);
-            expect(images[0].alt).toBe("Logo");
-            expect(images[1].alt).toBe("Banner");
+            expect(images[0].match.alt).toBe("Logo");
+            expect(images[1].match.alt).toBe("Banner");
         });
 
-        it("本地图片应该包含 absLocalPath", async () => {
+        it("本地图片应该包含 absPath", async () => {
             const content = "![Logo](./logo.png)";
             const filePath = join(TEST_DIR, "test.md");
             await writeFile(filePath, content, "utf-8");
 
-            const images = await fileService.filterImagesFromFile(filePath);
+            const results = await fileService.filterImagesFromFile(filePath);
 
-            expect(images).toHaveLength(1);
-            expect(images[0].type).toBe("local");
-            expect("absLocalPath" in images[0]).toBe(true);
-            if ("absLocalPath" in images[0]) {
-                expect(images[0].absLocalPath).toContain("logo.png");
-            }
+            expect(results).toHaveLength(1);
+            expect(results[0].type).toBe("local");
+            expect(results[0].absPath).toContain("logo.png");
         });
 
         it("应该正确处理相对路径", async () => {
@@ -66,24 +63,26 @@ describe("FileService", () => {
             const filePath = join(subDir, "test.md");
             await writeFile(filePath, content, "utf-8");
 
-            const images = await fileService.filterImagesFromFile(filePath);
+            const results = await fileService.filterImagesFromFile(filePath);
 
-            expect(images).toHaveLength(1);
-            if ("absLocalPath" in images[0]) {
-                expect(images[0].absLocalPath).toContain("images");
-                expect(images[0].absLocalPath).toContain("logo.png");
-                expect(images[0].absLocalPath).not.toContain("docs");
+            expect(results).toHaveLength(1);
+            if (results[0].type === "local") {
+                expect(results[0].absPath).toContain("images");
+                expect(results[0].absPath).toContain("logo.png");
+                expect(results[0].absPath).not.toContain("docs");
             }
         });
 
-        it("应该设置 source 为 file", async () => {
+        it("应该包含 filePath 和 match 信息", async () => {
             const content = "![Image](./image.png)";
             const filePath = join(TEST_DIR, "test.md");
             await writeFile(filePath, content, "utf-8");
 
-            const images = await fileService.filterImagesFromFile(filePath);
+            const results = await fileService.filterImagesFromFile(filePath);
 
-            expect(images[0].source).toBe("file");
+            expect(results[0].filePath).toBe(filePath);
+            expect(results[0].match.type).toBe("local");
+            expect(results[0].match.src).toBe("./image.png");
         });
 
         it("应该抛出错误当文件不存在", async () => {
@@ -93,15 +92,19 @@ describe("FileService", () => {
     });
 
     describe("filterImagesFromDirectory", () => {
-        it("应该从目录中的所有 Markdown 文件筛选图片", async () => {
+        it("应该返回扁平的 FileImageMatch 数组，包含 filePath 和 match", async () => {
             await writeFile(join(TEST_DIR, "file1.md"), "![Image1](./img1.png)");
             await writeFile(join(TEST_DIR, "file2.md"), "![Image2](https://example.com/img2.png)");
 
-            const images = await fileService.filterImagesFromDirectory(TEST_DIR);
+            const fileMatches = await fileService.filterImagesFromDirectory(TEST_DIR);
 
-            expect(images).toHaveLength(2);
-            expect(images.some((img) => img.src === "./img1.png")).toBe(true);
-            expect(images.some((img) => img.src === "https://example.com/img2.png")).toBe(true);
+            expect(fileMatches).toHaveLength(2);
+            expect(fileMatches.some((f) => f.match.src === "./img1.png")).toBe(true);
+            expect(fileMatches.some((f) => f.match.src === "https://example.com/img2.png")).toBe(
+                true,
+            );
+            expect(fileMatches.some((f) => f.filePath.endsWith("file1.md"))).toBe(true);
+            expect(fileMatches.some((f) => f.filePath.endsWith("file2.md"))).toBe(true);
         });
 
         it("应该支持 sourceType 过滤（只获取本地图片）", async () => {
@@ -112,13 +115,13 @@ describe("FileService", () => {
 ![Local2](../images/img2.png)`,
             );
 
-            const images = await fileService.filterImagesFromDirectory(TEST_DIR, {
+            const fileMatches = await fileService.filterImagesFromDirectory(TEST_DIR, {
                 mode: "sourceType",
                 value: "local",
             });
 
-            expect(images).toHaveLength(2);
-            expect(images.every((img) => img.type === "local")).toBe(true);
+            expect(fileMatches).toHaveLength(2);
+            expect(fileMatches.every((f) => f.type === "local")).toBe(true);
         });
 
         it("应该支持子目录搜索", async () => {
@@ -128,9 +131,9 @@ describe("FileService", () => {
             await writeFile(join(TEST_DIR, "docs", "readme.md"), "![Doc](./doc.png)");
             await writeFile(join(TEST_DIR, "blog", "post.md"), "![Blog](./blog.png)");
 
-            const images = await fileService.filterImagesFromDirectory(TEST_DIR);
+            const fileMatches = await fileService.filterImagesFromDirectory(TEST_DIR);
 
-            expect(images).toHaveLength(2);
+            expect(fileMatches).toHaveLength(2);
         });
     });
 

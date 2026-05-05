@@ -28,12 +28,8 @@
 import { mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, resolve } from "node:path";
 // 从 core 导入类型
-import type {
-    DeleteFileOptions,
-    DeleteFileResult,
-    DirectoryReplaceResult,
-    FileReplaceResult,
-} from "@cmtx/core";
+import type { DeleteFileOptions, DeleteFileResult } from "../delete/types.js";
+import type { FileReplaceResult, DirectoryReplaceResult } from "./types.js";
 
 // 从 core 导入纯文本处理函数
 import {
@@ -45,8 +41,22 @@ import {
     replaceImagesInText,
 } from "@cmtx/core";
 import { glob } from "tinyglobby";
+import trash from "trash";
+import { type FileAccessor, FsFileAccessor } from "./file-accessor.js";
 
-import type { DirectoryScanOptions, FileInfo, FileServiceConfig, IFileService } from "./types.js";
+import type {
+    AnalyzeOptions,
+    DirectoryAnalysis,
+    DirectoryScanOptions,
+    FileInfo,
+    FileImageMatch,
+    FileServiceConfig,
+    IFileService,
+    LocalFileImageMatch,
+    LocalImageEntry,
+    WebFileImageMatch,
+    WebImageEntry,
+} from "./types.js";
 
 /**
  * 文件操作服务实现
@@ -72,6 +82,11 @@ import type { DirectoryScanOptions, FileInfo, FileServiceConfig, IFileService } 
  * ```
  */
 export class FileService implements IFileService {
+    private accessor: FileAccessor;
+
+    constructor(accessor?: FileAccessor) {
+        this.accessor = accessor ?? new FsFileAccessor();
+    }
     // ==================== 图片筛选（从 core 迁移）====================
 
     /**
@@ -84,26 +99,27 @@ export class FileService implements IFileService {
     async filterImagesFromFile(
         fileAbsPath: string,
         options?: ImageFilterOptions,
-    ): Promise<ImageMatch[]> {
-        const content = await readFile(fileAbsPath, "utf-8");
+    ): Promise<FileImageMatch[]> {
+        const content = await this.accessor.readText(fileAbsPath);
         const images = filterImagesInText(content, options);
         const fileDir = dirname(fileAbsPath);
 
-        // 设置 source 为 file，表示这些图片来自文件
-        // 对于本地图片，需要计算 absLocalPath
         return images.map((img: ImageMatch) => {
             if (img.type === "local") {
-                // 计算本地图片的绝对路径
-                const absLocalPath = isAbsolute(img.src)
-                    ? resolve(img.src)
-                    : resolve(fileDir, img.src);
-                return {
-                    ...img,
-                    source: "file" as const,
-                    absLocalPath,
+                const absPath = isAbsolute(img.src) ? resolve(img.src) : resolve(fileDir, img.src);
+                const match: LocalFileImageMatch = {
+                    type: "local",
+                    match: img,
+                    filePath: fileAbsPath,
+                    absPath,
                 };
+                return match;
             }
-            return { ...img, source: "file" as const };
+            return {
+                type: "web" as const,
+                match: img,
+                filePath: fileAbsPath,
+            };
         });
     }
 
@@ -119,9 +135,9 @@ export class FileService implements IFileService {
         dirAbsPath: string,
         options?: ImageFilterOptions,
         scanOptions?: DirectoryScanOptions,
-    ): Promise<ImageMatch[]> {
+    ): Promise<FileImageMatch[]> {
         const files = await this.scanDirectory(dirAbsPath, scanOptions);
-        const allMatches: ImageMatch[] = [];
+        const allMatches: FileImageMatch[] = [];
 
         for (const filePath of files) {
             const matches = await this.filterImagesFromFile(filePath, options);
@@ -129,6 +145,116 @@ export class FileService implements IFileService {
         }
 
         return allMatches;
+    }
+
+    /**
+     * 分析目录下的所有图片
+     *
+     * 两路数据源合并：
+     *   流程 A: 扫描 md 文件提取引用图片
+     *   流程 B: 扫描目录下图片文件
+     *   合并: md 引用的图片 → referencedBy 有值；仅文件扫描发现的 → orphan = true
+     *
+     * @param dirAbsPath - 目录绝对路径
+     * @param options - 分析选项
+     */
+    async analyzeDirectory(
+        dirAbsPath: string,
+        options?: AnalyzeOptions,
+    ): Promise<DirectoryAnalysis> {
+        const fileMatches = await this.filterImagesFromDirectory(dirAbsPath);
+        const mdFiles = new Set<string>();
+
+        const imageMap = new Map<string, LocalImageEntry | WebImageEntry>();
+        const referencedAbsPaths = new Set<string>();
+
+        for (const fmatch of fileMatches) {
+            mdFiles.add(fmatch.filePath);
+            const src = fmatch.match.src;
+
+            if (imageMap.has(src)) {
+                imageMap.get(src)!.referencedBy.push(fmatch.filePath);
+                continue;
+            }
+
+            if (fmatch.type === "local") {
+                let fileSize = 0;
+                try {
+                    const st = await stat(fmatch.absPath);
+                    fileSize = st.size;
+                } catch {
+                    // file not found, keep 0
+                }
+                referencedAbsPaths.add(fmatch.absPath);
+                imageMap.set(src, {
+                    type: "local",
+                    src,
+                    absPath: fmatch.absPath,
+                    fileSize,
+                    referencedBy: [fmatch.filePath],
+                    orphan: false,
+                });
+            } else {
+                imageMap.set(src, {
+                    type: "web",
+                    src,
+                    referencedBy: [fmatch.filePath],
+                });
+            }
+        }
+
+        const extensions = options?.extensions ?? ["png", "jpg", "jpeg", "gif", "svg", "webp"];
+        const pattern =
+            extensions.length === 1 ? `**/*.${extensions[0]}` : `**/*.{${extensions.join(",")}}`;
+        const imageFiles = await glob(pattern, {
+            cwd: dirAbsPath,
+            ignore: ["node_modules/**"],
+            absolute: true,
+        });
+
+        for (const absPath of imageFiles) {
+            if (referencedAbsPaths.has(absPath)) {
+                continue;
+            }
+            let fileSize = 0;
+            try {
+                const st = await stat(absPath);
+                if (options?.maxSize && st.size > options.maxSize) {
+                    continue;
+                }
+                fileSize = st.size;
+            } catch {
+                continue;
+            }
+            imageMap.set(absPath, {
+                type: "local",
+                src: absPath,
+                absPath,
+                fileSize,
+                referencedBy: [],
+                orphan: true,
+            });
+        }
+
+        const images = [...imageMap.values()];
+        const totalSize = images.reduce(
+            (sum, img) => sum + (img.type === "local" ? img.fileSize : 0),
+            0,
+        );
+        const referenced =
+            images.filter((i) => i.type === "local" && !i.orphan).length +
+            images.filter((i) => i.type === "web").length;
+        const orphan = images.filter((i) => i.type === "local" && i.orphan).length;
+
+        return {
+            images,
+            summary: {
+                referenced,
+                orphan,
+                totalSize,
+                mdFiles: mdFiles.size,
+            },
+        };
     }
 
     // ==================== 图片替换（从 core 迁移）====================
@@ -144,11 +270,11 @@ export class FileService implements IFileService {
         fileAbsPath: string,
         replaceOptions: ReplaceOptions[],
     ): Promise<FileReplaceResult> {
-        const content = await readFile(fileAbsPath, "utf-8");
+        const content = await this.accessor.readText(fileAbsPath);
         const result: ReplaceResult = replaceImagesInText(content, replaceOptions);
 
         if (result.replacements.length > 0) {
-            await writeFile(fileAbsPath, result.newText, "utf-8");
+            await this.accessor.writeText(fileAbsPath, result.newText);
         }
 
         return {
@@ -216,7 +342,6 @@ export class FileService implements IFileService {
     ): Promise<void> {
         switch (strategy) {
             case "trash": {
-                const { default: trash } = await import("trash");
                 await trash([filePath]);
                 break;
             }
@@ -316,7 +441,7 @@ export class FileService implements IFileService {
         });
 
         for (const file of files) {
-            const content = await readFile(file, "utf-8");
+            const content = await this.accessor.readText(file);
             const images = filterImagesInText(content);
 
             const isReferenced = images.some((img: ImageMatch) => {
@@ -375,7 +500,7 @@ export class FileService implements IFileService {
      * @returns 文件内容
      */
     async readFileContent(filePath: string): Promise<string> {
-        return readFile(filePath, "utf-8");
+        return this.accessor.readText(filePath);
     }
 
     /**
@@ -385,8 +510,7 @@ export class FileService implements IFileService {
      * @param content - 文件内容
      */
     async writeFileContent(filePath: string, content: string): Promise<void> {
-        await mkdir(dirname(filePath), { recursive: true });
-        await writeFile(filePath, content, "utf-8");
+        await this.accessor.writeText(filePath, content);
     }
 
     /**
@@ -435,6 +559,8 @@ export class FileService implements IFileService {
  * const fileService = createFileService();
  * ```
  */
-export function createFileService(_config?: FileServiceConfig): FileService {
-    return new FileService();
+export function createFileService(
+    config?: FileServiceConfig & { accessor?: FileAccessor },
+): FileService {
+    return new FileService(config?.accessor);
 }

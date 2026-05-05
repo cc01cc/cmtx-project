@@ -12,7 +12,6 @@
  * - {@link UploadConfig} - 主配置接口
  * - {@link StorageConfig} - 存储配置
  * - {@link ReplaceConfig} - 替换配置
- * - {@link DeleteConfig} - 删除配置
  * - {@link EventConfig} - 事件配置
  *
  * ### 结果相关
@@ -36,21 +35,14 @@
  * @see {@link @cmtx/storage} - 存储适配器（独立包）
  */
 
-import type { DeleteConfig, ReplaceConfig, UploadConfig } from "./config.js";
+import type { ReplaceConfig, UploadConfig } from "./config.js";
 
 // 重新导出配置类型和类，方便其他模块使用
-export type {
-    DeleteConfig,
-    EventConfig,
-    ReplaceConfig,
-    StorageConfig,
-    UploadConfig,
-} from "./config.js";
+export type { EventConfig, ReplaceConfig, StorageConfig, UploadConfig } from "./config.js";
 
 export { ConfigBuilder } from "./config.js";
 
 // 类型别名，用于服务模块的导入
-export type DeleteOptions = DeleteConfig;
 export type ReplaceOptions = ReplaceConfig;
 
 /**
@@ -217,13 +209,7 @@ export type ConflictResolutionStrategy =
     /** 全部跳过：保留远程版本，不上传本地文件 */
     | { type: "skip-all" }
     /** 全部替换：上传本地文件，覆盖远程版本 */
-    | { type: "replace-all" }
-    /** 全部下载：下载远程文件到指定目录 */
-    | {
-          type: "download-all";
-          downloadDir: string;
-          onFileExists: "skip" | "replace";
-      };
+    | { type: "replace-all" };
 
 /**
  * 上传结果 - 成功上传的项

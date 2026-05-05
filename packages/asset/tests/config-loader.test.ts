@@ -2,7 +2,7 @@
  * 配置加载器测试
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ConfigLoader, createConfigLoader, loadConfigFromString } from "../src/config/loader.js";
 
 describe("ConfigLoader", () => {
@@ -18,10 +18,11 @@ storages:
       accessKeySecret: "\${ACCESS_KEY_SECRET}"
       region: "\${REGION}"
       bucket: "\${BUCKET}"
-upload:
-  batchLimit: 10
-  imageFormat: markdown
-  conflictStrategy: skip
+rules:
+  upload-images:
+    batchLimit: 10
+    imageFormat: markdown
+    conflictStrategy: skip
 `;
             const envVars = {
                 ACCESS_KEY_ID: "test-key-id",
@@ -38,8 +39,9 @@ upload:
             expect(config.version).toBe("1.0.0");
             expect(config.storages.default.adapter).toBe("aliyun-oss");
             expect(config.storages.default.config.accessKeyId as string).toBe("test-key-id");
-            expect(config.upload?.batchLimit).toBe(10);
-            expect(config.upload?.imageFormat).toBe("markdown");
+            const uploadRule = config.rules?.["upload-images"];
+            expect(uploadRule?.batchLimit).toBe(10);
+            expect(uploadRule?.imageFormat).toBe("markdown");
         });
 
         it("should resolve environment variables", () => {
@@ -74,24 +76,50 @@ storages:
             expect(config.storages.default.config.accessKeySecret).toBe("test-key-secret");
         });
 
-        it("should throw error when env variable not set", () => {
+        it("should warn when env variable not set", () => {
+            const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
             const yaml = `
-version: '1.0.0'
+version: v2
 storages:
   default:
     adapter: aliyun-oss
     config:
-      accessKeyId: "\${NON_EXISTENT_VAR}"
-      accessKeySecret: "test-secret"
-      region: "oss-cn-hangzhou"
-      bucket: "test-bucket"
+      bucket: test-bucket
+      accessKeyId: "\${CMTX_UNSET_VAR}"
+      accessKeySecret: "\${CMTX_ANOTHER_UNSET}"
 `;
-
             const loader = createConfigLoader();
-            expect(() => loader.loadFromString(yaml)).toThrow("环境变量未设置");
+            const config = loader.loadFromString(yaml);
+            expect(config).toBeDefined();
+            expect(warnSpy).toHaveBeenCalledWith(
+                expect.stringContaining("环境变量未设置：CMTX_UNSET_VAR"),
+            );
+            warnSpy.mockRestore();
         });
 
-        it("should throw error for plaintext sensitive credentials", () => {
+        it("should warn for plaintext sensitive credentials", () => {
+            const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+            const yaml = `
+version: v2
+storages:
+  default:
+    adapter: aliyun-oss
+    config:
+      bucket: test-bucket
+      accessKeyId: "AKID123"
+      accessKeySecret: "sk-secret-456"
+`;
+            const loader = createConfigLoader();
+            const config = loader.loadFromString(yaml);
+            expect(config).toBeDefined();
+            expect(warnSpy).toHaveBeenCalledWith(
+                expect.stringContaining("敏感字段建议使用环境变量"),
+            );
+            warnSpy.mockRestore();
+        });
+
+        it("should warn for plaintext sensitive credentials (v1 config)", () => {
+            const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
             const yaml = `
 version: '1.0.0'
 storages:
@@ -105,7 +133,12 @@ storages:
 `;
 
             const loader = createConfigLoader();
-            expect(() => loader.loadFromString(yaml)).toThrow("敏感字段不支持明文凭证");
+            const config = loader.loadFromString(yaml);
+            expect(config).toBeDefined();
+            expect(warnSpy).toHaveBeenCalledWith(
+                expect.stringContaining("敏感字段建议使用环境变量"),
+            );
+            warnSpy.mockRestore();
         });
 
         it("should allow plaintext non-sensitive credentials", () => {
@@ -156,9 +189,10 @@ storages:
       accessKeySecret: "\${ACCESS_KEY_SECRET}"
       region: "\${REGION}"
       bucket: "\${BUCKET}"
-upload:
-  batchLimit: 5
-  imageFormat: html
+rules:
+  upload-images:
+    batchLimit: 5
+    imageFormat: html
 `;
 
             const loader = createConfigLoader({
@@ -169,8 +203,9 @@ upload:
 
             expect(config.version).toBe("1.0.0");
             expect(config.storages.default.config.accessKeyId).toBe("test-key-id");
-            expect(config.upload?.batchLimit).toBe(5);
-            expect(config.upload?.imageFormat).toBe("html");
+            const uploadRule = config.rules?.["upload-images"];
+            expect(uploadRule?.batchLimit).toBe(5);
+            expect(uploadRule?.imageFormat).toBe("html");
         });
     });
 

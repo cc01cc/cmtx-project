@@ -26,17 +26,18 @@ export type {
     CmtxConfig,
     CmtxPresignedUrlConfig,
     CmtxPresignedUrlDomain,
-    CmtxResizeConfig,
-    CmtxResizeDomain,
     CmtxStorageConfig,
-    CmtxUploadConfig,
-    DeleteConfig,
     PresetConfig,
     PresetConfigFull,
     ReplaceConfig,
     RuleStepConfig,
 } from "./types.js";
 export { DEFAULT_CONFIG } from "./types.js";
+// ==================== 预签名 URL 解析器 ====================
+export {
+    resolvePresignedUrlOptions,
+    type PresignedUrlResolvedOptions,
+} from "./presigned-resolver.js";
 // ==================== 配置验证器 ====================
 export {
     type ConfigValidationError,

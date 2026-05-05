@@ -26,7 +26,6 @@ describe("配置构建器测试", () => {
             expect(config.storages["default"]).toBeDefined();
             expect(config.storages["default"].adapter).toBeDefined();
             expect(config.replace).toBeDefined();
-            expect(config.delete).toBeDefined();
         });
 
         it("应该正确处理存储配置", () => {
@@ -95,26 +94,6 @@ describe("配置构建器测试", () => {
         });
     });
 
-    describe("删除配置", () => {
-        it("应该正确处理删除配置", () => {
-            const config = new ConfigBuilder()
-                .storages({
-                    default: {
-                        adapter: {} as any,
-                    },
-                })
-                .useStorage("default")
-                .delete({
-                    strategy: "trash",
-                    maxRetries: 3,
-                })
-                .build();
-
-            expect(config.delete?.strategy).toBe("trash");
-            expect(config.delete?.maxRetries).toBe(3);
-        });
-    });
-
     describe("事件配置", () => {
         it("应该正确处理事件回调", () => {
             const mockProgress = () => {};
@@ -171,7 +150,6 @@ describe("配置构建器测试", () => {
             // 检查默认值
             expect(config.replace?.fields.src).toBe("{cloudSrc}");
             expect(config.replace?.fields.alt).toBe("{originalAlt}");
-            expect(config.delete?.enabled).toBe(false);
         });
 
         it("应该正确合并配置", () => {
@@ -184,13 +162,10 @@ describe("配置构建器测试", () => {
                 .useStorage("default")
                 .prefix("test/")
                 .fieldTemplates({ src: "custom-{cloudSrc}" })
-                .delete({ strategy: "trash" })
                 .build();
 
             expect(config.prefix).toBe("test/");
             expect(config.replace?.fields.src).toBe("custom-{cloudSrc}");
-            // 注意：delete 配置会被默认值覆盖，所以仍然是 'trash'
-            expect(config.delete?.strategy).toBe("trash");
         });
     });
 });

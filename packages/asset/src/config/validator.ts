@@ -46,30 +46,31 @@ function validateVersion(config: CmtxConfig): ConfigValidationError[] {
  */
 function validateUpload(config: CmtxConfig): ConfigValidationError[] {
     const errors: ConfigValidationError[] = [];
-    if (!config.upload) return errors;
+    const uploadRule = config.rules?.["upload-images"];
+    if (!uploadRule) return errors;
 
-    if (config.upload.batchLimit !== undefined && config.upload.batchLimit < 1) {
+    const batchLimit = uploadRule.batchLimit as number | undefined;
+    if (batchLimit !== undefined && batchLimit < 1) {
         errors.push({
-            path: "upload.batchLimit",
+            path: "rules.upload-images.batchLimit",
             message: "Batch limit must be at least 1",
             severity: "error",
         });
     }
 
-    if (config.upload.imageFormat && !["markdown", "html"].includes(config.upload.imageFormat)) {
+    const imageFormat = uploadRule.imageFormat as string | undefined;
+    if (imageFormat && !["markdown", "html"].includes(imageFormat)) {
         errors.push({
-            path: "upload.imageFormat",
+            path: "rules.upload-images.imageFormat",
             message: 'Image format must be "markdown" or "html"',
             severity: "error",
         });
     }
 
-    if (
-        config.upload.conflictStrategy &&
-        !["skip", "overwrite"].includes(config.upload.conflictStrategy)
-    ) {
+    const conflictStrategy = uploadRule.conflictStrategy as string | undefined;
+    if (conflictStrategy && !["skip", "overwrite"].includes(conflictStrategy)) {
         errors.push({
-            path: "upload.conflictStrategy",
+            path: "rules.upload-images.conflictStrategy",
             message: 'Conflict strategy must be "skip" or "overwrite"',
             severity: "error",
         });
@@ -83,21 +84,23 @@ function validateUpload(config: CmtxConfig): ConfigValidationError[] {
  */
 function validateResize(config: CmtxConfig): ConfigValidationError[] {
     const errors: ConfigValidationError[] = [];
-    if (!config.resize?.widths) return errors;
+    const resizeRule = config.rules?.["resize-image"];
+    const widths = resizeRule?.widths;
+    if (widths === undefined) return errors;
 
-    if (!Array.isArray(config.resize.widths)) {
+    if (!Array.isArray(widths)) {
         return [
             {
-                path: "resize.widths",
+                path: "rules.resize-image.widths",
                 message: "Widths must be an array",
                 severity: "error",
             },
         ];
     }
 
-    if (config.resize.widths.some((w) => typeof w !== "number" || w < 1)) {
+    if (widths.some((w: unknown) => typeof w !== "number" || w < 1)) {
         errors.push({
-            path: "resize.widths",
+            path: "rules.resize-image.widths",
             message: "All widths must be positive numbers",
             severity: "error",
         });

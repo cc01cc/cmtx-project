@@ -3,7 +3,7 @@
  *
  * @module delete
  * @description
- * 提供图片删除功能，包括引用检查和文件删除。
+ * 提供图片删除功能，包括引用检查、文件删除，以及从 Markdown 文件中移除图片引用。
  *
  * @example
  * ```typescript
@@ -30,5 +30,11 @@ export type {
     DeleteResult,
     DeleteServiceConfig,
     DeleteTarget,
+    PruneEntry,
+    PruneOptions,
+    PruneResult,
     ReferenceInfo,
+    SafeDeleteDetail,
+    SafeDeleteOptions,
+    SafeDeleteResult,
 } from "./types.js";

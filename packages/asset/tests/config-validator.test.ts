@@ -25,10 +25,12 @@ describe("ConfigValidator", () => {
                 },
             },
         },
-        upload: {
-            batchLimit: 10,
-            imageFormat: "markdown",
-            conflictStrategy: "skip",
+        rules: {
+            "upload-images": {
+                batchLimit: 10,
+                imageFormat: "markdown",
+                conflictStrategy: "skip",
+            },
         },
     });
 
@@ -127,13 +129,17 @@ describe("ConfigValidator", () => {
                         },
                     },
                 },
-                upload: {
-                    batchLimit: 0,
+                rules: {
+                    "upload-images": {
+                        batchLimit: 0,
+                    },
                 },
-            } as CmtxConfig;
+            } as unknown as CmtxConfig;
 
             const errors = validateConfig(config);
-            const batchLimitErrors = errors.filter((e) => e.path === "upload.batchLimit");
+            const batchLimitErrors = errors.filter(
+                (e) => e.path === "rules.upload-images.batchLimit",
+            );
             expect(batchLimitErrors.length).toBeGreaterThan(0);
         });
 
@@ -151,13 +157,15 @@ describe("ConfigValidator", () => {
                         },
                     },
                 },
-                upload: {
-                    imageFormat: "invalid",
+                rules: {
+                    "upload-images": {
+                        imageFormat: "invalid",
+                    },
                 },
-            } as CmtxConfig;
+            } as unknown as CmtxConfig;
 
             const errors = validateConfig(config);
-            const formatErrors = errors.filter((e) => e.path === "upload.imageFormat");
+            const formatErrors = errors.filter((e) => e.path === "rules.upload-images.imageFormat");
             expect(formatErrors.length).toBeGreaterThan(0);
         });
 
@@ -175,13 +183,17 @@ describe("ConfigValidator", () => {
                         },
                     },
                 },
-                upload: {
-                    conflictStrategy: "invalid",
+                rules: {
+                    "upload-images": {
+                        conflictStrategy: "invalid",
+                    },
                 },
-            } as CmtxConfig;
+            } as unknown as CmtxConfig;
 
             const errors = validateConfig(config);
-            const strategyErrors = errors.filter((e) => e.path === "upload.conflictStrategy");
+            const strategyErrors = errors.filter(
+                (e) => e.path === "rules.upload-images.conflictStrategy",
+            );
             expect(strategyErrors.length).toBeGreaterThan(0);
         });
 
@@ -199,13 +211,15 @@ describe("ConfigValidator", () => {
                         },
                     },
                 },
-                resize: {
-                    widths: "not-an-array" as unknown as number[],
+                rules: {
+                    "resize-image": {
+                        widths: "not-an-array" as unknown as number[],
+                    },
                 },
-            } as CmtxConfig;
+            } as unknown as CmtxConfig;
 
             const errors = validateConfig(config);
-            const widthErrors = errors.filter((e) => e.path === "resize.widths");
+            const widthErrors = errors.filter((e) => e.path === "rules.resize-image.widths");
             expect(widthErrors.length).toBeGreaterThan(0);
         });
 
@@ -223,13 +237,15 @@ describe("ConfigValidator", () => {
                         },
                     },
                 },
-                resize: {
-                    widths: [100, -50, 200],
+                rules: {
+                    "resize-image": {
+                        widths: [100, -50, 200],
+                    },
                 },
-            } as CmtxConfig;
+            } as unknown as CmtxConfig;
 
             const errors = validateConfig(config);
-            const widthErrors = errors.filter((e) => e.path === "resize.widths");
+            const widthErrors = errors.filter((e) => e.path === "rules.resize-image.widths");
             expect(widthErrors.length).toBeGreaterThan(0);
         });
 

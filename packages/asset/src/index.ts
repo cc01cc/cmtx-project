@@ -26,7 +26,7 @@
  * 用于将 Markdown 中引用的本地图片上传到对象存储
  *
  * ```typescript
- * import { uploadLocalImageInMarkdown, ConfigBuilder } from "@cmtx/asset/upload";
+ * import { executeUploadPipeline, ConfigBuilder } from "@cmtx/asset/upload";
  * ```
  *
  * ### Transfer 模块
@@ -55,9 +55,9 @@
  * const result = await service.downloadFromMarkdown("./article.md");
  *
  * // 上传本地图片
- * import { uploadLocalImageInMarkdown, ConfigBuilder } from "@cmtx/asset/upload";
+ * import { executeUploadPipeline, ConfigBuilder } from "@cmtx/asset/upload";
  *
- * const result = await uploadLocalImageInMarkdown("/path/to/article.md", config);
+ * const result = await executeUploadPipeline({ documentAccessor, config, basePath: "/path/to/article.md" });
  *
  * // 转移远程图片
  * import { transferRemoteImages, TransferConfigBuilder } from "@cmtx/asset/transfer";
@@ -82,9 +82,43 @@ export type {
     DeleteResult,
     DeleteServiceConfig,
     DeleteTarget,
+    PruneEntry,
+    PruneOptions,
+    PruneResult,
     ReferenceInfo,
+    SafeDeleteDetail,
+    SafeDeleteOptions,
+    SafeDeleteResult,
 } from "./delete/index.js";
 export { DeleteService } from "./delete/index.js";
+
+// Service 层导出（统一 Service 定义点）
+export type {
+    // 新 Service
+    CoreServiceConfig,
+    DownloadAssetsServiceConfig,
+    SimpleDownloadResult,
+    StorageDomainConfig,
+    TransferAssetsResult,
+    TransferAssetsServiceConfig,
+    UploadResult as AssetUploadResult,
+    UploadServiceConfig,
+} from "./services/index.js";
+export {
+    CoreService,
+    createCoreService,
+    createDownloadAssetsService,
+    createTransferAssetsService,
+    createUploadService,
+    DownloadAssetsService,
+    TransferAssetsService,
+    UploadService,
+} from "./services/index.js";
+export type { Service } from "./services/index.js";
+// deprecated
+export type { AssetServiceConfig } from "./services/index.js";
+export { AssetService, createAssetService } from "./services/index.js";
+
 // Download 模块导出
 export type {
     DownloadFilter,
@@ -146,21 +180,35 @@ export type {
     StorageUrlType,
 } from "./utils/storage-url-types.js";
 
+// Utils 模块导出 - URL 存在性检测
+export type {
+    CheckUrlsInTextOptions,
+    CheckUrlsInTextResult,
+    UrlExistenceBatchOptions,
+    UrlExistenceBatchResult,
+    UrlExistenceCheckOptions,
+    UrlExistenceResult,
+    UrlExtractOptions,
+} from "./utils/url-existence-check.js";
+export {
+    checkUrlExists,
+    checkUrlExistsBatch,
+    checkUrlsInText,
+    extractUrlsFromText,
+} from "./utils/url-existence-check.js";
+
 // ==================== Config 模块导出（配置管理）====================
 
 export type {
     CmtxConfig,
     CmtxPresignedUrlConfig,
     CmtxPresignedUrlDomain,
-    CmtxResizeConfig,
-    CmtxResizeDomain,
     CmtxStorageConfig,
-    CmtxUploadConfig,
     ConfigValidationError,
-    DeleteConfig,
     LoaderOptions,
     PresetConfig,
     PresetConfigFull,
+    PresignedUrlResolvedOptions,
     ReplaceConfig,
     RuleStepConfig,
 } from "./config/index.js";
@@ -176,6 +224,7 @@ export {
     getConfigFilePath,
     loadConfigFromFile,
     loadConfigFromString,
+    resolvePresignedUrlOptions,
     saveConfigToFile,
     substituteEnvVars,
     substituteEnvVarsInObject,

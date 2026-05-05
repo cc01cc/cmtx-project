@@ -1,6 +1,6 @@
 {
     "name": "@cmtx/asset",
-    "version": "0.1.1-alpha.1",
+    "version": "0.2.0-alpha.2",
     "description": "Markdown asset management for cmtx - 支持本地图片上传和远程图片转移",
     "keywords": [
         "asset",
@@ -29,40 +29,44 @@
     "type": "module",
     "main": "./dist/index.cjs",
     "module": "./dist/index.mjs",
-    "types": "./dist/index.d.ts",
+    "types": "./dist/index.d.mts",
     "exports": {
         ".": {
-            "types": "./dist/index.d.ts",
+            "types": "./dist/index.d.mts",
             "import": "./dist/index.mjs",
             "require": "./dist/index.cjs"
         },
         "./download": {
-            "types": "./dist/download.d.ts",
+            "types": "./dist/download.d.mts",
             "import": "./dist/download.mjs",
             "require": "./dist/download.cjs"
         },
         "./upload": {
-            "types": "./dist/upload.d.ts",
+            "types": "./dist/upload.d.mts",
             "import": "./dist/upload.mjs",
             "require": "./dist/upload.cjs"
         },
         "./transfer": {
-            "types": "./dist/transfer.d.ts",
+            "types": "./dist/transfer.d.mts",
             "import": "./dist/transfer.mjs",
             "require": "./dist/transfer.cjs"
         },
         "./shared": {
-            "types": "./dist/shared.d.ts",
+            "types": "./dist/shared.d.mts",
             "import": "./dist/shared.mjs",
             "require": "./dist/shared.cjs"
         },
         "./config": {
-            "types": "./dist/config.d.ts",
+            "types": "./dist/config.d.mts",
             "import": "./dist/config.mjs",
             "require": "./dist/config.cjs"
         },
+        "./config/schema": {
+            "import": "./dist/config/cmtx.schema.json",
+            "require": "./dist/config/cmtx.schema.json"
+        },
         "./file": {
-            "types": "./dist/file.d.ts",
+            "types": "./dist/file.d.mts",
             "import": "./dist/file.mjs",
             "require": "./dist/file.cjs"
         }
@@ -71,8 +75,9 @@
         "access": "public"
     },
     "scripts": {
-        "build": "tsdown",
+        "build": "tsdown && node scripts/generate-schema.js",
         "build:watch": "tsdown --watch",
+        "build:schema": "node scripts/generate-schema.js",
         "clean": "rm -rf dist",
         "typecheck": "tsc --noEmit -p tsconfig.json",
         "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
@@ -90,7 +95,9 @@
     },
     "devDependencies": {
         "@types/node": "catalog:",
+        "ajv": "8.20.0",
         "dotenv": "catalog:dev",
+        "ts-json-schema-generator": "2.9.0",
         "typedoc": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:"

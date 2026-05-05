@@ -32,10 +32,7 @@ export type {
     CmtxConfig,
     CmtxPresignedUrlConfig,
     CmtxPresignedUrlDomain,
-    CmtxResizeConfig,
-    CmtxResizeDomain,
     CmtxStorageConfig,
-    CmtxUploadConfig,
     PresetConfig,
     PresetConfigFull,
     RuleStepConfig,
@@ -45,3 +42,8 @@ export type {
     ConfigValidationError as ValidationResult,
 } from "./validator.js";
 export { ConfigValidator, formatValidationErrors, validateConfig } from "./validator.js";
+// 预签名 URL 解析器
+export {
+    resolvePresignedUrlOptions,
+    type PresignedUrlResolvedOptions,
+} from "./presigned-resolver.js";

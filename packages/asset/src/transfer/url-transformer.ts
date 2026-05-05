@@ -23,6 +23,7 @@
 import { createHash } from "node:crypto";
 import * as path from "node:path";
 import { renderTemplate } from "@cmtx/template";
+import { DEFAULT_NAMING_TEMPLATE } from "../shared/constants.js";
 import { extractExtensionFromUrl, extractFileNameFromUrl } from "../utils/url-parser.js";
 import type { UrlMapping } from "./types.js";
 
@@ -146,7 +147,7 @@ export class UrlTransformer {
      * 使用模板生成文件名
      */
     private generateFileNameWithTemplate(originalUrl: string, content?: Buffer): string {
-        const template = this.targetConfig.namingTemplate || "{name}{ext}";
+        const template = this.targetConfig.namingTemplate || DEFAULT_NAMING_TEMPLATE;
         const originalFileName = extractFileNameFromUrl(originalUrl);
         const extension = extractExtensionFromUrl(originalUrl);
         const lastDot = originalFileName.lastIndexOf(".");

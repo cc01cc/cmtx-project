@@ -51,14 +51,12 @@ describe("模板渲染器测试", () => {
             );
         });
 
-        it("应该保持未知变量不变", () => {
+        it("未知变量应替换为空字符串", () => {
             const context = createContext("/test/image.png", {
                 cloudUrl: "https://cdn.example.com/image.png",
             });
 
-            expect(renderTemplate("{unknownVar}", context, { emptyString: "preserve" })).toBe(
-                "{unknownVar}",
-            );
+            expect(renderTemplate("{unknownVar}", context, { emptyString: "preserve" })).toBe("");
         });
     });
 
@@ -90,13 +88,13 @@ describe("模板渲染器测试", () => {
             expect(renderTemplate("{}", context, { emptyString: "preserve" })).toBe("{}");
         });
 
-        it("应该正确处理 undefined 值", () => {
+        it("undefined 值替换为空字符串", () => {
             const context = createContext("/test/image.png", {
                 cloudUrl: "https://cdn.example.com/image.png",
             });
 
             expect(renderTemplate("{originalValue}", context, { emptyString: "preserve" })).toBe(
-                "{originalValue}",
+                "",
             );
         });
     });

@@ -10,14 +10,9 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join } from "node:path";
 import * as yaml from "js-yaml";
+import { consoleLogger } from "@cmtx/core";
 import { substituteEnvVarsInObject } from "../utils/env-substitution.js";
-import type {
-    CmtxConfig,
-    CmtxStorageConfig,
-    CmtxUploadConfig,
-    ReplaceConfig,
-    DeleteConfig,
-} from "./types.js";
+import type { CmtxConfig, CmtxStorageConfig } from "./types.js";
 import { DEFAULT_CONFIG } from "./types.js";
 
 /**
@@ -42,15 +37,14 @@ function validateSensitiveField(
 ): void {
     if (sensitiveFields.includes(key) && typeof value === "string") {
         if (!value.includes("${")) {
-            throw new Error(
-                `敏感字段不支持明文凭证，请使用环境变量：storages.${storageId}.config.${key}`,
-            );
+            consoleLogger.warn(`敏感字段建议使用环境变量：storages.${storageId}.config.${key}`);
+            return;
         }
         const match = value.match(/\$\{([^}:-]+)(?::-[^}]*)?\}/);
         if (match) {
             const varName = match[1];
             if (resolver(varName) === undefined) {
-                throw new Error(`环境变量未设置：${varName}`);
+                consoleLogger.warn(`环境变量未设置：${varName}，将使用原始值`);
             }
         }
     }
@@ -133,21 +127,11 @@ export class ConfigLoader {
             config.storages = this.parseStorages(raw.storages as Record<string, unknown>);
         }
 
-        // 解析 upload（可选）
-        if (raw.upload) {
-            config.upload = this.parseUpload(raw.upload as Record<string, unknown>);
-        }
-
         // 解析 presignedUrls（可选）
         if (raw.presignedUrls) {
             config.presignedUrls = this.parsePresignedUrls(
                 raw.presignedUrls as Record<string, unknown>,
             );
-        }
-
-        // 解析 resize（可选）
-        if (raw.resize) {
-            config.resize = this.parseResize(raw.resize as Record<string, unknown>);
         }
 
         // 解析 rules（可选）
@@ -228,55 +212,6 @@ export class ConfigLoader {
     }
 
     /**
-     * 解析上传配置
-     */
-    private parseUpload(raw: Record<string, unknown>): CmtxUploadConfig {
-        const config: CmtxUploadConfig = {};
-
-        if (raw.imageFormat && typeof raw.imageFormat === "string") {
-            config.imageFormat = raw.imageFormat as "markdown" | "html";
-        }
-
-        if (raw.batchLimit !== undefined) {
-            config.batchLimit = raw.batchLimit as number;
-        }
-
-        if (raw.imageAltTemplate !== undefined) {
-            config.imageAltTemplate = raw.imageAltTemplate as string;
-        }
-
-        if (raw.namingTemplate !== undefined) {
-            config.namingTemplate = raw.namingTemplate as string;
-        }
-
-        if (raw.auto !== undefined) {
-            config.auto = raw.auto as boolean;
-        }
-
-        if (raw.conflictStrategy !== undefined) {
-            config.conflictStrategy = raw.conflictStrategy as "skip" | "overwrite";
-        }
-
-        if (raw.useStorage !== undefined) {
-            config.useStorage = raw.useStorage as string;
-        }
-
-        if (raw.prefix !== undefined) {
-            config.prefix = raw.prefix as string;
-        }
-
-        if (raw.replace !== undefined) {
-            config.replace = raw.replace as ReplaceConfig;
-        }
-
-        if (raw.delete !== undefined) {
-            config.delete = raw.delete as DeleteConfig;
-        }
-
-        return config;
-    }
-
-    /**
      * 解析预签名 URL 配置
      */
     private parsePresignedUrls(raw: Record<string, unknown>): Record<string, unknown> {
@@ -295,24 +230,22 @@ export class ConfigLoader {
         }
 
         if (raw.domains && Array.isArray(raw.domains)) {
-            config.domains = raw.domains;
-        }
-
-        return config;
-    }
-
-    /**
-     * 解析图片缩放配置
-     */
-    private parseResize(raw: Record<string, unknown>): Record<string, unknown> {
-        const config: Record<string, unknown> = {};
-
-        if (raw.widths && Array.isArray(raw.widths)) {
-            config.widths = raw.widths;
-        }
-
-        if (raw.domains && Array.isArray(raw.domains)) {
-            config.domains = raw.domains;
+            const domains: Record<string, unknown>[] = [];
+            for (const [index, entry] of (raw.domains as Record<string, unknown>[]).entries()) {
+                if (!entry || typeof entry !== "object") {
+                    throw new Error(`presignedUrls.domains[${index}] 必须是对象类型`);
+                }
+                if (typeof entry.domain !== "string") {
+                    throw new Error(`presignedUrls.domains[${index}].domain 是必需的字符串字段`);
+                }
+                if (typeof entry.useStorage !== "string") {
+                    throw new Error(
+                        `presignedUrls.domains[${index}].useStorage 是必需的字符串字段`,
+                    );
+                }
+                domains.push(entry);
+            }
+            config.domains = domains;
         }
 
         return config;

@@ -65,15 +65,10 @@ describe("核心功能测试", () => {
                 src: "{cloudSrc}?optimize=true",
                 alt: "{originalValue} [processed]",
             })
-            .delete({
-                strategy: "trash",
-                maxRetries: 3,
-            })
             .build();
 
         expect(config.prefix).toBe("uploads/blog/");
         expect(config.replace?.fields.src).toBe("{cloudSrc}?optimize=true");
-        expect(config.delete?.strategy).toBe("trash");
     });
 
     it("应该正确处理条件替换", () => {

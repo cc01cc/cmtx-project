@@ -22,6 +22,15 @@ Markdown 资产管理管道 —— 上传本地图片到云存储、在存储服
 
 本地图片上传到对象存储，支持智能去重和模板命名。
 
+核心 API：
+- `batchUploadImages(sources, config)` — 批量上传，按文件路径/MD5 自动去重
+- `renderReplacementText(match, cloudResult, replaceOptions?, imageFormat?)` — 渲染替换文本（支持模板变量）
+- `matchesToSources(matches, baseDir)` — ImageMatch[] → UploadSource[] 转换
+- `applyReplacementOps(content, ops)` — 按偏移量应用替换操作
+- `uploadAndReplaceFile(filePath, matches, baseDir, config, accessor?)` — 单文件上传+替换（**@deprecated** 推荐使用 `@cmtx/rule-engine/node` 的 `publishAndReplaceFile`）
+
+> **注意**: 上传管道只负责上传和文本替换。文件读写由调用者通过 `FileAccessor` 控制。
+
 ### @cmtx/asset/transfer
 
 远程图片在存储间转移，支持并发控制和进度跟踪。
@@ -37,6 +46,33 @@ Markdown 资产管理管道 —— 上传本地图片到云存储、在存储服
 ### @cmtx/asset/config - 配置管理
 
 提供 YAML 配置文件加载、验证和环境变量替换功能。
+
+### Service 层 - 统一服务接口
+
+提供 Service 层 API，作为 Rule 引擎的统一服务接口（方案 D）：
+
+- **Service\<TConfig\>** 接口：所有服务的基础契约
+- **AssetService**：封装 upload/download/delete pipeline 的 Facade
+- **CoreService**：封装 filterImages/replaceImages 的核心处理
+
+```typescript
+import { AssetService, CoreService, createAssetService, createCoreService } from "@cmtx/asset";
+
+// 创建 AssetService
+const assetService = createAssetService({
+    adapter: storageAdapter,
+    prefix: "images/",
+});
+
+// 上传文档中的图片
+const result = await assetService.uploadImagesInDocument(document, baseDirectory);
+
+// 创建 CoreService
+const coreService = createCoreService();
+
+// 筛选文档中的图片
+const images = coreService.filterImages(document, { mode: "sourceType", value: "local" });
+```
 
 ## 核心理念
 
@@ -74,10 +110,10 @@ const deleteResult = await fileService.deleteLocalImage("/path/to/image.png", {
 
 ### 上传功能
 
-- **智能上传** - `uploadLocalImageInMarkdown()` 扫描并上传 Markdown 文件中的本地图片
+- **智能上传** - `executeUploadPipeline()` 扫描并上传 Markdown 文件中的本地图片
 - **模板系统** - 集成 @cmtx/template 的 Builder 模式，支持灵活的命名规则
 - **多字段替换** - 同时替换 src、alt、title 字段，支持模板变量渲染
-- **安全删除** - 通过 FileService 集成删除功能，支持 trash/move/hard-delete 策略
+- **职责分离** - pipeline 只负责上传和替换，写回和删除由调用者负责
 
 ### 转移功能
 
@@ -140,6 +176,56 @@ detectStorageUrl("https://mybucket.oss-cn-hangzhou.aliyuncs.com/image.png");
 
 isStorageUrl("https://mybucket.oss-cn-hangzhou.aliyuncs.com/image.png"); // true
 isAliyunOssUrl("https://mybucket.oss-cn-hangzhou.aliyuncs.com/image.png"); // true
+```
+
+### URL 存在性检测
+
+通过 HTTP HEAD 请求检测 URL 是否可访问，支持批量检测和并发控制：
+
+```typescript
+import { checkUrlExists, checkUrlExistsBatch } from "@cmtx/asset";
+
+// 检测单个 URL
+const result = await checkUrlExists("https://example.com/image.png");
+if (result.exists) {
+    console.log(`URL exists (HTTP ${result.statusCode})`);
+} else {
+    console.log(`URL not found: ${result.error}`);
+}
+
+// 批量检测（带并发控制）
+const batch = await checkUrlExistsBatch([
+    "https://example.com/image1.png",
+    "https://example.com/image2.png",
+    "https://example.com/image3.png",
+], { concurrency: 3 });
+
+console.log(`${batch.existsCount}/${batch.total} URLs exist`);
+```
+
+### 从文本提取 URL 并检测
+
+从 Markdown/HTML/纯文本中提取 URL 并批量检测可达性：
+
+```typescript
+import { extractUrlsFromText, checkUrlsInText } from "@cmtx/asset";
+
+// 仅提取 URL（纯同步，无网络请求）
+const urls = extractUrlsFromText(`
+    ![logo](https://example.com/logo.png)
+    [docs](https://example.com/docs)
+    Visit https://example.com/path
+`);
+// ['https://example.com/logo.png', 'https://example.com/docs', 'https://example.com/path']
+
+// 提取 + 检测一步完成
+const result = await checkUrlsInText(`
+    ![valid](https://example.com/valid.png)
+    ![missing](https://example.com/missing.png)
+`, { concurrency: 3 });
+
+console.log(`Extracted ${result.extractedUrls.length} URLs`);
+console.log(`${result.existsCount}/${result.total} URLs exist`);
 ```
 
 ### 架构优势
@@ -500,13 +586,13 @@ options:
         maxSize: 10485760 # 10MB
 ```
 
-使用环境变量注入敏感信息：
+使用环境变量注入敏感信息（完整环境变量名见 [CFG-001 配置参考](../../docs/CFG-001-configuration-reference.md#环境变量)）：
 
 ```yaml
 source:
     config:
-        accessKeyId: ${ALIYUN_OSS_ACCESS_KEY_ID}
-        accessKeySecret: ${ALIYUN_OSS_ACCESS_KEY_SECRET}
+        accessKeyId: ${CMTX_ALIYUN_ACCESS_KEY_ID}
+        accessKeySecret: ${CMTX_ALIYUN_ACCESS_KEY_SECRET}
 ```
 
 ## 许可证
@@ -518,4 +604,4 @@ Apache-2.0
 - [@cmtx/core](../core) - Markdown 纯文本处理（解析、替换、格式化）
 - [@cmtx/storage](../storage) - 存储适配器（阿里云 OSS、腾讯云 COS）
 - [@cmtx/template](../template) - 模板引擎（Builder 模式）
-- [@cmtx/publish](../publish) - Markdown 发布处理（平台适配、规则引擎）
+- [@cmtx/rule-engine](../rule-engine) - Markdown 规则引擎（内容变换、平台适配）

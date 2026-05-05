@@ -34,21 +34,6 @@ export interface ReplaceConfig {
     context?: Record<string, string>;
 }
 
-// ==================== 删除配置 ====================
-export interface DeleteConfig {
-    /** 是否删除本地图片 */
-    enabled: boolean;
-
-    /** 删除策略 */
-    strategy?: "trash" | "move" | "hard-delete";
-
-    /** 当 strategy 为 trash 时的目标目录 */
-    trashDir?: string;
-
-    /** 最大重试次数 */
-    maxRetries?: number;
-}
-
 // ==================== 事件和日志配置 ====================
 export interface EventConfig {
     /** 上传流程事件回调 */
@@ -72,9 +57,6 @@ export interface UploadConfig {
     /** 替换配置 */
     replace?: ReplaceConfig;
 
-    /** 删除配置 */
-    delete?: DeleteConfig;
-
     /** 事件配置 */
     events?: EventConfig;
 
@@ -88,10 +70,6 @@ export const DEFAULT_REPLACE_CONFIG: ReplaceConfig = {
         src: "{cloudSrc}",
         alt: "{originalAlt}",
     },
-};
-
-export const DEFAULT_DELETE_CONFIG: DeleteConfig = {
-    enabled: false,
 };
 
 // ==================== 配置构建器 ====================
@@ -139,31 +117,6 @@ export class ConfigBuilder {
     }
 
     /**
-     * 设置删除配置
-     */
-    delete(options: {
-        strategy?: "trash" | "move" | "hard-delete";
-        trashDir?: string;
-        maxRetries?: number;
-    }): this {
-        this.config.delete = {
-            enabled: true,
-            ...options,
-        };
-        return this;
-    }
-
-    /**
-     * 禁用删除
-     */
-    noDelete(): this {
-        this.config.delete = {
-            enabled: false,
-        };
-        return this;
-    }
-
-    /**
      * 设置事件配置
      */
     events(onProgress?: (event: UploadEvent) => void, logger?: Logger): this {
@@ -188,7 +141,6 @@ export class ConfigBuilder {
             useStorage: this.config.useStorage || "default",
             prefix: this.config.prefix || "",
             replace: this.config.replace || DEFAULT_REPLACE_CONFIG,
-            delete: this.config.delete || DEFAULT_DELETE_CONFIG,
             events: this.config.events,
         };
     }

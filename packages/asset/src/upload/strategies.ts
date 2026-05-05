@@ -1,8 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
-import type { DeleteFileOptions, DeleteFileResult } from "@cmtx/core";
 import type { AdapterUploadResult, IStorageAdapter, UploadBufferOptions } from "@cmtx/storage";
-import { FileService } from "../file/file-service.js";
-import type { DeleteConfig } from "./config.js";
 
 export interface ReplacementOp {
     offset: number;
@@ -35,10 +32,6 @@ export interface UploadStrategy {
     ): Promise<AdapterUploadResult>;
 }
 
-export interface DeleteStrategy {
-    remove(absPath: string): Promise<DeleteFileResult>;
-}
-
 export class FileDocumentAccessor implements DocumentAccessor {
     constructor(
         private readonly filePath: string,
@@ -53,27 +46,7 @@ export class FileDocumentAccessor implements DocumentAccessor {
         return await readFile(this.filePath, "utf-8");
     }
 
-    async applyReplacements(ops: ReplacementOp[]): Promise<boolean> {
-        if (ops.length === 0) {
-            return false;
-        }
-
-        // 如果禁用写入，直接返回 true（内容已在 pipeline 中计算）
-        if (this.options?.writeEnabled === false) {
-            return true;
-        }
-
-        const originalText = await readFile(this.filePath, "utf-8");
-        const sortedOps = [...ops].sort((a, b) => b.offset - a.offset);
-
-        let nextText = originalText;
-        for (const op of sortedOps) {
-            const before = nextText.slice(0, op.offset);
-            const after = nextText.slice(op.offset + op.length);
-            nextText = `${before}${op.newText}${after}`;
-        }
-
-        await writeFile(this.filePath, nextText, "utf-8");
+    async applyReplacements(_ops: ReplacementOp[]): Promise<boolean> {
         return true;
     }
 }
@@ -95,24 +68,5 @@ export class StorageUploadStrategy implements UploadStrategy {
         }
 
         return await this.adapter.uploadBuffer(remotePath, source.buffer, options);
-    }
-}
-
-export class SafeDeleteStrategy implements DeleteStrategy {
-    private fileService: FileService;
-
-    constructor(private readonly options: DeleteConfig) {
-        this.fileService = new FileService();
-    }
-
-    async remove(absPath: string): Promise<DeleteFileResult> {
-        // 将 DeleteConfig 转换为 DeleteFileOptions
-        const deleteOptions: DeleteFileOptions = {
-            strategy: this.options.strategy === "trash" ? "move" : "hard-delete",
-            trashDir: this.options.trashDir,
-            maxRetries: this.options.maxRetries,
-        };
-
-        return await this.fileService.deleteLocalImage(absPath, deleteOptions);
     }
 }

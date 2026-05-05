@@ -5,7 +5,13 @@ import { glob } from "tinyglobby";
  *
  * @module delete/delete-service
  * @description
- * 提供图片删除功能，包括：
+ * 提供图片删除功能。**DeleteService 执行两项独立操作**：
+ * 1. **删除图片文件** — 将图片移入回收站、移动到指定目录或永久删除
+ * 2. **修改 Markdown 文件** — 从所有引用该图片的 `.md` 文件中移除 `![alt](path)` 标记
+ *
+ * 这两项操作由 `DeleteOptions` 控制，`removeFromMarkdown` 和 `strategy` 各自独立生效。
+ *
+ * 包含功能：
  * - 跨文档引用检查
  * - 本地文件安全删除
  * - 从 Markdown 文件中移除图片引用
@@ -39,8 +45,11 @@ import { glob } from "tinyglobby";
  */
 
 import { promises as fs } from "node:fs";
-import { isAbsolute, relative, resolve } from "node:path";
-import type { DeleteFileOptions, Logger } from "@cmtx/core";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
+import type { Logger } from "@cmtx/core";
+import { isWebSource, parseImages } from "@cmtx/core";
+import type { DeleteFileOptions } from "./types.js";
+import type { LocalImageEntry } from "../file/types.js";
 import { FileService } from "../file/file-service.js";
 import type {
     DeleteDetail,
@@ -48,7 +57,12 @@ import type {
     DeleteResult,
     DeleteServiceConfig,
     DeleteTarget,
+    PruneEntry,
+    PruneOptions,
+    PruneResult,
     ReferenceInfo,
+    SafeDeleteOptions,
+    SafeDeleteResult,
 } from "./types.js";
 
 /**
@@ -91,6 +105,14 @@ export class DeleteService {
     /**
      * 执行删除操作
      *
+     * 分两阶段执行：
+     * 1. 删除图片文件（本地文件按 strategy 策略删除，远程文件需要存储适配器）
+     * 2. 当 `options.removeFromMarkdown === true` 时，从所有引用该图片的
+     *    Markdown 文件中移除 `![alt](path)` 标记
+     *
+     * 注意：文件删除失败不影响引用清理，反之亦然。但 `success` 字段要求所有操作成功。
+     * `force` 选项不影响 `removeFromMarkdown`，两者独立控制。
+     *
      * @param target - 删除目标
      * @returns 删除结果
      */
@@ -116,7 +138,7 @@ export class DeleteService {
 
         // 2. 从 Markdown 文件中移除引用
         let referencesRemovedFrom = 0;
-        if (options.removeFromMarkdown && !options.force) {
+        if (options.removeFromMarkdown) {
             referencesRemovedFrom = await this.removeReferencesFromMarkdown(target, options);
         }
 
@@ -127,6 +149,80 @@ export class DeleteService {
             deletedCount: details.filter((d) => d.success).length,
             referencesRemovedFrom,
             details,
+        };
+    }
+
+    /**
+     * 安全删除图片
+     *
+     * 组合 scanReferences + delete 为一站式流程：
+     * 1. 扫描图片在 Markdown 中的引用
+     * 2. 如果图片被引用且非 force 模式，则跳过文件删除
+     * 3. 否则执行删除（文件删除 + 可选引用清理由 options 独立控制）
+     *
+     * removeFromMarkdown 不受 force 影响：即使有引用且非 force 模式，
+     * 仍可独立执行引用清理（不删文件）。
+     *
+     * @param imagePath - 图片路径（相对或绝对）
+     * @param options - 安全删除选项
+     * @returns 安全删除结果
+     *
+     * @example
+     * ```typescript
+     * const service = new DeleteService({
+     *     workspaceRoot: '/path/to/workspace',
+     * });
+     *
+     * // 基本用法：有引用时跳过删除
+     * const result = await service.safeDelete('./images/photo.png');
+     *
+     * // 强制删除 + 清理引用
+     * const result = await service.safeDelete('./images/photo.png', {
+     *     strategy: 'trash',
+     *     force: true,
+     *     removeFromMarkdown: true,
+     * });
+     * ```
+     */
+    async safeDelete(imagePath: string, options?: SafeDeleteOptions): Promise<SafeDeleteResult> {
+        this.logger?.info(`[DeleteService] Safe deleting: ${imagePath}`);
+
+        // 1. 扫描引用
+        const target = await this.scanReferences(imagePath);
+
+        const hasReferences = target.referencedIn.length > 0;
+        const forceMode = !!options?.force;
+        const willDelete = !hasReferences || forceMode;
+
+        if (!willDelete) {
+            if (options?.removeFromMarkdown) {
+                await this.removeReferencesFromMarkdown(target, { force: true });
+            }
+            return {
+                success: false,
+                deleted: false,
+                detail: {
+                    referencedIn: target.referencedIn,
+                    hasReferences,
+                    forceDeleted: false,
+                },
+            };
+        }
+
+        const originalOptions = this.config.options;
+        this.config.options = { ...originalOptions, ...options };
+        const deleteResult = await this.delete(target);
+        this.config.options = originalOptions;
+
+        return {
+            success: deleteResult.success,
+            deleted: true,
+            deleteResult,
+            detail: {
+                referencedIn: target.referencedIn,
+                hasReferences,
+                forceDeleted: forceMode,
+            },
         };
     }
 
@@ -142,17 +238,20 @@ export class DeleteService {
 
         const workspaceRoot = this.config.workspaceRoot;
         const references: ReferenceInfo[] = [];
+        const normalizedPath = isLocal ? this.normalizeLocalPath(imagePath) : imagePath;
 
-        // 查找所有 Markdown 文件
         const mdFiles = await this.findMarkdownFiles(workspaceRoot);
 
         for (const filePath of mdFiles) {
             try {
-                const content = await fs.readFile(filePath, "utf-8");
-                const normalizedPath = isLocal ? this.normalizeLocalPath(imagePath) : imagePath;
+                const allImages = await this.fileService.filterImagesFromFile(filePath);
 
-                // 检查文件是否引用该图片
-                const count = this.countReferences(content, normalizedPath);
+                let count = 0;
+                for (const img of allImages) {
+                    if (img.type === "local" && img.absPath === normalizedPath) {
+                        count++;
+                    }
+                }
 
                 if (count > 0) {
                     references.push({
@@ -172,6 +271,85 @@ export class DeleteService {
             `[DeleteService] Found ${references.length} files referencing ${imagePath}`,
         );
         return references;
+    }
+
+    /**
+     * 清理目录下所有未被 Markdown 文件引用的图片
+     *
+     * 使用 FileService.analyzeDirectory() 识别 orphan 图片，
+     * 然后逐个执行 FileService.deleteLocalImage()。
+     *
+     * @param dirPath - 要清理的目录绝对路径
+     * @param options - prune 选项
+     * @returns 清理结果
+     */
+    async pruneDirectory(dirPath: string, options?: PruneOptions): Promise<PruneResult> {
+        this.logger?.info(`[DeleteService] Pruning directory: ${dirPath}`);
+
+        const fileService = new FileService();
+        const analysis = await fileService.analyzeDirectory(dirPath, {
+            extensions: options?.extensions,
+            maxSize: options?.maxSize,
+        });
+
+        const orphans = analysis.images.filter(
+            (img): img is LocalImageEntry => img.type === "local" && img.orphan,
+        );
+
+        this.logger?.info(
+            `[DeleteService] Found ${orphans.length} orphan images out of ${analysis.images.length} total`,
+        );
+
+        const entries: PruneEntry[] = [];
+        let deletedCount = 0;
+        let failedCount = 0;
+        let freedSize = 0;
+
+        for (const orphan of orphans) {
+            try {
+                const result = await fileService.deleteLocalImage(orphan.absPath, {
+                    strategy: options?.strategy ?? "trash",
+                    trashDir: options?.trashDir,
+                });
+
+                if (result.status === "success") {
+                    deletedCount++;
+                    freedSize += orphan.fileSize;
+                    entries.push({
+                        absPath: orphan.absPath,
+                        fileSize: orphan.fileSize,
+                        status: "deleted",
+                        actualStrategy: result.actualStrategy,
+                    });
+                } else {
+                    failedCount++;
+                    entries.push({
+                        absPath: orphan.absPath,
+                        fileSize: orphan.fileSize,
+                        status: "failed",
+                        error: result.error ?? "Unknown error",
+                    });
+                }
+            } catch (error) {
+                failedCount++;
+                entries.push({
+                    absPath: orphan.absPath,
+                    fileSize: orphan.fileSize,
+                    status: "failed",
+                    error: error instanceof Error ? error.message : String(error),
+                });
+            }
+        }
+
+        return {
+            totalOrphans: orphans.length,
+            deletedCount,
+            failedCount,
+            skippedCount: orphans.length - deletedCount - failedCount,
+            totalSizeBefore: analysis.summary.totalSize,
+            freedSize,
+            entries,
+        };
     }
 
     // ==================== 私有方法 ====================
@@ -198,17 +376,6 @@ export class DeleteService {
         }
         // 相对路径相对于 workspace root
         return resolve(this.config.workspaceRoot, imagePath);
-    }
-
-    /**
-     * 计算文件中对指定图片的引用次数
-     */
-    private countReferences(content: string, normalizedPath: string): number {
-        // 转义正则特殊字符
-        const escapedPath = normalizedPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const regex = new RegExp(`!\\[[^\\]]*\\]\\([^)]*${escapedPath}[^)]*\\)`, "g");
-        const matches = content.match(regex);
-        return matches?.length ?? 0;
     }
 
     /**
@@ -271,7 +438,11 @@ export class DeleteService {
     /**
      * 从 Markdown 文件中移除图片引用
      *
-     * @returns 移除引用的文件数
+     * 遍历 `target.referencedIn` 列表中的每个 Markdown 文件，通过
+     * core 的 parseImages 解析所有图片，通过 raw 字段精确移除匹配项。
+     * 这会导致 Markdown 文件内容被修改。
+     *
+     * @returns 实际被修改的 Markdown 文件数（内容有变化的才算）
      */
     private async removeReferencesFromMarkdown(
         target: DeleteTarget,
@@ -286,13 +457,22 @@ export class DeleteService {
             try {
                 const content = await fs.readFile(ref.filePath, "utf-8");
 
-                // 使用正则替换移除图片引用
-                const escapedPath = normalizedPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-                const imageRegex = new RegExp(
-                    `!\\[[^\\]]*\\]\\([^)]*${escapedPath}[^)]*\\)\\s*`,
-                    "g",
-                );
-                const newContent = content.replace(imageRegex, "");
+                const parsedImages = parseImages(content);
+                let newContent = content;
+                for (const img of parsedImages) {
+                    let match = false;
+                    if (target.isLocal && !isWebSource(img.src)) {
+                        const resolvedSrc = isAbsolute(img.src)
+                            ? resolve(img.src)
+                            : resolve(dirname(ref.filePath), img.src);
+                        match = resolvedSrc === normalizedPath;
+                    } else {
+                        match = img.src === normalizedPath || img.src.includes(normalizedPath);
+                    }
+                    if (match) {
+                        newContent = newContent.replace(img.raw, "");
+                    }
+                }
 
                 if (newContent !== content) {
                     await fs.writeFile(ref.filePath, newContent, "utf-8");

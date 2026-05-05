@@ -32,11 +32,8 @@
  * @see {@link renderTemplateImage} - 模板渲染函数
  */
 
-import type {
-    ReplaceOptions as CoreReplaceOptions,
-    LocalImageMatchWithAbsPath,
-    Logger,
-} from "@cmtx/core";
+import type { ReplaceOptions as CoreReplaceOptions, Logger } from "@cmtx/core";
+import type { LocalFileImageMatch } from "../file/types.js";
 import { renderTemplate } from "@cmtx/template";
 import { FileService } from "../file/file-service.js";
 import { createContext } from "./template-renderer.js";
@@ -59,7 +56,7 @@ import type { ImageCloudMapBody, ReplaceOptions } from "./types.js";
 export async function processFieldReplacements(
     markdownPath: string,
     uploadedImages: {
-        imageMatch: LocalImageMatchWithAbsPath;
+        imageMatch: LocalFileImageMatch;
         cloudResult: ImageCloudMapBody;
     }[],
     replaceOptions: ReplaceOptions,
@@ -107,7 +104,7 @@ export async function processFieldReplacements(
  */
 function buildReplaceOperations(
     uploadedImages: Array<{
-        imageMatch: LocalImageMatchWithAbsPath;
+        imageMatch: LocalFileImageMatch;
         cloudResult: ImageCloudMapBody;
     }>,
     replaceOptions: ReplaceOptions,
@@ -116,12 +113,12 @@ function buildReplaceOperations(
 
     for (const { imageMatch, cloudResult } of uploadedImages) {
         // 构建渲染上下文
-        const renderContext = createContext(imageMatch.raw, {
+        const renderContext = createContext(imageMatch.match.raw, {
             cloudUrl: cloudResult.url,
             cloudSrc: cloudResult.url,
-            originalSrc: imageMatch.src,
-            originalAlt: imageMatch.alt,
-            originalTitle: imageMatch.title,
+            originalSrc: imageMatch.match.src,
+            originalAlt: imageMatch.match.alt,
+            originalTitle: imageMatch.match.title,
             ...cloudResult.nameTemplateVariables,
             ...replaceOptions.context,
         });
@@ -146,7 +143,7 @@ function buildReplaceOperations(
         // 使用 src 作为标识符，一次性替换多个字段
         operations.push({
             field: "src",
-            pattern: imageMatch.src,
+            pattern: imageMatch.match.src,
             newSrc,
             newAlt,
             newTitle,

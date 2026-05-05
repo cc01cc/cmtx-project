@@ -211,8 +211,8 @@ import { AliOSSAdapter } from "@cmtx/upload/adapters/ali-oss";
 const adapter = new AliOSSAdapter({
     region: "oss-cn-hangzhou",
     bucket: "my-bucket",
-    accessKeyId: process.env.ALIYUN_OSS_ACCESS_KEY_ID,
-    accessKeySecret: process.env.ALIYUN_OSS_ACCESS_KEY_SECRET,
+    accessKeyId: process.env.CMTX_ALIYUN_ACCESS_KEY_ID,
+    accessKeySecret: process.env.CMTX_ALIYUN_ACCESS_KEY_SECRET,
 });
 ```
 

@@ -7,21 +7,22 @@
  * 采用 Facade 模式简化复杂的 Pipeline API。
  */
 
-import type { Logger } from "@cmtx/core";
+import { filterImagesInText, isWebSource, type Logger } from "@cmtx/core";
+import { isAbsolute, resolve } from "node:path";
 import type { IStorageAdapter } from "@cmtx/storage";
 import type { ReplaceConfig } from "../config/types.js";
 import { DeleteService } from "../delete/delete-service.js";
 import type { DeleteOptions, DeleteResult } from "../delete/types.js";
 import { DownloadService } from "../download/download-service.js";
 import type { DownloadOptions, DownloadResult } from "../download/types.js";
-import { executeUploadPipeline } from "../upload/pipeline.js";
+import {
+    batchUploadImages,
+    matchesToSources,
+    renderReplacementText,
+    applyReplacementOps,
+} from "../upload/index.js";
 import type { ReplacementOp } from "../upload/strategies.js";
-import type {
-    ConflictResolutionStrategy,
-    DetailedUploadResult,
-    FailedItemDetail,
-    UploadConfig,
-} from "../upload/types.js";
+import type { ConflictResolutionStrategy, FailedItemDetail } from "../upload/types.js";
 import type { Service } from "./service-registry.js";
 
 /**
@@ -136,60 +137,70 @@ export class AssetService implements Service<AssetServiceConfig> {
      * @param baseDirectory - 基础目录（本地图片的相对路径基准）
      * @returns 上传结果
      */
-    async uploadImagesInDocument(document: string, baseDirectory: string): Promise<UploadResult> {
+    async uploadImagesInDocument(document: string, basePath: string): Promise<UploadResult> {
         this.config.logger?.info("[AssetService] Starting upload for document");
 
-        // 创建简单的 DocumentAccessor 实现
-        const accessor = {
-            identifier: "memory",
-            readText: async () => document,
-            applyReplacements: async (_ops: ReplacementOp[]) => true,
-        };
+        const allMatches = filterImagesInText(document);
+        const localMatches = allMatches.filter(
+            (m) => !isWebSource(m.src) && !m.src.startsWith("data:image/"),
+        );
 
-        // 构建完整的 UploadConfig
-        const replace = this.config.replace;
-        const config: UploadConfig = {
-            storages: {
-                default: {
-                    adapter: this.config.adapter,
-                    namingTemplate: this.config.namingTemplate,
-                },
-            },
-            useStorage: "default",
+        if (localMatches.length === 0) {
+            return { content: document, uploaded: 0, failed: [], skipped: [], downloaded: [] };
+        }
+
+        const sources = matchesToSources(localMatches, basePath);
+
+        const batchResult = await batchUploadImages(sources, {
+            adapter: this.config.adapter,
+            namingTemplate: this.config.namingTemplate,
             prefix: this.config.prefix,
-            replace: {
-                fields: {
-                    src: replace?.fields?.src ?? "{cloudSrc}",
-                    alt: replace?.fields?.alt ?? "{originalAlt}",
-                },
-            },
-            delete: { enabled: false },
-        };
-
-        // 执行 Pipeline，使用冲突策略替代回调
-        const result: DetailedUploadResult = await executeUploadPipeline({
-            documentAccessor: accessor,
-            config,
-            baseDirectory,
             conflictStrategy: this.config.conflictStrategy,
             logger: this.config.logger,
         });
 
+        const ops: ReplacementOp[] = [];
+        for (let i = 0; i < localMatches.length; i++) {
+            const cloudResult = batchResult.lookup(sources[i]);
+            if (!cloudResult || cloudResult.action === "skipped") continue;
+            const newText = renderReplacementText(
+                localMatches[i],
+                { cloudUrl: cloudResult.cloudUrl, variables: cloudResult.variables },
+                this.config.replace as
+                    | { fields: Record<string, string>; context?: Record<string, string> }
+                    | undefined,
+            );
+            ops.push({
+                offset: document.indexOf(localMatches[i].raw),
+                length: localMatches[i].raw.length,
+                newText,
+            });
+        }
+
+        const finalContent = applyReplacementOps(document, ops);
+
         this.config.logger?.info(
-            `[AssetService] Upload complete: ${result.uploaded} images uploaded`,
+            `[AssetService] Upload complete: ${batchResult.uploaded.length} images uploaded`,
         );
 
-        // 报告进度
         if (this.config.onProgress) {
-            this.config.onProgress(`已上传 ${result.uploaded} 张图片`);
+            this.config.onProgress(`已上传 ${batchResult.uploaded.length} 张图片`);
         }
 
         return {
-            content: result.content,
-            uploaded: result.uploaded,
-            failed: result.failedItems,
-            skipped: result.skippedItems as unknown as FailedItemDetail[],
-            downloaded: result.downloadedItems as unknown as FailedItemDetail[],
+            content: finalContent,
+            uploaded: batchResult.uploaded.length,
+            failed: batchResult.failed.map((f) => ({
+                localPath: f.source.kind === "file" ? f.source.absPath : "buffer",
+                stage: "upload",
+                error: f.error,
+            })),
+            skipped: batchResult.skipped.map((s) => ({
+                localPath: "",
+                stage: "upload",
+                error: s.action,
+            })),
+            downloaded: [],
         };
     }
 
@@ -233,7 +244,7 @@ export class AssetService implements Service<AssetServiceConfig> {
      * 删除 Markdown 文档中的本地图片
      *
      * @param document - Markdown 文档内容
-     * @param baseDirectory - 基础目录
+     * @param baseDirectory - 基础目录（用于解析相对路径）
      * @param options - 删除选项
      * @returns 删除结果
      */
@@ -252,8 +263,6 @@ export class AssetService implements Service<AssetServiceConfig> {
             this.config.logger,
         );
 
-        // 从文档中提取本地图片路径
-        const { filterImagesInText } = await import("@cmtx/core");
         const images = filterImagesInText(document, {
             mode: "sourceType",
             value: "local",
@@ -268,18 +277,28 @@ export class AssetService implements Service<AssetServiceConfig> {
             };
         }
 
-        // 删除第一个本地图片（用于单图片删除场景）
-        const firstImage = images[0];
-        if (firstImage.type === "local" && "absLocalPath" in firstImage) {
-            const target = await deleteService.scanReferences(firstImage.absLocalPath);
-            return await deleteService.delete(target);
+        const allDetails: import("../delete/types.js").DeleteDetail[] = [];
+        let totalReferencesRemoved = 0;
+
+        for (const img of images) {
+            const absPath = isAbsolute(img.src)
+                ? resolve(img.src)
+                : resolve(baseDirectory, img.src);
+
+            const target = await deleteService.scanReferences(absPath);
+            const deleteResult = await deleteService.delete(target);
+
+            allDetails.push(...deleteResult.details);
+            totalReferencesRemoved += deleteResult.referencesRemovedFrom;
         }
 
+        const success = allDetails.every((d) => d.success);
+
         return {
-            success: true,
-            deletedCount: 0,
-            referencesRemovedFrom: 0,
-            details: [],
+            success,
+            deletedCount: allDetails.filter((d) => d.success).length,
+            referencesRemovedFrom: totalReferencesRemoved,
+            details: allDetails,
         };
     }
 }

@@ -8,6 +8,7 @@ export default defineConfig({
         download: "src/download/index.ts",
         config: "src/config/builder.ts",
         file: "src/file/index.ts",
+        shared: "src/shared/index.ts",
     },
     format: ["esm", "cjs"],
     dts: true,
