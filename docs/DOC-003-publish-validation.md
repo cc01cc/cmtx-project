@@ -22,7 +22,7 @@ CMTX 使用 Changesets 管理版本号和发布流程。发布前需按以下顺
 - `@cmtx/template`
 - `@cmtx/fpe-wasm`
 - `@cmtx/asset`
-- `@cmtx/publish`
+- `@cmtx/rule-engine`
 - `@cmtx/markdown-it-presigned-url`
 - `@cmtx/markdown-it-presigned-url-adapter-nodejs`
 - `@cmtx/cli`
@@ -147,7 +147,7 @@ grep -oP '(?<=import \{ )[^}]+' packages/<name>/README.md | tr ',' '\n' | sed 's
 - 文件第一行标题使用双语命名：`# @cmtx/<name> 更新日志 / Changelog`
 - 中文条目写完后，用 `---` 分隔线分隔，再写英文版本
 - 中文和英文条目内容应一一对应，保持信息一致
-- 示例参见 `packages/cli/CHANGELOG.md` 和 `packages/publish/CHANGELOG.md`
+- 示例参见 `packages/cli/CHANGELOG.md` 和 `packages/rule-engine/CHANGELOG.md`
 
 ### 4.3. 内容准确性校验（关键）
 

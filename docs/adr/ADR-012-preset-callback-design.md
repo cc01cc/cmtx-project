@@ -3,11 +3,11 @@
 - **状态**: Proposed
 - **日期**: 2026-04-22
 - **作者**: Kilo
-- **相关包**: `@cmtx/publish`, `@cmtx/asset`
+- **相关包**: `@cmtx/rule-engine`, `@cmtx/asset`
 
 ## 1. 背景
 
-CMTX 项目的 `@cmtx/publish` 包提供了 Preset（预设）机制用于编排多个 Rule 的执行。在设计过程中，关于回调的使用方式存在多种选择：传统回调模式、Service 模式、Hook 系统等。本文档分析当前 Preset 设计中的回调相关决策，记录设计权衡和业界最佳实践。
+CMTX 项目的 `@cmtx/rule-engine` 包提供了 Preset（预设）机制用于编排多个 Rule 的执行。在设计过程中，关于回调的使用方式存在多种选择：传统回调模式、Service 模式、Hook 系统等。本文档分析当前 Preset 设计中的回调相关决策，记录设计权衡和业界最佳实践。
 
 ## 2. 问题陈述
 
@@ -327,7 +327,7 @@ const step2Context = {
 ### 7.1. 简洁版 Preset
 
 ```typescript
-import { createDefaultRuleEngine, createServiceRegistry } from "@cmtx/publish";
+import { createDefaultRuleEngine, createServiceRegistry } from "@cmtx/rule-engine";
 
 const registry = createServiceRegistry();
 const engine = createDefaultRuleEngine();

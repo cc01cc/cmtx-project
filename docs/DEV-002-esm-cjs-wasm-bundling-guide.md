@@ -518,7 +518,7 @@ const productionPath = path.join(
 **使用异步加载：**
 
 ```typescript
-import { loadBuiltInRules, createRuleEngine } from "@cmtx/publish";
+import { loadBuiltInRules, createRuleEngine } from "@cmtx/rule-engine";
 
 export async function applyPreset(): Promise<void> {
     const engine = createRuleEngine();

@@ -10,43 +10,40 @@
 
 ```yaml
 catalog:
-    # 核心构建工具
-    typescript: ^5.9.3
-
-    # 测试框架
-    vitest: ^4.0.18
-    "@vitest/coverage-v8": ^4.0.18
-
-    # 文档生成
-    typedoc: ^0.28.16
-
-    # 代码质量
-    eslint: ^10.0.0
-    "@types/node": ^25.2.1
-
-    # 文件操作
-    "fast-glob": ^3.3.3
-    trash: ^10.1.0
-
-    # 阿里云 OSS
-    "ali-oss": ^6.23.0
+    # 云存储 SDK
     "@types/ali-oss": ^6.23.2
+    "@types/vscode": ^1.93.0
+    "@vscode/vsce": ^3.3.2
+    ali-oss: ^6.23.0
+    cos-nodejs-sdk-v5: ^2.14.0
+
+    # 测试与构建
+    "@vitest/coverage-v8": ^4.0.18
+    esbuild: ^0.27.4
+    tinyglobby: ^0.2.0
+    trash: ^10.1.0
+    typedoc: ^0.28.16
+    typescript: ^6.0.3
+    vitest: ^4.0.18
+
+    # 类型定义
+    "@types/node": ^25.2.1
 
 catalogs:
     # 开发工具目录
     dev:
-        rimraf: ^6.1.2
         dotenv: ^17.2.4
+        rimraf: ^6.1.2
         tsx: ^4.21.0
 
     # CLI 相关目录
     cli:
-        chalk: ^5.6.2
-        "js-yaml": 4.1.1
         "@types/js-yaml": 4.0.9
+        "@types/yargs": ^17.0.35
+        chalk: ^5.6.2
+        js-yaml: 4.1.1
         ora: ^9.2.0
         yargs: ^18.0.0
-        "@types/yargs": ^17.0.35
 ```
 
 ## 使用方式
