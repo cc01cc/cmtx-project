@@ -171,8 +171,6 @@ function _quickContentCheck(
  */
 function _parsedToImageMatches(
     parsedImages: ParsedImage[],
-    _fileDir: string | null,
-    _source: "text" | "file",
     mode: ImageFilterMode | undefined,
     value: ImageFilterValue | undefined,
 ): ImageMatch[] {
@@ -180,31 +178,16 @@ function _parsedToImageMatches(
         .filter((img) => _shouldIncludeImage(img, mode, value))
         .map((img) => {
             const isWeb = isWebSource(img.src);
-            if (isWeb) {
-                return {
-                    type: "web" as const,
-                    alt: img.alt || "",
-                    src: img.src,
-                    title: img.title,
-                    width: img.width,
-                    height: img.height,
-                    raw: img.raw,
-                    syntax: img.syntax,
-                    source: _source,
-                } as ImageMatch;
-            } else {
-                return {
-                    type: "local" as const,
-                    alt: img.alt || "",
-                    src: img.src,
-                    title: img.title,
-                    width: img.width,
-                    height: img.height,
-                    raw: img.raw,
-                    syntax: img.syntax,
-                    source: _source,
-                } as ImageMatch;
-            }
+            return {
+                type: isWeb ? ("web" as const) : ("local" as const),
+                alt: img.alt || "",
+                src: img.src,
+                title: img.title,
+                width: img.width,
+                height: img.height,
+                raw: img.raw,
+                syntax: img.syntax,
+            };
         });
 }
 
@@ -296,7 +279,7 @@ export function filterImagesInText(
             return []; // 快速检查失败，直接返回空数组
         }
         const parsedImages = parseImages(markdown);
-        return _parsedToImageMatches(parsedImages, null, "text", mode, value);
+        return _parsedToImageMatches(parsedImages, mode, value);
     } catch (error) {
         logger?.error("Failed to filter images from text", { error });
         throw error;

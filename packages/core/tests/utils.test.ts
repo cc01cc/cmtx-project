@@ -8,21 +8,12 @@
  */
 
 import { describe, expect, it } from "vitest";
-import type {
-    ImageMatch,
-    LocalImageMatchWithAbsPath,
-    LocalImageMatchWithRelativePath,
-    WebImageMatch,
-} from "../src/types.js";
+import type { ImageMatch } from "../src/types.js";
 import {
     formatHtmlImage,
     formatMarkdownImage,
     isLocalAbsolutePath,
-    isLocalImage,
-    isLocalImageWithAbsPath,
-    isLocalImageWithRelativePath,
     isValidUrl,
-    isWebImage,
     isWebSource,
     normalizePath,
     parseUrlSafe,
@@ -255,156 +246,43 @@ describe("isWebSource", () => {
     });
 });
 
-describe("类型守卫函数", () => {
-    const createWebImage = (): WebImageMatch => ({
-        type: "web",
-        alt: "Web Image",
-        src: "https://example.com/image.png",
-        raw: "![Web Image](https://example.com/image.png)",
-        syntax: "md",
-        source: "text",
+describe("ImageMatch 属性访问", () => {
+    it("应该识别 Web 图片", () => {
+        const image: ImageMatch = {
+            type: "web",
+            alt: "Web Image",
+            src: "https://example.com/image.png",
+            raw: "![Web Image](https://example.com/image.png)",
+            syntax: "md",
+        };
+        expect(image.type).toBe("web");
+        expect(image.src).toBe("https://example.com/image.png");
     });
 
-    const createLocalImageWithRelativePath = (): LocalImageMatchWithRelativePath => ({
-        type: "local",
-        alt: "Local Image",
-        src: "./image.png",
-        raw: "![Local Image](./image.png)",
-        syntax: "md",
-        source: "text",
+    it("应该识别本地图片", () => {
+        const image: ImageMatch = {
+            type: "local",
+            alt: "Local Image",
+            src: "./image.png",
+            raw: "![Local Image](./image.png)",
+            syntax: "md",
+        };
+        expect(image.type).toBe("local");
+        expect(image.src).toBe("./image.png");
     });
 
-    const createLocalImageWithAbsPath = (): LocalImageMatchWithAbsPath => ({
-        type: "local",
-        alt: "Local Image",
-        src: "./image.png",
-        absLocalPath: "/home/user/project/image.png",
-        raw: "![Local Image](./image.png)",
-        syntax: "md",
-        source: "file",
-    });
+    it("应该能够按 type 区分图片类型", () => {
+        const images: ImageMatch[] = [
+            { type: "web", alt: "w1", src: "https://example.com/a.png", raw: "", syntax: "md" },
+            { type: "local", alt: "l1", src: "./a.png", raw: "", syntax: "md" },
+            { type: "local", alt: "l2", src: "./b.png", raw: "", syntax: "html" },
+        ];
 
-    describe("isWebImage", () => {
-        it("应该识别 WebImageMatch", () => {
-            const image = createWebImage();
-            expect(isWebImage(image)).toBe(true);
-        });
+        const webImages = images.filter((img) => img.type === "web");
+        const localImages = images.filter((img) => img.type === "local");
 
-        it("不应该识别 LocalImageMatch", () => {
-            const image = createLocalImageWithRelativePath();
-            expect(isWebImage(image)).toBe(false);
-        });
-
-        it("类型守卫应该正确收窄类型", () => {
-            const image: ImageMatch = createWebImage();
-            if (isWebImage(image)) {
-                expect(image.src).toBe("https://example.com/image.png");
-            }
-        });
-    });
-
-    describe("isLocalImage", () => {
-        it("应该识别 LocalImageMatchWithRelativePath", () => {
-            const image = createLocalImageWithRelativePath();
-            expect(isLocalImage(image)).toBe(true);
-        });
-
-        it("应该识别 LocalImageMatchWithAbsPath", () => {
-            const image = createLocalImageWithAbsPath();
-            expect(isLocalImage(image)).toBe(true);
-        });
-
-        it("不应该识别 WebImageMatch", () => {
-            const image = createWebImage();
-            expect(isLocalImage(image)).toBe(false);
-        });
-    });
-
-    describe("isLocalImageWithAbsPath", () => {
-        it("应该识别带绝对路径的本地图片", () => {
-            const image = createLocalImageWithAbsPath();
-            expect(isLocalImageWithAbsPath(image)).toBe(true);
-        });
-
-        it("不应该识别相对路径的本地图片", () => {
-            const image = createLocalImageWithRelativePath();
-            expect(isLocalImageWithAbsPath(image)).toBe(false);
-        });
-
-        it("不应该识别 Web 图片", () => {
-            const image = createWebImage();
-            expect(isLocalImageWithAbsPath(image)).toBe(false);
-        });
-
-        it("类型守卫应该正确收窄类型", () => {
-            const image: ImageMatch = createLocalImageWithAbsPath();
-            if (isLocalImageWithAbsPath(image)) {
-                expect(image.absLocalPath).toBe("/home/user/project/image.png");
-            }
-        });
-    });
-
-    describe("isLocalImageWithRelativePath", () => {
-        it("应该识别带相对路径的本地图片", () => {
-            const image = createLocalImageWithRelativePath();
-            expect(isLocalImageWithRelativePath(image)).toBe(true);
-        });
-
-        it("不应该识别带绝对路径的本地图片", () => {
-            const image = createLocalImageWithAbsPath();
-            expect(isLocalImageWithRelativePath(image)).toBe(false);
-        });
-
-        it("不应该识别 Web 图片", () => {
-            const image = createWebImage();
-            expect(isLocalImageWithRelativePath(image)).toBe(false);
-        });
-
-        it("类型守卫应该正确收窄类型", () => {
-            const image: ImageMatch = createLocalImageWithRelativePath();
-            if (isLocalImageWithRelativePath(image)) {
-                expect("absLocalPath" in image).toBe(false);
-            }
-        });
-    });
-
-    describe("类型守卫组合使用", () => {
-        it("应该能够区分所有图片类型", () => {
-            const images: ImageMatch[] = [
-                createWebImage(),
-                createLocalImageWithRelativePath(),
-                createLocalImageWithAbsPath(),
-            ];
-
-            const webImages = images.filter(isWebImage);
-            const localImages = images.filter(isLocalImage);
-            const localWithAbsPath = images.filter(isLocalImageWithAbsPath);
-            const localWithRelativePath = images.filter(isLocalImageWithRelativePath);
-
-            expect(webImages).toHaveLength(1);
-            expect(localImages).toHaveLength(2);
-            expect(localWithAbsPath).toHaveLength(1);
-            expect(localWithRelativePath).toHaveLength(1);
-        });
-
-        it("应该正确处理类型收窄", () => {
-            const processImage = (image: ImageMatch): string => {
-                if (isWebImage(image)) {
-                    return `Web: ${image.src}`;
-                }
-                if (isLocalImageWithAbsPath(image)) {
-                    return `Local (abs): ${image.absLocalPath}`;
-                }
-                if (isLocalImageWithRelativePath(image)) {
-                    return `Local (rel): ${image.src}`;
-                }
-                return "Unknown";
-            };
-
-            expect(processImage(createWebImage())).toContain("Web:");
-            expect(processImage(createLocalImageWithAbsPath())).toContain("Local (abs):");
-            expect(processImage(createLocalImageWithRelativePath())).toContain("Local (rel):");
-        });
+        expect(webImages).toHaveLength(1);
+        expect(localImages).toHaveLength(2);
     });
 });
 

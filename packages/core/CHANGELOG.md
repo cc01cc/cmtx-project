@@ -1,6 +1,23 @@
 # @cmtx/core 更新日志 / Changelog
 
+## [0.4.0-alpha.2] - 2026-05-05
+
+### Removed
+
+- `DeletionStrategy`、`DeleteFileOptions`、`DeleteFileResult` 类型导出（迁移至 `@cmtx/asset`）
+- `FileReplaceResult`、`DirectoryReplaceResult` 类型导出（迁移至 `@cmtx/asset`）
+- `services/` 目录（CoreService、Service 接口迁移至 `@cmtx/asset`）
+
+---
+
+### Removed
+
+- Exported types `DeletionStrategy`, `DeleteFileOptions`, `DeleteFileResult` (moved to `@cmtx/asset`)
+- Exported types `FileReplaceResult`, `DirectoryReplaceResult` (moved to `@cmtx/asset`)
+- `services/` directory (`CoreService`, `Service` interface moved to `@cmtx/asset`)
+
 ## [0.3.1-alpha.1] - 2026-04-30
+
 ### Added
 
 - **resize 模块**: 新增图片尺寸调整模块 (`resize.ts`)，包含以下导出：
@@ -68,62 +85,64 @@
 ### Added
 
 - **元数据处理模块** - 新增 9 个核心函数支持 Markdown 文档的元数据管理：
-    - `extractMetadata(filePath, options?)` - 从文件提取元数据（Frontmatter/标题/文件名优先级）
-    - `extractSectionHeadings(markdown, options?)` - 按等级范围提取标题
-    - `convertHeadingToFrontmatter(markdown, options?)` - 将标题转换为 YAML Frontmatter
-    - `upsertFrontmatterFields(markdown, fields, options?)` - 更新/添加 Frontmatter 字段，支持 `createIfMissing` 选项
-    - `removeFrontmatter(markdown)` - 移除 Frontmatter
-    - `deleteFrontmatterFields(markdown, fieldKeys)` - 删除指定 Frontmatter 字段
-    - `extractTitleFromMarkdown(markdown)` - 从 Markdown 提取标题
-    - `parseYamlFrontmatter(content)` - 轻量级 YAML Frontmatter 解析
-    - `generateFrontmatterYaml(obj)` - 生成 YAML Frontmatter 字符串
+
+  - `extractMetadata(filePath, options?)` - 从文件提取元数据（Frontmatter/标题/文件名优先级）
+  - `extractSectionHeadings(markdown, options?)` - 按等级范围提取标题
+  - `convertHeadingToFrontmatter(markdown, options?)` - 将标题转换为 YAML Frontmatter
+  - `upsertFrontmatterFields(markdown, fields, options?)` - 更新/添加 Frontmatter 字段，支持 `createIfMissing` 选项
+  - `removeFrontmatter(markdown)` - 移除 Frontmatter
+  - `deleteFrontmatterFields(markdown, fieldKeys)` - 删除指定 Frontmatter 字段
+  - `extractTitleFromMarkdown(markdown)` - 从 Markdown 提取标题
+  - `parseYamlFrontmatter(content)` - 轻量级 YAML Frontmatter 解析
+  - `generateFrontmatterYaml(obj)` - 生成 YAML Frontmatter 字符串
 
 - **类型定义增强** - 新增多个类型定义支持元数据操作：
-    - `SectionHeading` - 标题对象类型
-    - `UpsertFrontmatterOptions` - Frontmatter 更新选项
-    - `FrontmatterUpdateResult` - 更新结果追踪（added/updated/unchanged/markdown）
+  - `SectionHeading` - 标题对象类型
+  - `UpsertFrontmatterOptions` - Frontmatter 更新选项
+  - `FrontmatterUpdateResult` - 更新结果追踪（added/updated/unchanged/markdown）
 
 ### Technical Details
 
 - YAML Frontmatter 解析支持：
-    - 单行数组格式：`[item1, item2]`
-    - 多行数组格式：`- item`
-    - 所有基础类型：string/boolean/number/null
+  - 单行数组格式：`[item1, item2]`
+  - 多行数组格式：`- item`
+  - 所有基础类型：string/boolean/number/null
 - 文档元数据 Title 优先级：
-    1. Frontmatter YAML 字段
-    2. Heading（按 `headingLevel` 提取）
-    3. Filename（去扩展名）
+  1. Frontmatter YAML 字段
+  2. Heading（按 `headingLevel` 提取）
+  3. Filename（去扩展名）
 
 ---
 
 ### Added
 
 - **Metadata Processing Module** - 9 new core functions for Markdown document metadata management:
-    - `extractMetadata(filePath, options?)` - Extract metadata from files (Frontmatter/heading/filename priority)
-    - `extractSectionHeadings(markdown, options?)` - Extract headings by level range
-    - `convertHeadingToFrontmatter(markdown, options?)` - Convert headings to YAML Frontmatter
-    - `upsertFrontmatterFields(markdown, fields, options?)` - Update/add Frontmatter fields, supports `createIfMissing` option
-    - `removeFrontmatter(markdown)` - Remove Frontmatter
-    - `deleteFrontmatterFields(markdown, fieldKeys)` - Delete specified Frontmatter fields
-    - `extractTitleFromMarkdown(markdown)` - Extract title from Markdown
-    - `parseYamlFrontmatter(content)` - Lightweight YAML Frontmatter parser
-    - `generateFrontmatterYaml(obj)` - Generate YAML Frontmatter string
+
+  - `extractMetadata(filePath, options?)` - Extract metadata from files (Frontmatter/heading/filename priority)
+  - `extractSectionHeadings(markdown, options?)` - Extract headings by level range
+  - `convertHeadingToFrontmatter(markdown, options?)` - Convert headings to YAML Frontmatter
+  - `upsertFrontmatterFields(markdown, fields, options?)` - Update/add Frontmatter fields, supports `createIfMissing` option
+  - `removeFrontmatter(markdown)` - Remove Frontmatter
+  - `deleteFrontmatterFields(markdown, fieldKeys)` - Delete specified Frontmatter fields
+  - `extractTitleFromMarkdown(markdown)` - Extract title from Markdown
+  - `parseYamlFrontmatter(content)` - Lightweight YAML Frontmatter parser
+  - `generateFrontmatterYaml(obj)` - Generate YAML Frontmatter string
 
 - **Enhanced Type Definitions** - New types for metadata operations:
-    - `SectionHeading` - Heading object type
-    - `UpsertFrontmatterOptions` - Frontmatter update options
-    - `FrontmatterUpdateResult` - Update result tracking (added/updated/unchanged/markdown)
+  - `SectionHeading` - Heading object type
+  - `UpsertFrontmatterOptions` - Frontmatter update options
+  - `FrontmatterUpdateResult` - Update result tracking (added/updated/unchanged/markdown)
 
 ### Technical Details
 
 - YAML Frontmatter parsing support:
-    - Single-line array format: `[item1, item2]`
-    - Multi-line array format: `- item`
-    - All primitive types: string/boolean/number/null
+  - Single-line array format: `[item1, item2]`
+  - Multi-line array format: `- item`
+  - All primitive types: string/boolean/number/null
 - Document metadata title priority:
-    1. Frontmatter YAML field
-    2. Heading (extracted by `headingLevel`)
-    3. Filename (without extension)
+  1. Frontmatter YAML field
+  2. Heading (extracted by `headingLevel`)
+  3. Filename (without extension)
 
 ## 0.2.0 - 2026-02-05
 
@@ -137,84 +156,93 @@
 ### Major Refactor
 
 - **核心架构优化**：采用正则统一架构，专注于基础原子操作
-    - 保持纯正则表达式解析，不依赖复杂 AST
-    - 显著减少运行时依赖数量
-    - 不提供精确的位置信息，专注于核心功能
+  - 保持纯正则表达式解析，不依赖复杂 AST
+  - 显著减少运行时依赖数量
+  - 不提供精确的位置信息，专注于核心功能
 
 ### Added
 
 - **模块化重构**：
-    - 新增 `filter.ts` 模块，主要负责图片筛选功能
-    - 新增 `replace.ts` 模块，主要负责图片替换功能
-    - 新增 `delete.ts` 模块，主要负责图片删除功能
-    - 新增 `parser.ts` 模块，主要负责图片解析功能
-    - 新增 `constants/regex.ts` 模块，统一管理正则表达式
+
+  - 新增 `filter.ts` 模块，主要负责图片筛选功能
+  - 新增 `replace.ts` 模块，主要负责图片替换功能
+  - 新增 `delete.ts` 模块，主要负责图片删除功能
+  - 新增 `parser.ts` 模块，主要负责图片解析功能
+  - 新增 `constants/regex.ts` 模块，统一管理正则表达式
 
 - **增强的筛选功能**：
-    - 重构并增强目录批量扫描功能 (`filterImagesFromDirectory`)
-    - 支持四种筛选模式：`sourceType`、`hostname`、`absolutePath`、`regex`
-    - 新增快速内容检查机制，提升性能
-    - 新增 `DirFilterOptions` 类型，支持自定义 glob 模式匹配
+
+  - 重构并增强目录批量扫描功能 (`filterImagesFromDirectory`)
+  - 支持四种筛选模式：`sourceType`、`hostname`、`absolutePath`、`regex`
+  - 新增快速内容检查机制，提升性能
+  - 新增 `DirFilterOptions` 类型，支持自定义 glob 模式匹配
 
 - **改进的替换功能**：
-    - 支持多字段模式：通过 src 或 raw 识别图片，同时替换多个字段
-    - 新增目录级别图片替换功能 (`replaceImagesInDirectory`)
-    - 增强文件验证机制，避免处理过大或非文本文件
-    - 支持文件模式匹配和忽略规则
+
+  - 支持多字段模式：通过 src 或 raw 识别图片，同时替换多个字段
+  - 新增目录级别图片替换功能 (`replaceImagesInDirectory`)
+  - 增强文件验证机制，避免处理过大或非文本文件
+  - 支持文件模式匹配和忽略规则
 
 - **强化的删除功能**：
-    - 新增 `deleteLocalImage` 函数，支持多种删除策略
-    - 新增 `deleteLocalImageSafely` 函数，带使用检查的安全删除
-    - 新增 `withRetry` 通用重试机制，支持指数退避和降级策略
-    - 支持三种删除策略：trash（回收站）、move（移动）、hard-delete（永久删除）
-    - 新增 `validatePathWithinRoot` 函数，防止路径遍历攻击
+
+  - 新增 `deleteLocalImage` 函数，支持多种删除策略
+  - 新增 `deleteLocalImageSafely` 函数，带使用检查的安全删除
+  - 新增 `withRetry` 通用重试机制，支持指数退避和降级策略
+  - 支持三种删除策略：trash（回收站）、move（移动）、hard-delete（永久删除）
+  - 新增 `validatePathWithinRoot` 函数，防止路径遍历攻击
 
 - **错误处理增强**：
-    - 新增 `ErrorCode` 枚举，支持结构化错误代码
-    - 新增 `CoreError` 类，提供结构化的错误对象
-    - 统一错误处理和日志支持
+  - 新增 `ErrorCode` 枚举，支持结构化错误代码
+  - 新增 `CoreError` 类，提供结构化的错误对象
+  - 统一错误处理和日志支持
 
 ### Changed
 
 - **API 重构**：
-    - 重构图片筛选 API（参数格式改变，详见 BREAKING CHANGES 部分）
-    - 简化导出结构，移除复杂的内部模块分离
-    - 统一各函数的参数结构和命名规范
+
+  - 重构图片筛选 API（参数格式改变，详见 BREAKING CHANGES 部分）
+  - 简化导出结构，移除复杂的内部模块分离
+  - 统一各函数的参数结构和命名规范
 
 - **依赖优化**：
-    - 移除未使用的依赖项
-    - 保留必要的运行时依赖：fast-glob, trash
-    - 显著减少包体积和安装时间
+
+  - 移除未使用的依赖项
+  - 保留必要的运行时依赖：fast-glob, trash
+  - 显著减少包体积和安装时间
 
 - **性能优化**：
-    - 采用纯正则表达式匹配，避免 AST 解析开销
-    - 实现快速内容检查机制，在完整解析前进行字符串匹配
-    - 实现指数退避重试机制，提升操作可靠性
-    - 内置降级策略，确保操作的高可用性
+
+  - 采用纯正则表达式匹配，避免 AST 解析开销
+  - 实现快速内容检查机制，在完整解析前进行字符串匹配
+  - 实现指数退避重试机制，提升操作可靠性
+  - 内置降级策略，确保操作的高可用性
 
 - **文档增强**：
-    - 为所有模块和函数添加详细的 JSDoc 文档
-    - 添加模块级文档，提供完整的 API 概览
-    - 为所有导出类型添加详细的使用示例
-    - 规范化内部函数的注释，添加 `@internal` 标签
+  - 为所有模块和函数添加详细的 JSDoc 文档
+  - 添加模块级文档，提供完整的 API 概览
+  - 为所有导出类型添加详细的使用示例
+  - 规范化内部函数的注释，添加 `@internal` 标签
 
 ### Removed
 
 - **已重构的 API 函数**：
-    - `extractImagesFromDirectory()` → 重构为 `filterImagesFromDirectory()`（参数和返回类型变化）
-    - 位置查询相关函数 → 功能已移除，不再提供精确位置信息
+
+  - `extractImagesFromDirectory()` → 重构为 `filterImagesFromDirectory()`（参数和返回类型变化）
+  - 位置查询相关函数 → 功能已移除，不再提供精确位置信息
 
 - **已删除的类型定义**：
-    - `ExtractOptions`, `ScanDirectoryOptions` - 改用新参数格式（详见 BREAKING CHANGES）
-    - `ImageReferenceLocation` - 不再提供位置信息
-    - `DirectoryScanResult`, `DirectoryReplaceOptions` - 返回类型已简化
-    - `FileReplaceOptions` - 改用新参数格式
+
+  - `ExtractOptions`, `ScanDirectoryOptions` - 改用新参数格式（详见 BREAKING CHANGES）
+  - `ImageReferenceLocation` - 不再提供位置信息
+  - `DirectoryScanResult`, `DirectoryReplaceOptions` - 返回类型已简化
+  - `FileReplaceOptions` - 改用新参数格式
 
 - **代码结构清理**：
-    - 删除废弃的 `src/core/` 目录结构
-    - 移除已弃用的 `modifier.ts` 和 `query.ts` 相关功能
-    - 删除过时的设计文档和报告文件
-    - 清理所有备份文件和废弃代码
+  - 删除废弃的 `src/core/` 目录结构
+  - 移除已弃用的 `modifier.ts` 和 `query.ts` 相关功能
+  - 删除过时的设计文档和报告文件
+  - 清理所有备份文件和废弃代码
 
 ### Fixed
 
@@ -248,84 +276,93 @@
 ### Major Refactor
 
 - **Core architecture optimization**: Unified regex-based architecture focusing on fundamental atomic operations
-    - Pure regex parsing without complex AST dependencies
-    - Significantly reduced runtime dependencies
-    - No exact position info, focused on core functionality
+  - Pure regex parsing without complex AST dependencies
+  - Significantly reduced runtime dependencies
+  - No exact position info, focused on core functionality
 
 ### Added
 
 - **Modular refactoring**:
-    - New `filter.ts` module for image filtering
-    - New `replace.ts` module for image replacement
-    - New `delete.ts` module for image deletion
-    - New `parser.ts` module for image parsing
-    - New `constants/regex.ts` module for centralized regex management
+
+  - New `filter.ts` module for image filtering
+  - New `replace.ts` module for image replacement
+  - New `delete.ts` module for image deletion
+  - New `parser.ts` module for image parsing
+  - New `constants/regex.ts` module for centralized regex management
 
 - **Enhanced filtering**:
-    - Refactored and enhanced directory batch scanning (`filterImagesFromDirectory`)
-    - Four filter modes: `sourceType`, `hostname`, `absolutePath`, `regex`
-    - Quick content check mechanism for improved performance
-    - New `DirFilterOptions` type supporting custom glob pattern matching
+
+  - Refactored and enhanced directory batch scanning (`filterImagesFromDirectory`)
+  - Four filter modes: `sourceType`, `hostname`, `absolutePath`, `regex`
+  - Quick content check mechanism for improved performance
+  - New `DirFilterOptions` type supporting custom glob pattern matching
 
 - **Improved replacement**:
-    - Multi-field mode: identify images via src or raw, replace multiple fields simultaneously
-    - Directory-level image replacement (`replaceImagesInDirectory`)
-    - Enhanced file validation to avoid oversized or non-text files
-    - File pattern matching and ignore rule support
+
+  - Multi-field mode: identify images via src or raw, replace multiple fields simultaneously
+  - Directory-level image replacement (`replaceImagesInDirectory`)
+  - Enhanced file validation to avoid oversized or non-text files
+  - File pattern matching and ignore rule support
 
 - **Strengthened deletion**:
-    - New `deleteLocalImage` function with multiple deletion strategies
-    - New `deleteLocalImageSafely` function with usage-check safe deletion
-    - New `withRetry` generic retry mechanism with exponential backoff and degradation
-    - Three deletion strategies: trash, move, hard-delete
-    - New `validatePathWithinRoot` function to prevent path traversal attacks
+
+  - New `deleteLocalImage` function with multiple deletion strategies
+  - New `deleteLocalImageSafely` function with usage-check safe deletion
+  - New `withRetry` generic retry mechanism with exponential backoff and degradation
+  - Three deletion strategies: trash, move, hard-delete
+  - New `validatePathWithinRoot` function to prevent path traversal attacks
 
 - **Enhanced error handling**:
-    - New `ErrorCode` enum for structured error codes
-    - New `CoreError` class providing structured error objects
-    - Unified error handling and logging support
+  - New `ErrorCode` enum for structured error codes
+  - New `CoreError` class providing structured error objects
+  - Unified error handling and logging support
 
 ### Changed
 
 - **API refactoring**:
-    - Image filtering API restructured (parameter format changed, see BREAKING CHANGES)
-    - Simplified export structure, removed complex internal module separation
-    - Unified parameter structures and naming conventions
+
+  - Image filtering API restructured (parameter format changed, see BREAKING CHANGES)
+  - Simplified export structure, removed complex internal module separation
+  - Unified parameter structures and naming conventions
 
 - **Dependency optimization**:
-    - Removed unused dependencies
-    - Retained necessary runtime deps: fast-glob, trash
-    - Significantly reduced package size and install time
+
+  - Removed unused dependencies
+  - Retained necessary runtime deps: fast-glob, trash
+  - Significantly reduced package size and install time
 
 - **Performance optimization**:
-    - Pure regex matching to avoid AST parsing overhead
-    - Quick content check before full parsing
-    - Exponential backoff retry for reliability
-    - Built-in degradation strategies for high availability
+
+  - Pure regex matching to avoid AST parsing overhead
+  - Quick content check before full parsing
+  - Exponential backoff retry for reliability
+  - Built-in degradation strategies for high availability
 
 - **Documentation enhancements**:
-    - Detailed JSDoc for all modules and functions
-    - Module-level documentation with complete API overviews
-    - Usage examples for all exported types
-    - Standardized internal function comments with `@internal` tags
+  - Detailed JSDoc for all modules and functions
+  - Module-level documentation with complete API overviews
+  - Usage examples for all exported types
+  - Standardized internal function comments with `@internal` tags
 
 ### Removed
 
 - **Refactored API functions**:
-    - `extractImagesFromDirectory()` → refactored to `filterImagesFromDirectory()` (parameter and return type changes)
-    - Location query functions → removed, no longer provide exact position info
+
+  - `extractImagesFromDirectory()` → refactored to `filterImagesFromDirectory()` (parameter and return type changes)
+  - Location query functions → removed, no longer provide exact position info
 
 - **Deleted type definitions**:
-    - `ExtractOptions`, `ScanDirectoryOptions` - use new parameter format (see BREAKING CHANGES)
-    - `ImageReferenceLocation` - location info no longer provided
-    - `DirectoryScanResult`, `DirectoryReplaceOptions` - return types simplified
-    - `FileReplaceOptions` - use new parameter format
+
+  - `ExtractOptions`, `ScanDirectoryOptions` - use new parameter format (see BREAKING CHANGES)
+  - `ImageReferenceLocation` - location info no longer provided
+  - `DirectoryScanResult`, `DirectoryReplaceOptions` - return types simplified
+  - `FileReplaceOptions` - use new parameter format
 
 - **Code structure cleanup**:
-    - Removed deprecated `src/core/` directory structure
-    - Removed obsolete `modifier.ts` and `query.ts` functionality
-    - Deleted outdated design docs and report files
-    - Cleaned up all backup files and deprecated code
+  - Removed deprecated `src/core/` directory structure
+  - Removed obsolete `modifier.ts` and `query.ts` functionality
+  - Deleted outdated design docs and report files
+  - Cleaned up all backup files and deprecated code
 
 ### Fixed
 
@@ -392,62 +429,69 @@
 #### 核心功能
 
 - **Markdown 图片解析器**：支持内联、引用式和 HTML 图片语法
-    - 使用 remark AST 解析 Markdown
-    - 使用 rehype AST 解析 HTML 片段
-    - 支持多行 HTML img 标签
-    - 支持引用式图片 `![alt][ref]` 和定义 `[ref]: url`
-    - 内置 LRU 缓存提升性能
+
+  - 使用 remark AST 解析 Markdown
+  - 使用 rehype AST 解析 HTML 片段
+  - 支持多行 HTML img 标签
+  - 支持引用式图片 `![alt][ref]` 和定义 `[ref]: url`
+  - 内置 LRU 缓存提升性能
 
 - **图片筛选系统**：从文本、文件和目录中筛选图片
-    - `filterImagesInText`：从纯文本筛选图片
-    - `filterImagesFromFile`：从单个文件筛选图片
-    - `filterImagesFromDirectory`：从目录批量筛选图片
-    - 支持四种筛选模式：sourceType、hostname、absolutePath、regex
+
+  - `filterImagesInText`：从纯文本筛选图片
+  - `filterImagesFromFile`：从单个文件筛选图片
+  - `filterImagesFromDirectory`：从目录批量筛选图片
+  - 支持四种筛选模式：sourceType、hostname、absolutePath、regex
 
 - **图片替换系统**：两层 API（文本层、文件层）
-    - `replaceImagesInText`：在纯文本中替换图片
-    - `replaceImagesInFile`：在文件中替换图片
-    - 支持 src 和 alt 替换
-    - 支持引用定义自动更新
-    - 使用 magic-string 进行高效字符串操作
+
+  - `replaceImagesInText`：在纯文本中替换图片
+  - `replaceImagesInFile`：在文件中替换图片
+  - 支持 src 和 alt 替换
+  - 支持引用定义自动更新
+  - 使用 magic-string 进行高效字符串操作
 
 - **工具函数**：类型守卫和路径处理
-    - `isWebImage`、`isLocalImage`：类型守卫函数
-    - `isLocalImageWithAbsPath`、`isLocalImageRelative`：细粒度类型守卫
-    - `hasAbsLocalPath`：检查图片是否有绝对路径
-    - `normalizePath`：跨平台路径规范化
-    - `isWebSource`：判断是否为 Web 链接
+
+  - `isWebImage`、`isLocalImage`：类型守卫函数
+  - `isLocalImageWithAbsPath`、`isLocalImageRelative`：细粒度类型守卫
+  - `hasAbsLocalPath`：检查图片是否有绝对路径
+  - `normalizePath`：跨平台路径规范化
+  - `isWebSource`：判断是否为 Web 链接
 
 - **删除功能**：安全的图片文件删除
-    - `deleteLocalImage`：删除本地图片文件
-    - `validatePathWithinRoot`：验证路径安全性
-    - `deleteLocalImageSafely`：结合验证和使用检查的安全删除
+  - `deleteLocalImage`：删除本地图片文件
+  - `validatePathWithinRoot`：验证路径安全性
+  - `deleteLocalImageSafely`：结合验证和使用检查的安全删除
 
 #### 类型系统
 
 - **核心类型**：
-    - `ParsedImage`：解析后的图片数据
-    - `ImageMatch`：匹配到的图片（联合类型）
-    - `WebImageMatch`、`LocalImageMatch`：具体图片类型
-    - `LocalImageMatchRelative`、`LocalImageMatchWithAbsPath`：本地图片细分类型
+
+  - `ParsedImage`：解析后的图片数据
+  - `ImageMatch`：匹配到的图片（联合类型）
+  - `WebImageMatch`、`LocalImageMatch`：具体图片类型
+  - `LocalImageMatchRelative`、`LocalImageMatchWithAbsPath`：本地图片细分类型
 
 - **筛选类型**：
-    - `ImageFilterOptions`：图片筛选选项
-    - `ImageFilterMode`：筛选模式枚举
-    - `ImageFilterValue`：筛选值类型
-    - `DirFilterOptions`：目录筛选选项
+
+  - `ImageFilterOptions`：图片筛选选项
+  - `ImageFilterMode`：筛选模式枚举
+  - `ImageFilterValue`：筛选值类型
+  - `DirFilterOptions`：目录筛选选项
 
 - **替换类型**：
-    - `ReplaceParams`：替换参数
-    - `ReplaceTextOptions`：文本层替换选项
-    - `TextReplaceResult`：文本层替换结果
-    - `FileReplaceResult`：文件层替换结果
-    - `CoreReplacementDetail`：替换详情
+
+  - `ReplaceParams`：替换参数
+  - `ReplaceTextOptions`：文本层替换选项
+  - `TextReplaceResult`：文本层替换结果
+  - `FileReplaceResult`：文件层替换结果
+  - `CoreReplacementDetail`：替换详情
 
 - **其他类型**：
-    - `LoggerCallback`：日志回调函数
-    - `LogLevel`：日志级别枚举
-    - `ImageSourceType`：图片来源类型
+  - `LoggerCallback`：日志回调函数
+  - `LogLevel`：日志级别枚举
+  - `ImageSourceType`：图片来源类型
 
 #### 技术特性
 
@@ -462,12 +506,12 @@
 
 - 149 个单元测试，覆盖所有核心功能
 - 测试文件：
-    - `utils.test.ts`：工具函数测试（47 个测试）
-    - `replacer.test.ts`：替换功能测试（9 个测试）
-    - `replacer-advanced.test.ts`：高级替换功能测试（8 个测试）
-    - `delete.test.ts`：删除功能测试（24 个测试）
-    - `parser.test.ts`：解析器测试（33 个测试）
-    - `filter.test.ts`：筛选功能测试（28 个测试）
+  - `utils.test.ts`：工具函数测试（47 个测试）
+  - `replacer.test.ts`：替换功能测试（9 个测试）
+  - `replacer-advanced.test.ts`：高级替换功能测试（8 个测试）
+  - `delete.test.ts`：删除功能测试（24 个测试）
+  - `parser.test.ts`：解析器测试（33 个测试）
+  - `filter.test.ts`：筛选功能测试（28 个测试）
 
 ---
 
@@ -476,62 +520,69 @@
 #### Core Features
 
 - **Markdown Image Parser**: Supports inline, reference-style, and HTML image syntax
-    - Uses remark AST for Markdown parsing
-    - Uses rehype AST for HTML fragment parsing
-    - Supports multi-line HTML img tags
-    - Supports reference-style images `![alt][ref]` and definitions `[ref]: url`
-    - Built-in LRU cache for performance
+
+  - Uses remark AST for Markdown parsing
+  - Uses rehype AST for HTML fragment parsing
+  - Supports multi-line HTML img tags
+  - Supports reference-style images `![alt][ref]` and definitions `[ref]: url`
+  - Built-in LRU cache for performance
 
 - **Image Filtering System**: Filter images from text, files, and directories
-    - `filterImagesInText`: Filter images from plain text
-    - `filterImagesFromFile`: Filter images from a single file
-    - `filterImagesFromDirectory`: Batch filter images from a directory
-    - Four filter modes: sourceType, hostname, absolutePath, regex
+
+  - `filterImagesInText`: Filter images from plain text
+  - `filterImagesFromFile`: Filter images from a single file
+  - `filterImagesFromDirectory`: Batch filter images from a directory
+  - Four filter modes: sourceType, hostname, absolutePath, regex
 
 - **Image Replacement System**: Two-layer API (text layer, file layer)
-    - `replaceImagesInText`: Replace images in plain text
-    - `replaceImagesInFile`: Replace images in a file
-    - Supports src and alt replacement
-    - Automatic reference definition updates
-    - Uses magic-string for efficient string operations
+
+  - `replaceImagesInText`: Replace images in plain text
+  - `replaceImagesInFile`: Replace images in a file
+  - Supports src and alt replacement
+  - Automatic reference definition updates
+  - Uses magic-string for efficient string operations
 
 - **Utility Functions**: Type guards and path handling
-    - `isWebImage`, `isLocalImage`: Type guard functions
-    - `isLocalImageWithAbsPath`, `isLocalImageRelative`: Granular type guards
-    - `hasAbsLocalPath`: Check if image has absolute path
-    - `normalizePath`: Cross-platform path normalization
-    - `isWebSource`: Determine if source is a web link
+
+  - `isWebImage`, `isLocalImage`: Type guard functions
+  - `isLocalImageWithAbsPath`, `isLocalImageRelative`: Granular type guards
+  - `hasAbsLocalPath`: Check if image has absolute path
+  - `normalizePath`: Cross-platform path normalization
+  - `isWebSource`: Determine if source is a web link
 
 - **Deletion Features**: Safe image file deletion
-    - `deleteLocalImage`: Delete local image files
-    - `validatePathWithinRoot`: Validate path security
-    - `deleteLocalImageSafely`: Safe deletion with validation and usage checks
+  - `deleteLocalImage`: Delete local image files
+  - `validatePathWithinRoot`: Validate path security
+  - `deleteLocalImageSafely`: Safe deletion with validation and usage checks
 
 #### Type System
 
 - **Core Types**:
-    - `ParsedImage`: Parsed image data
-    - `ImageMatch`: Matched image (union type)
-    - `WebImageMatch`, `LocalImageMatch`: Specific image types
-    - `LocalImageMatchRelative`, `LocalImageMatchWithAbsPath`: Local image subtypes
+
+  - `ParsedImage`: Parsed image data
+  - `ImageMatch`: Matched image (union type)
+  - `WebImageMatch`, `LocalImageMatch`: Specific image types
+  - `LocalImageMatchRelative`, `LocalImageMatchWithAbsPath`: Local image subtypes
 
 - **Filter Types**:
-    - `ImageFilterOptions`: Image filter options
-    - `ImageFilterMode`: Filter mode enum
-    - `ImageFilterValue`: Filter value type
-    - `DirFilterOptions`: Directory filter options
+
+  - `ImageFilterOptions`: Image filter options
+  - `ImageFilterMode`: Filter mode enum
+  - `ImageFilterValue`: Filter value type
+  - `DirFilterOptions`: Directory filter options
 
 - **Replacement Types**:
-    - `ReplaceParams`: Replacement parameters
-    - `ReplaceTextOptions`: Text-layer replacement options
-    - `TextReplaceResult`: Text-layer replacement result
-    - `FileReplaceResult`: File-layer replacement result
-    - `CoreReplacementDetail`: Replacement details
+
+  - `ReplaceParams`: Replacement parameters
+  - `ReplaceTextOptions`: Text-layer replacement options
+  - `TextReplaceResult`: Text-layer replacement result
+  - `FileReplaceResult`: File-layer replacement result
+  - `CoreReplacementDetail`: Replacement details
 
 - **Other Types**:
-    - `LoggerCallback`: Logger callback function
-    - `LogLevel`: Log level enum
-    - `ImageSourceType`: Image source type
+  - `LoggerCallback`: Logger callback function
+  - `LogLevel`: Log level enum
+  - `ImageSourceType`: Image source type
 
 #### Technical Features
 
@@ -546,9 +597,9 @@
 
 - 149 unit tests covering all core functionality
 - Test files:
-    - `utils.test.ts`: Utility function tests (47 tests)
-    - `replacer.test.ts`: Replacement tests (9 tests)
-    - `replacer-advanced.test.ts`: Advanced replacement tests (8 tests)
-    - `delete.test.ts`: Deletion tests (24 tests)
-    - `parser.test.ts`: Parser tests (33 tests)
-    - `filter.test.ts`: Filter tests (28 tests)
+  - `utils.test.ts`: Utility function tests (47 tests)
+  - `replacer.test.ts`: Replacement tests (9 tests)
+  - `replacer-advanced.test.ts`: Advanced replacement tests (8 tests)
+  - `delete.test.ts`: Deletion tests (24 tests)
+  - `parser.test.ts`: Parser tests (33 tests)
+  - `filter.test.ts`: Filter tests (28 tests)

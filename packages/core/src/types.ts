@@ -3,8 +3,7 @@
  * 主要类型包括：
  * - 图片数据类型：{@link ParsedImage}, {@link ImageMatch} 及其子类型
  * - 筛选选项和过滤模式：{@link ImageFilterOptions}, {@link ImageFilterMode}
- * - 替换相关类型：{@link ReplaceOptions}, {@link ReplaceResult}, {@link FileReplaceResult}
- * - 删除相关类型：{@link DeleteFileOptions}, {@link DeleteFileResult}, {@link DeletionStrategy}
+ * - 替换相关类型：{@link ReplaceOptions}, {@link ReplaceResult}
  * - 错误处理：{@link CoreError}, {@link ErrorCode}
  *
  * @example
@@ -38,7 +37,7 @@
  * @remarks
  * 定义不同级别的日志输出，用于控制日志的详细程度。
  * @public
- * @category 核心类型
+ * @category 核心
  */
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
@@ -50,7 +49,7 @@ export type LogLevel = "debug" | "info" | "warn" | "error";
  * 适用于模板验证、配置验证等各种验证场景。
  *
  * @public
- * @category 核心类型
+ * @category 核心
  */
 export interface ValidationResult {
     /** 验证是否通过 */
@@ -67,7 +66,7 @@ export interface ValidationResult {
  * - web: 来自互联网的图片（http/https URL）
  * - local: 本地文件系统中的图片
  * @public
- * @category 核心类型
+ * @category 核心
  */
 export type ImageSourceType = "web" | "local";
 
@@ -81,7 +80,7 @@ export type ImageSourceType = "web" | "local";
  * - 'md'：标准 Markdown 语法 `![alt](url "title")`
  * - 'html'：HTML `<img>` 标签（单行）
  * @public
- * @category 图片匹配
+ * @category 图片
  */
 export interface ParsedImage {
     alt?: string;
@@ -94,89 +93,29 @@ export interface ParsedImage {
 }
 
 /**
- * Web 图片匹配信息
+ * 图片匹配信息
  *
  * @remarks
- * 表示从网络 URL 解析出的图片信息。
- * 包含完整的 URL 地址和其他元数据。
+ * 由 `filterImagesInText` 解析 Markdown 文本产出，表示发现的一次图片引用。
+ * 纯文本层，不涉及文件系统路径（`absPath` 由 asset 层负责）。
+ *
+ * `type` 字段区分来源：
+ * - `local`: 本地文件路径（如 `./img.png`）
+ * - `web`: 远程 URL（如 `https://...`）
+ *
  * @public
- * @category 图片匹配
+ * @category 图片
  */
-export interface WebImageMatch {
-    type: "web";
+export interface ImageMatch {
+    type: "local" | "web";
     alt: string;
-    src: string; // URL
+    src: string;
     title?: string;
     width?: string;
     height?: string;
     raw: string;
     syntax: "md" | "html";
-    source: "text" | "file";
 }
-
-/**
- * 本地图片匹配信息（带相对路径，无绝对路径）
- *
- * @remarks
- * 用于从纯文本层提取图片时，因为没有文件上下文，无法计算绝对路径。
- * @public
- * @category 图片匹配
- */
-export interface LocalImageMatchWithRelativePath {
-    type: "local";
-    alt: string;
-    src: string; // 原始 Markdown 中的相对或绝对路径
-    title?: string;
-    width?: string;
-    height?: string;
-    raw: string;
-    syntax: "md" | "html";
-    source: "text";
-}
-
-/**
- * 本地图片匹配信息（带绝对路径）
- *
- * @remarks
- * 用于从文件层提取图片时，包含规范化的绝对路径。
- * @public
- * @category 图片匹配
- */
-export interface LocalImageMatchWithAbsPath {
-    type: "local";
-    alt: string;
-    src: string; // 原始 Markdown 中的相对或绝对路径
-    absLocalPath: string; // 规范化的本地图片绝对路径
-    title?: string;
-    width?: string;
-    height?: string;
-    raw: string;
-    syntax: "md" | "html";
-    source: "file";
-}
-
-/**
- * 本地图片匹配信息（包括相对和绝对路径两种）
- *
- * @remarks
- * 联合类型，包含两种本地图片的表示形式。
- * - LocalImageMatchWithRelativePath: 只有相对路径（来自纯文本层）
- * - LocalImageMatchWithAbsPath: 包含绝对路径（来自文件层）
- * @public
- * @category 图片匹配
- */
-export type LocalImageMatch = LocalImageMatchWithRelativePath | LocalImageMatchWithAbsPath;
-
-/**
- * 匹配到的图片信息
- *
- * @remarks
- * 联合类型，包含 Web 图片和本地图片的所有可能形式。
- * 用于统一处理不同来源的图片。
- * @public
- * @category 图片匹配
- */
-export type ImageMatch = WebImageMatch | LocalImageMatch;
 
 /**
  * 图片筛选选项
@@ -188,7 +127,7 @@ export type ImageMatch = WebImageMatch | LocalImageMatch;
  * - absolutePath: 按本地图片的绝对路径筛选（包含路径匹配）
  * - regex: 按正则表达式筛选（用于 src 字段）
  * @public
- * @category 筛选类型
+ * @category 图片
  */
 export interface ImageFilterOptions {
     mode: ImageFilterMode;
@@ -204,7 +143,7 @@ export interface ImageFilterOptions {
  * - absolutePath: 按本地图片的绝对路径筛选（包含路径匹配）
  * - regex: 按正则表达式筛选（用于 src 字段）
  * @public
- * @category 筛选类型
+ * @category 图片
  */
 export type ImageFilterMode = "sourceType" | "hostname" | "absolutePath" | "regex";
 
@@ -214,7 +153,7 @@ export type ImageFilterMode = "sourceType" | "hostname" | "absolutePath" | "rege
  * @remarks
  * 筛选值可以是字符串或正则表达式。
  * @public
- * @category 筛选类型
+ * @category 图片
  */
 export type ImageFilterValue = string | RegExp;
 
@@ -252,7 +191,7 @@ export type ImageFilterValue = string | RegExp;
  * }
  * ```
  * @public
- * @category 替换类型
+ * @category 图片
  */
 export interface ReplaceOptions {
     field: "src" | "raw";
@@ -268,7 +207,7 @@ export interface ReplaceOptions {
  * @remarks
  * 记录图片替换的结果，包含替换后的文本和所有替换详情。
  * @public
- * @category 替换类型
+ * @category 图片
  */
 export interface ReplaceResult {
     /** 替换后的文本 */
@@ -283,114 +222,11 @@ export interface ReplaceResult {
  * @remarks
  * 记录单个替换操作的前后文本
  * @public
- * @category 替换类型
+ * @category 图片
  */
 export interface ReplacementDetail {
     before: string;
     after: string;
-}
-
-/**
- * 目录替换结果统计
- *
- * @remarks
- * 用于 replaceImagesInDirectory 函数的返回值类型
- * @public
- * @category 替换类型
- */
-export interface DirectoryReplaceResult {
-    /** 总共处理的文件数 */
-    totalFiles: number;
-    /** 成功处理的文件数 */
-    successfulFiles: number;
-    /** 失败的文件数 */
-    failedFiles: number;
-    /** 总替换次数 */
-    totalReplacements: number;
-    /** 详细结果 */
-    results: FileReplaceResult[];
-}
-
-/**
- * 文件层替换结果
- *
- * @remarks
- * 记录文件层图片替换的结果，包含文件路径、成功状态和替换详情。
- * @public
- * @category 替换类型
- */
-export interface FileReplaceResult {
-    /** 文件相对路径 */
-    relativePath: string;
-
-    /** 文件绝对路径 */
-    absolutePath: string;
-
-    /** 是否成功 */
-    success: boolean;
-
-    /** 错误信息（如有） */
-    error?: string;
-
-    /** 替换结果 */
-    result?: ReplaceResult;
-}
-
-/**
- * 文件删除策略
- *
- * @remarks
- * 定义文件删除的方式：
- * - "trash": 移动到系统回收站（跨平台，推荐）
- * - "move": 移动到指定目录
- * - "hard-delete": 永久删除（谨慎使用）
- * @public
- * @category 删除类型
- */
-export type DeletionStrategy = "trash" | "move" | "hard-delete";
-
-/**
- * 文件删除选项
- *
- * @remarks
- * 配置文件删除的行为
- * @public
- * @category 删除类型
- */
-export interface DeleteFileOptions {
-    /** 删除策略 */
-    strategy: DeletionStrategy;
-
-    /** 当 strategy 为 move 时的目标目录（绝对路径） */
-    trashDir?: string;
-
-    /** 最大重试次数，默认 3 */
-    maxRetries?: number;
-
-    /** 基础重试延迟（毫秒），默认 100 */
-    baseDelayMs?: number;
-}
-
-/**
- * 文件删除结果
- *
- * @remarks
- * 记录删除操作的执行结果
- * @public
- * @category 删除类型
- */
-export interface DeleteFileResult {
-    /** 删除状态 */
-    status: "success" | "failed" | "skipped";
-
-    /** 重试次数 */
-    retries: number;
-
-    /** 错误信息（失败时） */
-    error?: string;
-
-    /** 实际使用的策略（trash 失败时可能降级为 move） */
-    actualStrategy?: DeletionStrategy;
 }
 
 /**
@@ -400,7 +236,7 @@ export interface DeleteFileResult {
  * 定义核心包中可能出现的所有错误类型
  * 便于程序化错误处理和国际化
  * @public
- * @category 错误处理
+ * @category 核心
  */
 export enum ErrorCode {
     /** 文件不存在 */
@@ -437,7 +273,7 @@ export enum ErrorCode {
  * );
  * ```
  * @public
- * @category 错误处理
+ * @category 核心
  */
 export class CoreError extends Error {
     /**
@@ -469,7 +305,7 @@ export class CoreError extends Error {
  * 定义基本的正则表达式规则，包含匹配模式和标识符。
  * 作为替换规则和查询规则的共同基类。
  * @public
- * @category 多正则类型
+ * @category 多正则
  */
 export interface BaseRegexRule {
     /** 正则表达式模式 */
@@ -503,7 +339,7 @@ export interface BaseRegexRule {
  * { pattern: /second/g, replacement: 'third', order: 2 }
  * ```
  * @public
- * @category 多正则类型
+ * @category 多正则
  */
 export interface MultiRegexRule extends BaseRegexRule {
     /** 替换字符串（支持捕获组引用 $1, $2 等）*/
@@ -514,7 +350,7 @@ export interface MultiRegexRule extends BaseRegexRule {
 /**
  * 多组正则表达式查询规则
  * @public
- * @category 多正则类型
+ * @category 多正则
  */
 export type MultiRegexFindRule = BaseRegexRule;
 
@@ -525,7 +361,7 @@ export type MultiRegexFindRule = BaseRegexRule;
  * 配置多组正则表达式替换的行为，目前只包含规则数组。
  * 后续可根据需要扩展更多选项。
  * @public
- * @category 多正则类型
+ * @category 多正则
  */
 export interface MultiRegexOptions {
     /** 替换规则数组 */
@@ -538,7 +374,7 @@ export interface MultiRegexOptions {
  * @remarks
  * 配置多组正则表达式查询的行为。
  * @public
- * @category 多正则类型
+ * @category 多正则
  */
 export interface MultiRegexFindOptions {
     /** 查询规则数组 */
@@ -551,7 +387,7 @@ export interface MultiRegexFindOptions {
  * @remarks
  * 记录多组正则表达式替换的执行结果，包含最终文本和统计信息。
  * @public
- * @category 多正则类型
+ * @category 多正则
  */
 export interface MultiRegexResult {
     /** 替换后的文本 */
@@ -568,7 +404,7 @@ export interface MultiRegexResult {
  * @remarks
  * 记录单个规则的执行情况，包括规则 ID 和应用次数。
  * @public
- * @category 多正则类型
+ * @category 多正则
  */
 export interface RuleApplyDetail {
     /** 规则 ID */
@@ -596,7 +432,7 @@ export interface RuleApplyDetail {
  * };
  * ```
  * @public
- * @category 多正则类型
+ * @category 多正则
  */
 export interface MatchResult {
     /** 匹配的完整文本 */
@@ -619,7 +455,7 @@ export interface MatchResult {
  * @remarks
  * 按规则分组的匹配统计信息。
  * @public
- * @category 多正则类型
+ * @category 多正则
  */
 export interface MatchStatistics {
     /** 该规则匹配的次数 */
@@ -637,7 +473,7 @@ export interface MatchStatistics {
  * 包含所有匹配项和按规则分组的统计信息。
  * 用于 findAllMatches 函数的返回值。
  * @public
- * @category 多正则类型
+ * @category 多正则
  */
 export interface FindMatchesResult {
     /** 所有匹配结果，按在文本中出现的顺序排列 */
@@ -653,7 +489,7 @@ export interface FindMatchesResult {
 /**
  * Frontmatter 值类型
  * @public
- * @category 元数据类型
+ * @category 元数据
  */
 export type FrontmatterValue = string | string[] | null;
 
@@ -667,7 +503,7 @@ export type FrontmatterValue = string | string[] | null;
  * 3. 最后使用文件名（不含扩展名）作为备选
  *
  * @public
- * @category 元数据类型
+ * @category 元数据
  */
 export interface DocumentMetadata {
     /**
@@ -684,7 +520,7 @@ export interface DocumentMetadata {
 /**
  * 元数据提取选项
  * @public
- * @category 元数据类型
+ * @category 元数据
  */
 export interface MetadataExtractOptions {
     /** 用于提取标题的标题等级，默认 1 */
@@ -694,7 +530,7 @@ export interface MetadataExtractOptions {
 /**
  * 章节标题
  * @public
- * @category 元数据类型
+ * @category 元数据
  */
 export interface SectionHeading {
     /** 标题等级 (1-6) */
@@ -706,7 +542,7 @@ export interface SectionHeading {
 /**
  * 章节标题提取选项
  * @public
- * @category 元数据类型
+ * @category 元数据
  */
 export interface SectionHeadingExtractOptions {
     /** 最小标题等级，默认 2 */
@@ -718,7 +554,7 @@ export interface SectionHeadingExtractOptions {
 /**
  * 标题转换选项
  * @public
- * @category 元数据类型
+ * @category 元数据
  */
 export interface HeadingConvertOptions {
     /** Frontmatter 格式，默认 'yaml' */
@@ -730,7 +566,7 @@ export interface HeadingConvertOptions {
 /**
  * Frontmatter 更新选项
  * @public
- * @category 元数据类型
+ * @category 元数据
  */
 export interface UpsertFrontmatterOptions {
     /** Frontmatter 格式，默认 'yaml' */
@@ -742,7 +578,7 @@ export interface UpsertFrontmatterOptions {
 /**
  * Frontmatter 更新结果
  * @public
- * @category 元数据类型
+ * @category 元数据
  */
 export interface FrontmatterUpdateResult {
     /** 操作是否成功 */
@@ -762,7 +598,7 @@ export interface FrontmatterUpdateResult {
 /**
  * 章节编号选项
  * @public
- * @category 章节编号类型
+ * @category 章节编号
  */
 export interface SectionNumbersOptions {
     /** 最小标题等级，默认 1 */
@@ -778,7 +614,7 @@ export interface SectionNumbersOptions {
 /**
  * 章节编号结果
  * @public
- * @category 章节编号类型
+ * @category 章节编号
  */
 export interface SectionNumbersResult {
     /** 处理后的 Markdown 内容 */
@@ -794,7 +630,7 @@ export interface SectionNumbersResult {
 /**
  * Markdown 图片格式选项
  * @public
- * @category 图片格式化
+ * @category 图片
  */
 export interface FormatMarkdownImageOptions {
     /** 图片 URL */
@@ -821,7 +657,7 @@ export interface FormatMarkdownImageOptions {
  * 注意：`title` 是全局属性，如需使用请通过 `extraAttributes` 传入
  *
  * @public
- * @category 图片格式化
+ * @category 图片
  */
 export interface HtmlImageAttributes {
     /** 图片宽度 */
@@ -845,7 +681,7 @@ export interface HtmlImageAttributes {
  * 参考 MDN 文档：<https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img>
  *
  * @public
- * @category 图片格式化
+ * @category 图片
  */
 export interface FormatHtmlImageOptions {
     /** 图片 URL */

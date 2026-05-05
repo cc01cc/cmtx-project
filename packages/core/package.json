@@ -1,6 +1,6 @@
 {
     "name": "@cmtx/core",
-    "version": "0.3.1-alpha.1",
+    "version": "0.4.0-alpha.2",
     "description": "Core markdown document processing library - image extraction/manipulation and metadata handling",
     "keywords": [
         "cmtx",
@@ -30,10 +30,10 @@
     "type": "module",
     "main": "./dist/index.cjs",
     "module": "./dist/index.mjs",
-    "types": "./dist/index.d.ts",
+    "types": "./dist/index.d.mts",
     "exports": {
         ".": {
-            "types": "./dist/index.d.ts",
+            "types": "./dist/index.d.mts",
             "import": "./dist/index.mjs",
             "require": "./dist/index.cjs"
         }

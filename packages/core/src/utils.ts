@@ -47,13 +47,7 @@
 
 import { isAbsolute, normalize, relative } from "node:path";
 
-import type {
-    ImageMatch,
-    LocalImageMatch,
-    LocalImageMatchWithAbsPath,
-    LocalImageMatchWithRelativePath,
-    WebImageMatch,
-} from "./types.js";
+import type { ImageMatch } from "./types.js";
 
 /**
  * 规范化文件路径用于比较（处理跨平台和大小写）
@@ -125,52 +119,6 @@ export function isLocalAbsolutePath(src: string): boolean {
 export function isPathInside(parent: string, child: string): boolean {
     const rel = relative(parent, child);
     return !rel.startsWith("..") && !isAbsolute(rel);
-}
-
-/**
- * 判断是否为 Web 图片匹配
- *
- * @param img - 图片匹配对象
- * @returns 类型守卫，如果是 Web 图片返回 true
- * @public
- */
-export function isWebImage(img: ImageMatch): img is WebImageMatch {
-    return img.type === "web";
-}
-
-/**
- * 判断是否为本地图片匹配
- *
- * @param img - 图片匹配对象
- * @returns 类型守卫，如果是本地图片返回 true
- * @public
- */
-export function isLocalImage(img: ImageMatch): img is LocalImageMatch {
-    return img.type === "local";
-}
-
-/**
- * 判断是否为带绝对路径的本地图片匹配
- *
- * @param img - 图片匹配对象
- * @returns 类型守卫，如果是带绝对路径的本地图片返回 true
- * @public
- */
-export function isLocalImageWithAbsPath(img: ImageMatch): img is LocalImageMatchWithAbsPath {
-    return img.type === "local" && "absLocalPath" in img;
-}
-
-/**
- * 判断是否为带相对路径的本地图片匹配
- *
- * @param img - 图片匹配对象
- * @returns 类型守卫，如果是带相对路径的本地图片返回 true
- * @public
- */
-export function isLocalImageWithRelativePath(
-    img: ImageMatch,
-): img is LocalImageMatchWithRelativePath {
-    return img.type === "local" && !("absLocalPath" in img);
 }
 
 // ==================== URL 工具函数 ====================

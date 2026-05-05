@@ -158,7 +158,7 @@ const metric = monitor.end("op"); // { duration: number, ... }
 ```
 @cmtx/template  --调用-->  @cmtx/core (纯文本处理)
 @cmtx/asset     --调用-->  @cmtx/core (纯文本处理)
-@cmtx/publish   --调用-->  @cmtx/core (纯文本处理)
+@cmtx/rule-engine   --调用-->  @cmtx/core (纯文本处理)
 ```
 
 - **@cmtx/core**：纯文本处理（解析、替换、格式化、元数据）

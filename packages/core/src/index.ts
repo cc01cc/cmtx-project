@@ -85,42 +85,42 @@
 // ==================== 常量 ====================
 
 /**
- * @category 常量
+ * @category 核心
  */
 export { METADATA_REGEX } from "./constants/regex.js";
 
 // ==================== 图片筛选 ====================
 
 /**
- * @category 图片筛选
+ * @category 图片
  */
 export { filterImagesInText } from "./filter.js";
 
 // ==================== 图片解析 ====================
 
 /**
- * @category 图片解析
+ * @category 图片
  */
 export { parseImages, parseImagesHtmlSingleline, parseImagesMdSingleline } from "./parser.js";
 
 // ==================== 图片替换 ====================
 
 /**
- * @category 图片替换
+ * @category 图片
  */
 export { replaceImagesInText, updateImageAttribute } from "./replace.js";
 
 // ==================== 图片格式化 ====================
 
 /**
- * @category 图片格式化
+ * @category 图片
  */
 export { formatHtmlImage, formatMarkdownImage } from "./utils.js";
 
 // ==================== 图片尺寸调整 ====================
 
 /**
- * @category 图片尺寸调整
+ * @category 图片
  */
 export {
     calculateTargetWidth,
@@ -137,7 +137,7 @@ export {
 // ==================== 元数据处理 ====================
 
 /**
- * @category 元数据处理
+ * @category 元数据
  */
 export {
     convertHeadingToFrontmatter,
@@ -164,7 +164,7 @@ export { addSectionNumbers, removeSectionNumbers } from "./section-numbers.js";
 // ==================== 多正则操作 ====================
 
 /**
- * @category 多正则操作
+ * @category 多正则
  */
 export { findAllMatches, replaceWithMultipleRegex } from "./multi-regex.js";
 
@@ -175,12 +175,8 @@ export { findAllMatches, replaceWithMultipleRegex } from "./multi-regex.js";
  */
 export {
     isLocalAbsolutePath,
-    isLocalImage,
-    isLocalImageWithAbsPath,
-    isLocalImageWithRelativePath,
     isPathInside,
     isValidUrl,
-    isWebImage,
     isWebSource,
     normalizePath,
     parseUrlSafe,
@@ -223,62 +219,42 @@ export { MetricsCollector, PerformanceMonitor } from "./monitoring.js";
 // -------------------- 核心类型 --------------------
 
 /**
- * @category 核心类型
+ * @category 核心
  */
 export type { LogLevel, ValidationResult } from "./types.js";
 
 // -------------------- 图片匹配 --------------------
 
 /**
- * @category 图片匹配
+ * @category 图片
  */
-export type {
-    ImageMatch,
-    LocalImageMatch,
-    LocalImageMatchWithAbsPath,
-    LocalImageMatchWithRelativePath,
-    ParsedImage,
-    WebImageMatch,
-} from "./types.js";
+export type { ImageMatch, ParsedImage } from "./types.js";
 
 // -------------------- 筛选类型 --------------------
 
 /**
- * @category 筛选类型
+ * @category 图片
  */
 export type { ImageFilterMode, ImageFilterOptions, ImageFilterValue } from "./types.js";
 
 // -------------------- 替换类型 --------------------
 
 /**
- * @category 替换类型
+ * @category 图片
  */
 export type { ReplacementDetail, ReplaceOptions, ReplaceResult } from "./types.js";
-
-// -------------------- 文件操作类型（供 @cmtx/asset 使用）--------------------
-
-/**
- * @category 文件操作类型
- */
-export type {
-    DeleteFileOptions,
-    DeleteFileResult,
-    DeletionStrategy,
-    DirectoryReplaceResult,
-    FileReplaceResult,
-} from "./types.js";
 
 // -------------------- 错误处理 --------------------
 
 /**
- * @category 错误处理
+ * @category 核心
  */
 export { CoreError, ErrorCode } from "./types.js";
 
 // -------------------- 多正则类型 --------------------
 
 /**
- * @category 多正则类型
+ * @category 多正则
  */
 export type {
     FindMatchesResult,
@@ -294,7 +270,7 @@ export type {
 // -------------------- 元数据类型 --------------------
 
 /**
- * @category 元数据类型
+ * @category 元数据
  */
 export type {
     DocumentMetadata,
@@ -310,13 +286,13 @@ export type {
 // -------------------- 章节编号类型 --------------------
 
 /**
- * @category 章节编号类型
+ * @category 章节编号
  */
 export type { SectionNumbersOptions, SectionNumbersResult } from "./types.js";
 
 // -------------------- 图片格式化 --------------------
 
 /**
- * @category 图片格式化
+ * @category 图片
  */
 export type { FormatHtmlImageOptions, FormatMarkdownImageOptions } from "./types.js";

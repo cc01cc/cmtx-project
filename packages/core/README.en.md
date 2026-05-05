@@ -158,7 +158,7 @@ const metric = monitor.end("op");
 ```
 @cmtx/template  --calls-->  @cmtx/core (plain text processing)
 @cmtx/asset     --calls-->  @cmtx/core (plain text processing)
-@cmtx/publish   --calls-->  @cmtx/core (plain text processing)
+@cmtx/rule-engine   --calls-->  @cmtx/core (plain text processing)
 ```
 
 - **@cmtx/core** - plain text processing (parse, replace, format, metadata)

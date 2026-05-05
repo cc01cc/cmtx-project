@@ -26,7 +26,6 @@ Some text`;
                 type: "local",
                 alt: "Logo",
                 src: "./logo.png",
-                source: "text",
             });
         });
 
@@ -214,12 +213,13 @@ Some text`;
     });
 
     describe("返回类型", () => {
-        it("本地图片应该没有 absLocalPath 字段（文本层）", () => {
+        it("本地图片应该有正确的类型和 src", () => {
             const markdown = "![Local](./local.png)";
             const images = filterImagesInText(markdown);
 
             expect(images[0].type).toBe("local");
-            expect("absLocalPath" in images[0]).toBe(false);
+            expect(images[0].src).toBe("./local.png");
+            expect(images[0].alt).toBe("Local");
         });
 
         it("Web 图片应该有正确的结构", () => {
@@ -233,7 +233,6 @@ Some text`;
             expect(webImage).toHaveProperty("title", "Title");
             expect(webImage).toHaveProperty("raw");
             expect(webImage).toHaveProperty("syntax");
-            expect(webImage).toHaveProperty("source", "text");
         });
     });
 
