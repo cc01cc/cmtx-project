@@ -811,10 +811,6 @@ changeset status --since=main
 
 单步操作直接使用 `pnpm changeset <command>` 命令，不再通过包装脚本间接调用。
 
-单步操作直接使用 `pnpm changeset <command>` 命令，不再通过包装脚本间接调用。
-
-单步操作直接使用 `pnpm changeset <command>` 命令，不再通过包装脚本间接调用。
-
 ### 10.3. 参与版本管理的包
 
 排除 ignore 列表后：
@@ -824,21 +820,32 @@ changeset status --since=main
 - `@cmtx/fpe-wasm`
 - `@cmtx/markdown-it-presigned-url`
 - `@cmtx/markdown-it-presigned-url-adapter-nodejs`
-- `@cmtx/publish`
+- `@cmtx/rule-engine`
 - `@cmtx/storage`
 - `@cmtx/template`
 - `@cmtx/autocorrect-wasm`（新包，尚未发布）
 
 ### 10.4. CHANGELOG 与 Changeset 的关系
 
-CMTX 项目中两者是**独立**的：
+CMTX 采用双轨工作流：
+
+**Changeset 管理包（除 ignore 外的所有包）：**
 
 | 维度 | CHANGELOG | Changeset |
 |------|-----------|-----------|
-| 维护者 | 开发者手动 | 开发者手动 |
-| 内容 | 详细的功能描述 | 简短的版本变更说明 |
+| 维护者 | `changeset version` 生成 + 开发者精修 | 开发者手动 |
+| 内容 | 详细的功能描述（中英文双语） | 简短的版本变更说明（中文） |
 | 用途 | 面向用户阅读 | 驱动 version bump |
-| 发布时 | `[Unreleased]` -> 版本号（脚本处理） | 读取后删除 `.changeset/*.md` |
+| 发布时 | `release-changelog.mjs` 给版本标题添加日期 | pre-release 模式下保留，exit 后删除 |
+
+**Ignored 包（`cmtx-vscode`, `@cmtx/cli`, `@cmtx/mcp-server`）：**
+
+| 维度 | CHANGELOG |
+|------|-----------|
+| 维护者 | 开发者手动编辑 `[Unreleased]` |
+| 内容 | 详细的功能描述（中英文双语） |
+| 用途 | 面向用户阅读 |
+| 发布时 | 手动替换 `[Unreleased]` 为版本号+日期 |
 
 详见 [CHANGELOG 标准化指南](./DOC-012-changelog_guide.md)。
 

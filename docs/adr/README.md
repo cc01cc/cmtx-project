@@ -66,7 +66,7 @@ CMTX 项目采用**四层分离架构**：
 
 第三层：处理层（文档处理）
   ├─ @cmtx/normalize - Markdown 文档标准化处理
-  └─ @cmtx/publish - 文章发布与平台适配
+  └─ @cmtx/rule-engine - 文章发布与平台适配
 
 第四层：应用层（面向用户）
   ├─ @cmtx/cli - 命令行工具
@@ -77,10 +77,10 @@ CMTX 项目采用**四层分离架构**：
 
 | 层级 | 包                 | 内部依赖                                        |
 | :--: | ------------------ | ----------------------------------------------- |
-|  4   | `@cmtx/cli`        | `@cmtx/core`, `@cmtx/asset`, `@cmtx/publish`    |
+|  4   | `@cmtx/cli`        | `@cmtx/core`, `@cmtx/asset`, `@cmtx/rule-engine`    |
 |  4   | `@cmtx/mcp-server` | `@cmtx/core`, `@cmtx/asset`                     |
 |  3   | `@cmtx/normalize`  | `@cmtx/core`, `@cmtx/template`                  |
-|  3   | `@cmtx/publish`    | `@cmtx/core`, `@cmtx/asset`                     |
+|  3   | `@cmtx/rule-engine`    | `@cmtx/core`, `@cmtx/asset`                     |
 |  2   | `@cmtx/asset`      | `@cmtx/core`, `@cmtx/storage`, `@cmtx/template` |
 |  1   | `@cmtx/core`       | -                                               |
 |  1   | `@cmtx/template`   | -                                               |

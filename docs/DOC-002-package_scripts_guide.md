@@ -59,7 +59,7 @@
 
 ### 标准 Library 包模板
 
-基础库包（如 @cmtx/core, @cmtx/asset, @cmtx/publish, @cmtx/storage 等）：
+基础库包（如 @cmtx/core, @cmtx/asset, @cmtx/rule-engine, @cmtx/storage 等）：
 
 ```jsonc
 {
@@ -318,7 +318,7 @@
 
 ### 各包差异化配置
 
-#### Library 包（@cmtx/core, @cmtx/asset, @cmtx/publish, @cmtx/storage, @cmtx/template）
+#### Library 包（@cmtx/core, @cmtx/asset, @cmtx/rule-engine, @cmtx/storage, @cmtx/template）
 
 ```jsonc
 {
@@ -600,7 +600,7 @@
 | `@cmtx/storage` | Library | 标准 Library 包模板 |
 | `@cmtx/template` | Library | 标准 Library 包模板 |
 | `@cmtx/asset` | Library | 标准 Library 包模板 |
-| `@cmtx/publish` | Library | 标准 Library 包模板 |
+| `@cmtx/rule-engine` | Library | 标准 Library 包模板 |
 | `@cmtx/fpe-wasm` | WASM | WASM 包模板 |
 | `@cmtx/autocorrect-wasm` | WASM | WASM 包模板 |
 | `@cmtx/markdown-it-presigned-url` | markdown-it 插件 | markdown-it 插件包模板 |

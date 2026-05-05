@@ -143,7 +143,7 @@ pnpm run docs       # 生成 TypeDoc API 文档
 - 命令行工具：Markdown 图片管理工具
 - 架构：基于 @cmtx/core 和 @cmtx/asset
 - 特性：友好 UI（ora 动画、chalk 着色）、参数验证、环境变量支持
-- 依赖：@cmtx/core、@cmtx/asset、@cmtx/publish、@cmtx/storage、yargs、chalk、ora
+- 依赖：@cmtx/core、@cmtx/asset、@cmtx/rule-engine、@cmtx/storage、yargs、chalk、ora
 - 输出：dist 目录、bin/cmtx 可执行文件
 
 ### @cmtx/mcp-server

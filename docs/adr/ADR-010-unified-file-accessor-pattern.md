@@ -6,7 +6,7 @@
 
 - **@cmtx/core** - 直接 fs 操作（筛选、替换、删除）
 - **@cmtx/asset** - 已部分使用 `DocumentAccessor` 模式（Upload），但 Download/Transfer 仍直接 fs 操作
-- **@cmtx/publish** - 直接 fs 操作（process-images、batch-process）
+- **@cmtx/rule-engine** - 直接 fs 操作（process-images、batch-process）
 
 这导致：
 
@@ -558,7 +558,7 @@ export async function filterImagesFromFile(
 
 **Note：** 三个子模块可并行迁移，无依赖冲突
 
-#### Phase 3: 高层迁移（@cmtx/publish）（1-2 天）
+#### Phase 3: 高层迁移（@cmtx/rule-engine）（1-2 天）
 
 - **3a: process-images** - 使用注入的 `FileAccessor`
 - **3b: batch-process** - 改为 `DirectoryProcessor`（基于 FileAccessor）
@@ -740,7 +740,7 @@ const result = await uploadLocalImageInMarkdown("./article.md", config);
 - 确保文件复制、移动操作使用 accessor
 - 测试
 
-### Phase 3: 迁移 @cmtx/publish（1-2 天）
+### Phase 3: 迁移 @cmtx/rule-engine（1-2 天）
 
 1. **process-images.ts**
     - 将 readFile/writeFile/unlink 改为 accessor 调用

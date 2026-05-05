@@ -161,7 +161,7 @@ export async function ensureWasmLoaded(
   - EventEmitter 需要 `extends` 或组合，污染类继承
   - Callback 参数不适合类中有多处需要日志的场景
   - 接口注入与 DI 模式一致，便于测试
-- **影响范围**：`@cmtx/publish`、`@cmtx/asset`、`@cmtx/storage` 的类
+- **影响范围**：`@cmtx/rule-engine`、`@cmtx/asset`、`@cmtx/storage` 的类
 
 ### 决策 2：接口与 `console` 兼容（2026-04-27）
 

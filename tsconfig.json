@@ -3,7 +3,7 @@
     "references": [
         { "path": "packages/core" },
         { "path": "packages/template" },
-        { "path": "packages/publish" },
+        { "path": "packages/rule-engine" },
         { "path": "packages/cli" },
         { "path": "packages/mcp-server" },
         { "path": "packages/vscode-extension" }

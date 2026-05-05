@@ -307,7 +307,7 @@ pnpm lint:oxlint 2>&1 | grep -cE '^\s*Error'
 ```bash
 pnpm -F @cmtx/core exec oxlint
 pnpm -F @cmtx/cli exec oxlint
-pnpm -F @cmtx/publish exec oxlint
+pnpm -F @cmtx/rule-engine exec oxlint
 ```
 
 ### Full Verification After Fix

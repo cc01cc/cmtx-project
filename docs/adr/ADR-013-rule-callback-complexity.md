@@ -7,7 +7,7 @@
 
 ## 1. 背景
 
-当前 `@cmtx/publish` 的 Preset 设计中，已经存在 Rule 级别的回调（如 `frontmatter-id` Rule 的 `getNextCounterValue`）。这引发了一个架构问题：
+当前 `@cmtx/rule-engine` 的 Preset 设计中，已经存在 Rule 级别的回调（如 `frontmatter-id` Rule 的 `getNextCounterValue`）。这引发了一个架构问题：
 
 > 如果每个 Rule 都可以有自己的回调，是否会导致 Preset 设计变得非常复杂？
 

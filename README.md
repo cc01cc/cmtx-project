@@ -23,7 +23,7 @@
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | @cmtx/core                                     | [![npm version](https://img.shields.io/npm/v/@cmtx/core.svg)](https://www.npmjs.com/package/@cmtx/core)                                                                         |
 | @cmtx/asset                                    | [![npm version](https://img.shields.io/npm/v/@cmtx/asset.svg)](https://www.npmjs.com/package/@cmtx/asset)                                                                       |
-| @cmtx/publish                                  | [![npm version](https://img.shields.io/npm/v/@cmtx/publish.svg)](https://www.npmjs.com/package/@cmtx/publish)                                                                   |
+| @cmtx/rule-engine                              | [![npm version](https://img.shields.io/npm/v/@cmtx/rule-engine.svg)](https://www.npmjs.com/package/@cmtx/rule-engine)                                                           |
 | @cmtx/storage                                  | [![npm version](https://img.shields.io/npm/v/@cmtx/storage.svg)](https://www.npmjs.com/package/@cmtx/storage)                                                                   |
 | @cmtx/template                                 | [![npm version](https://img.shields.io/npm/v/@cmtx/template.svg)](https://www.npmjs.com/package/@cmtx/template)                                                                 |
 | @cmtx/fpe-wasm                                 | [![npm version](https://img.shields.io/npm/v/@cmtx/fpe-wasm.svg)](https://www.npmjs.com/package/@cmtx/fpe-wasm)                                                                 |
@@ -116,7 +116,7 @@ import { ConfigBuilder } from "@cmtx/asset/upload";
 | ---------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | @cmtx/core                                     | Markdown 纯文本处理核心：图片解析/替换、frontmatter、章节编号 | [README](./packages/core/README.md)                                     |
 | @cmtx/asset                                    | 资产管理：上传、转移、下载、删除、配置加载                    | [README](./packages/asset/README.md)                                    |
-| @cmtx/publish                                  | 规则引擎、内容变换、元数据、ID 生成、跨平台适配               | [README](./packages/publish/README.md)                                  |
+| @cmtx/rule-engine                              | 规则引擎、内容变换、元数据、ID 生成、跨平台适配               | [README](./packages/rule-engine/README.md)                              |
 | @cmtx/storage                                  | 云存储适配器（阿里云 OSS、腾讯云 COS）                        | [README](./packages/storage/README.md)                                  |
 | @cmtx/template                                 | 模板渲染引擎                                                  | [README](./packages/template/README.md)                                 |
 | @cmtx/fpe-wasm                                 | NIST SP 800-38G FF1 格式保留加密（WASM）                      | [README](./packages/fpe-wasm/README.md)                                 |
@@ -135,7 +135,7 @@ import { ConfigBuilder } from "@cmtx/asset/upload";
   @cmtx/cli  @cmtx/mcp-server  cmtx-vscode
 
 第四层：处理层（文档处理）
-  @cmtx/publish        — 规则引擎、内容变换、元数据、ID 生成
+  @cmtx/rule-engine        — 规则引擎、内容变换、元数据、ID 生成
 
 第三层：业务编排层（文件操作 + 业务流程）
   @cmtx/asset          — 上传/转移/下载/删除管道、配置管理
@@ -166,9 +166,9 @@ import { ConfigBuilder } from "@cmtx/asset/upload";
 | 配置管理     | YAML 配置加载、环境变量替换                    | `@cmtx/asset`                     |
 | 云存储       | 统一适配器（阿里云 OSS、腾讯云 COS）           | `@cmtx/storage`                   |
 | 模板引擎     | `{variable}` 模板渲染、Builder 模式            | `@cmtx/template`                  |
-| 规则引擎     | 可扩展的 Preset 内容变换系统                   | `@cmtx/publish`                   |
-| 跨平台适配   | 通过可配置 Preset 将 Markdown 适配不同格式     | `@cmtx/publish`                   |
-| ID 生成      | UUID / slug / MD5 / NIST FF1 格式保留加密      | `@cmtx/publish`                   |
+| 规则引擎     | 可扩展的 Preset 内容变换系统                   | `@cmtx/rule-engine`               |
+| 跨平台适配   | 通过可配置 Preset 将 Markdown 适配不同格式     | `@cmtx/rule-engine`               |
+| ID 生成      | UUID / slug / MD5 / NIST FF1 格式保留加密      | `@cmtx/rule-engine`               |
 | 预签名 URL   | markdown-it 异步预签名 URL 生成                | `@cmtx/markdown-it-presigned-url` |
 | MCP 服务器   | JSON-RPC 2.0 标准，AI Agent 直接调用           | `@cmtx/mcp-server`                |
 | CLI          | 完整的命令行接口                               | `@cmtx/cli`                       |

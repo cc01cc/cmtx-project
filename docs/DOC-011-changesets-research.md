@@ -155,7 +155,7 @@ Changesets 通过 `@manypkg/get-packages` 发现 workspace 中的包，该工具
 - `@cmtx/fpe-wasm`
 - `@cmtx/markdown-it-presigned-url`
 - `@cmtx/markdown-it-presigned-url-adapter-nodejs`
-- `@cmtx/publish`
+- `@cmtx/rule-engine`
 - `@cmtx/storage`
 - `@cmtx/template`
 

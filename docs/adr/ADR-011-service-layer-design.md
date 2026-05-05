@@ -31,7 +31,7 @@
    └─ 存储适配器接口
 
 第三层（处理层）
-└─ @cmtx/publish
+└─ @cmtx/rule-engine
    └─ rules
       └─ services/
          ├─ 重新导出 CoreService
@@ -50,7 +50,7 @@
 **重复导出现象**：
 
 ```typescript
-// @cmtx/publish/rules/services/index.ts
+// @cmtx/rule-engine/rules/services/index.ts
 export { CoreService, createCoreService } from "@cmtx/core";
 export { AssetService, createAssetService } from "@cmtx/asset";
 export { StorageServiceImpl, createStorageService } from "./storage-service.js"; // ❌ 重复！
@@ -82,9 +82,9 @@ const images = service.filterImages(text);
 | CLI (`@cmtx/cli`)                         | 直接调用函数     | ❌ 否          |
 | MCP Server (`@cmtx/mcp-server`)           | 直接调用函数     | ❌ 否          |
 | VS Code 扩展 (`@cmtx/vscode-extension`)   | 直接调用函数     | ❌ 否          |
-| **Publish Rules** (`@cmtx/publish/rules`) | **需要统一接口** | ✅ **是**      |
+| **Publish Rules** (`@cmtx/rule-engine/rules`) | **需要统一接口** | ✅ **是**      |
 
-**结论**：只有 `@cmtx/publish` 的 Rule 系统需要统一的 Service 接口！
+**结论**：只有 `@cmtx/rule-engine` 的 Rule 系统需要统一的 Service 接口！
 
 ### 2.2 Service 的真实价值
 
@@ -212,7 +212,7 @@ const images = service.filterImages(markdown);
 - **绝大多数场景**
 ```
 
-#### 第三步：清理 @cmtx/publish/rules/services
+#### 第三步：清理 @cmtx/rule-engine/rules/services
 
 移除已废弃的 StorageService，简化导出：
 
@@ -331,7 +331,7 @@ rm packages/publish/src/rules/services/storage-service.ts
            ↑ (被 publish 重新导出并混合使用)
 
 ┌─────────────────────────────┐
-│   @cmtx/publish/rules       │
+│   @cmtx/rule-engine/rules       │
 ├─────────────────────────────┤
 │ 重新导出：CoreService       │
 │ 重新导出：AssetService      │
@@ -360,7 +360,7 @@ rm packages/publish/src/rules/services/storage-service.ts
         ↓ 用于需要 Service 的场景
 
 ┌─────────────────────────────┐
-│   @cmtx/publish/rules       │
+│   @cmtx/rule-engine/rules       │
 ├─────────────────────────────┤
 │ 从 @cmtx/core/services 导入 │
 │ 从 @cmtx/asset/services 导入│
@@ -391,7 +391,7 @@ rm packages/publish/src/rules/services/storage-service.ts
 
 ```typescript
 import { CoreService } from "@cmtx/core";
-import { CoreService } from "@cmtx/publish/rules";
+import { CoreService } from "@cmtx/rule-engine/rules";
 // ❌ 不清楚应该从哪里导入
 ```
 
@@ -405,7 +405,7 @@ import { filterImagesInText } from "@cmtx/core";
 import { CoreService } from "@cmtx/core/services";
 
 // ✅ Publish Rule 系统统一导出
-import { CoreService, AssetService } from "@cmtx/publish/rules/services";
+import { CoreService, AssetService } from "@cmtx/rule-engine/rules/services";
 ```
 
 ---

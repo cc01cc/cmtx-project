@@ -16,7 +16,7 @@ CMTX 项目是一个基于 pnpm workspace 的 monorepo，包含多个 npm 包：
 
 - `@cmtx/core` - 核心 Markdown 处理库
 - `@cmtx/asset` - 资产管理（上传、转移）
-- `@cmtx/publish` - 发布工具
+- `@cmtx/rule-engine` - 发布工具
 - `@cmtx/storage` - 存储适配器
 - `@cmtx/template` - 模板引擎
 - `cmtx-vscode` - VS Code 扩展
@@ -113,7 +113,7 @@ CJS: var import_trash = __toESM(require("trash"), 1)
 **决策内容**：
 
 1. ✅ 采用方案 C（所有包输出双格式）
-2. ✅ `@cmtx/publish` 采用**工厂模式**处理 `ruleEngine` 单例
+2. ✅ `@cmtx/rule-engine` 采用**工厂模式**处理 `ruleEngine` 单例
 
 **决策理由**：
 
@@ -185,7 +185,7 @@ CJS: var import_trash = __toESM(require("trash"), 1)
 | ---------------- | ----------------------------- | ------ | ------------------------ |
 | `@cmtx/core`     | 双格式构建                    | 1      | 无                       |
 | `@cmtx/asset`    | 双格式构建                    | 2      | 无（无状态）             |
-| `@cmtx/publish`  | 双格式构建 + **工厂模式重构** | 3      | ⚠️ 需要重构 `ruleEngine` |
+| `@cmtx/rule-engine`  | 双格式构建 + **工厂模式重构** | 3      | ⚠️ 需要重构 `ruleEngine` |
 | `@cmtx/storage`  | 双格式构建                    | 4      | 无（无状态）             |
 | `@cmtx/template` | 双格式构建                    | 5      | 无（无状态）             |
 
@@ -270,7 +270,7 @@ CJS: var import_trash = __toESM(require("trash"), 1)
     - **无双包危害**
 
 2. **状态管理**
-    - `@cmtx/asset`、`@cmtx/publish`：配置驱动
+    - `@cmtx/asset`、`@cmtx/rule-engine`：配置驱动
     - 状态通过参数传递，非模块级单例
     - **风险低**
 
@@ -300,7 +300,7 @@ CJS: var import_trash = __toESM(require("trash"), 1)
 
 - [ ] 同上
 
-**优先级 3：@cmtx/publish**
+**优先级 3：@cmtx/rule-engine**
 
 - [ ] 同上
 
@@ -454,7 +454,7 @@ code --install-extension cmtx-vscode-*.vsix
 
 ---
 
-## 附录 B：@cmtx/publish 工厂模式重构示例
+## 附录 B：@cmtx/rule-engine 工厂模式重构示例
 
 ### 当前代码（需要重构）
 
@@ -507,7 +507,7 @@ export function createDefaultRuleEngine(): RuleEngine {
 **旧 API**：
 
 ```typescript
-import { ruleEngine } from "@cmtx/publish";
+import { ruleEngine } from "@cmtx/rule-engine";
 ruleEngine.register(myRule);
 await ruleEngine.execute(config);
 ```
@@ -515,7 +515,7 @@ await ruleEngine.execute(config);
 **新 API**：
 
 ```typescript
-import { createRuleEngine, createDefaultRuleEngine } from "@cmtx/publish";
+import { createRuleEngine, createDefaultRuleEngine } from "@cmtx/rule-engine";
 
 // 方式 1：手动创建和配置
 const engine = createRuleEngine();
