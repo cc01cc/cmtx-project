@@ -1,6 +1,5 @@
 packages:
     - packages/*
-    - private-workspace
 
 catalog:
     "@types/ali-oss": ^6.23.2

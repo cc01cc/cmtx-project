@@ -1,6 +1,6 @@
 # Contributing
 
-感谢你的贡献意向！本仓库采用 pnpm workspace 的 Monorepo 结构，当前包含 @cmtx/core、@cmtx/upload、@cmtx/cli 与 @cmtx/mcp-server。
+感谢你的贡献意向！本仓库采用 pnpm workspace 的 Monorepo 结构，当前包含 @cmtx/core、@cmtx/asset、@cmtx/cli 与 @cmtx/mcp-server。
 
 ## 开发环境
 
@@ -15,7 +15,7 @@ pnpm install        # 安装依赖
 pnpm build          # 递归构建所有包
 pnpm test           # 递归运行 Vitest
 pnpm lint           # 代码检查（oxlint & oxfmt）
-pnpm run docs       # 递归生成 TypeDoc（core、upload 输出至各自 docs/api）
+pnpm run docs       # 生成 TypeDoc API 文档
 ```
 
 ## 代码变更工作流程
@@ -72,6 +72,7 @@ pnpm run docs       # 递归生成 TypeDoc（core、upload 输出至各自 docs/
 - 导入路径在源码中使用 .js 后缀（满足 NodeNext 构建）
 - Markdown 表格使用空格分隔管道，标题与列表上下保持空行
 - 遵循现有项目中的命名和组织方式
+- 非必要不使用 `import()` 动态导入。如使用，必须在代码注释中说明必要性。对 `node:*` 内置模块禁止动态导入（无实际收益，增加异步复杂度）。TypeScript 类型引用语法（`import("./types").SomeType`）不受此限制
 
 ## 设计原则
 
@@ -82,9 +83,19 @@ pnpm run docs       # 递归生成 TypeDoc（core、upload 输出至各自 docs/
 - **依赖倒置**：通过回调注入依赖（如 logger 参数），降低模块耦合
 - **DRY**：提取公共逻辑（如 `withRetry`），使用 TypeDoc 生成 API 文档，避免在 README 中重复 API 说明
 
+## 日志规范
+
+- **库包只接接口**：从 `@cmtx/core` 导入 `Logger` 类型与 `dummyLogger`，通过可选参数注入（`logger: Logger = dummyLogger`），默认静默
+- **应用层负责实现**：CLI 用 `createCliLogger()`（winston），VS Code 用 `UnifiedLogger`（OutputChannel + 文件日志），`console` 本身也是合法实现
+- **禁止 `console.*`**：库包代码不得直接调用 `console.log/warn/error`，必须通过 Logger 接口
+- **日志格式**：消息加 `[ModuleName]` 前缀，如 `this.logger.info("[UploadPipeline] Starting")`
+
 ## 版本与发布
 
-- 正式发布后各包将独立版本号和更新周期
+- 当前版本处于 `0.x` 开发阶段，**禁止使用 major bump**
+- 破坏性变更（API 删除、签名变更）使用 minor（如 `0.1.0` → `0.2.0`）
+- 常规更新（新功能、bug 修复、内部优化）使用 patch（如 `0.1.0` → `0.1.1`）
+- 正式发布 `1.0.0` 的时机由维护者决定，通常在 API 稳定且需要对外承诺兼容性时
 - 发布范围：@cmtx/\*（默认 public 发布）
 - Changelog 维护：各包内 CHANGELOG.md，遵循 Keep a Changelog 格式
 
@@ -132,7 +143,7 @@ pnpm run docs       # 递归生成 TypeDoc（core、upload 输出至各自 docs/
 - 命令行工具：Markdown 图片管理工具
 - 架构：基于 @cmtx/core 和 @cmtx/asset
 - 特性：友好 UI（ora 动画、chalk 着色）、参数验证、环境变量支持
-- 依赖：@cmtx/core、@cmtx/asset、@cmtx/publish、yargs、chalk、ora
+- 依赖：@cmtx/core、@cmtx/asset、@cmtx/publish、@cmtx/storage、yargs、chalk、ora
 - 输出：dist 目录、bin/cmtx 可执行文件
 
 ### @cmtx/mcp-server
@@ -147,8 +158,8 @@ pnpm run docs       # 递归生成 TypeDoc（core、upload 输出至各自 docs/
 - NIST SP 800-38G FF1 格式保留加密（WASM）
 - 实现：Rust + wasm-pack，符合 NIST 标准，AES-256
 - 难点：WASM 多目标构建（web/bundler）、TypeScript 类型适配
-- 详见：[开发指南 - WASM 打包说明](./docs/DEV-005-development_guide.md#wasm-打包说明)
+- 详见：[开发指南 - WASM 打包说明](./docs/DEV-001-development_guide.md#wasm-打包说明)
 
 ## 相关文档
 
-- [开发指南](./docs/DEV-005-development_guide.md) - 开发环境、常用命令、WASM 打包说明
+- [开发指南](./docs/DEV-001-development_guide.md) - 开发环境、常用命令、WASM 打包说明

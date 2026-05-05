@@ -22,7 +22,7 @@
     },
     "type": "module",
     "scripts": {
-        "build": "pnpm -r build",
+        "build": "pnpm -r build && node scripts/validate-dist.mjs",
         "test": "pnpm -r test",
         "docs": "typedoc --options typedoc.json",
         "docs:check": "typedoc --options typedoc.json --emit none",
@@ -41,7 +41,7 @@
         "release:beta:publish": "changeset publish && git push --follow-tags",
         "release:latest": "changeset pre exit && pnpm changeset version && changeset publish && git push --follow-tags",
         "prepublish:validate": "pnpm run validate:build && pnpm run validate:tests && pnpm run validate:typecheck",
-        "validate:build": "pnpm -r build",
+        "validate:build": "pnpm -r build && node scripts/validate-dist.mjs",
         "validate:tests": "pnpm -r test",
         "validate:typecheck": "pnpm -r typecheck"
     },

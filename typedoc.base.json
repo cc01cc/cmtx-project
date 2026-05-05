@@ -8,7 +8,10 @@
     "excludeReferences": true,
     "excludeInternal": true,
     "excludeExternals": true,
-    "categorizeByGroup": true,
+    "categorizeByGroup": false,
+    "navigation": {
+        "includeCategories": true
+    },
     "sort": ["alphabetical", "visibility"],
     "searchInComments": true,
     "useTsLinkResolution": true,

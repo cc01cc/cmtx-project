@@ -17,7 +17,10 @@
     "excludeReferences": true,
     "excludeInternal": true,
     "excludeExternals": true,
-    "categorizeByGroup": true,
+    "categorizeByGroup": false,
+    "navigation": {
+        "includeCategories": true
+    },
     "sort": ["alphabetical", "visibility"],
     "includeVersion": true,
     "blockTags": [
