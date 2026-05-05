@@ -29,25 +29,25 @@
     "type": "module",
     "main": "./dist/index.cjs",
     "module": "./dist/index.mjs",
-    "types": "./dist/index.d.ts",
+    "types": "./dist/index.d.mts",
     "exports": {
         ".": {
-            "types": "./dist/index.d.ts",
+            "types": "./dist/index.d.mts",
             "import": "./dist/index.mjs",
             "require": "./dist/index.cjs"
         },
         "./adapters/ali-oss": {
-            "types": "./dist/adapters/ali-oss.d.ts",
+            "types": "./dist/adapters/ali-oss.d.mts",
             "import": "./dist/adapters/ali-oss.mjs",
             "require": "./dist/adapters/ali-oss.cjs"
         },
         "./adapters/tencent-cos": {
-            "types": "./dist/adapters/tencent-cos.d.ts",
+            "types": "./dist/adapters/tencent-cos.d.mts",
             "import": "./dist/adapters/tencent-cos.mjs",
             "require": "./dist/adapters/tencent-cos.cjs"
         },
         "./adapters/factory": {
-            "types": "./dist/adapters/factory.d.ts",
+            "types": "./dist/adapters/factory.d.mts",
             "import": "./dist/adapters/factory.mjs",
             "require": "./dist/adapters/factory.cjs"
         }

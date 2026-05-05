@@ -88,3 +88,15 @@ export type {
     TencentCredentials,
     UploadBufferOptions,
 } from "./types.js";
+
+// ==================== 凭证工厂 ====================
+
+/**
+ * @category 凭证工厂
+ */
+export { createCredentials } from "./credentials.js";
+
+/**
+ * @category 凭证工厂
+ */
+export type { CredentialConfig } from "./credentials.js";

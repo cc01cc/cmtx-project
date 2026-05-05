@@ -32,6 +32,10 @@ pnpm add ali-oss
 pnpm add cos-nodejs-sdk-v5
 ```
 
+## 4. 配置与环境变量
+
+凭证配置及环境变量完整清单请参考 [CFG-001 配置参考](../../docs/CFG-001-configuration-reference.md)。
+
 ## 4. 官方资源
 
 ### 4.1. 阿里云 OSS

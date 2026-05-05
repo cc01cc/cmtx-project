@@ -33,8 +33,7 @@
 
 - Clean up compatibility exports, remove redundant re-exports
 
-## 0.1.1-alpha.0
-
+## [0.1.1-alpha.0] - 2026-05-05
 ### Patch Changes
 
 - 7d85dec: changeset test
