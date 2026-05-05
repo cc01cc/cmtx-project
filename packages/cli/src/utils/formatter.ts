@@ -1,32 +1,9 @@
-/**
- * 输出格式化
- *
- * 支持 JSON、表格、纯文本格式
- */
-
 import chalk from "chalk";
 import type { OutputFormat } from "../types/cli.js";
+import type { ImageEntry, LocalImageEntry, DirectoryAnalysis } from "@cmtx/asset/file";
 
-// 定义分析结果类型
-interface AnalysisResult {
-    images: Array<{
-        localPath: string;
-        fileSize: number;
-        referencedIn: string[];
-    }>;
-    skipped: Array<{
-        localPath: string;
-        reason: string;
-    }>;
-    totalSize: number;
-    totalCount: number;
-}
-
-/**
- * 格式化分析结果
- */
 export function formatAnalyzeResult(
-    analysis: AnalysisResult,
+    analysis: DirectoryAnalysis,
     format: OutputFormat = "table",
 ): string {
     switch (format) {
@@ -39,10 +16,12 @@ export function formatAnalyzeResult(
     }
 }
 
-/**
- * JSON 格式输出
- */
-function formatAnalyzeJSON(analysis: AnalysisResult): string {
+function isLocal(entry: ImageEntry): entry is LocalImageEntry {
+    return entry.type === "local";
+}
+
+function formatAnalyzeJSON(analysis: DirectoryAnalysis): string {
+    const totalReferences = analysis.images.reduce((sum, img) => sum + img.referencedBy.length, 0);
     return JSON.stringify(
         {
             success: true,
@@ -50,15 +29,13 @@ function formatAnalyzeJSON(analysis: AnalysisResult): string {
             result: {
                 summary: {
                     total: analysis.images.length,
-                    skipped: analysis.skipped.length,
-                    totalSize: analysis.totalSize,
-                    totalReferences: analysis.images.reduce(
-                        (sum, img) => sum + img.referencedIn.length,
-                        0,
-                    ),
+                    referenced: analysis.summary.referenced,
+                    orphan: analysis.summary.orphan,
+                    totalSize: analysis.summary.totalSize,
+                    totalReferences,
+                    mdFiles: analysis.summary.mdFiles,
                 },
                 images: analysis.images,
-                skipped: analysis.skipped,
             },
         },
         null,
@@ -66,64 +43,98 @@ function formatAnalyzeJSON(analysis: AnalysisResult): string {
     );
 }
 
-/**
- * 表格格式输出
- */
-function formatAnalyzeTable(analysis: AnalysisResult): string {
-    let output = chalk.bold("\n✓ 分析结果\n");
+function formatAnalyzeTable(analysis: DirectoryAnalysis): string {
+    const lines: string[] = [];
+    const totalReferences = analysis.images.reduce((sum, img) => sum + img.referencedBy.length, 0);
+
+    lines.push("Analyze Result");
+    lines.push("");
 
     if (analysis.images.length > 0) {
-        output += chalk.cyan("📸 有效图片：\n");
-        for (const img of analysis.images) {
-            const sizeKB = (img.fileSize / 1024).toFixed(1);
-            output += chalk.dim(
-                `  • ${img.localPath} (${sizeKB}KB, ${img.referencedIn.length} 处引用)\n`,
+        const header = `  ${"Image".padEnd(30)} ${"Size".padStart(10)} ${"Refs".padStart(6)} ${"Files".padStart(6)}  Status`;
+        const sep = `  ${"-".repeat(30)} ${"-".repeat(10)} ${"-".repeat(6)} ${"-".repeat(6)}  ${"-".repeat(8)}`;
+        lines.push(header);
+        lines.push(sep);
+        for (const entry of analysis.images) {
+            const sizeStr =
+                isLocal(entry) && entry.fileSize > 0
+                    ? `${(entry.fileSize / 1024).toFixed(1)} KB`
+                    : "-";
+            const uniqueFiles = new Set(entry.referencedBy).size;
+            const status = isLocal(entry) && entry.orphan ? "[orphan]" : "";
+            lines.push(
+                `  ${entry.src.padEnd(30)} ${sizeStr.padStart(10)} ${String(entry.referencedBy.length).padStart(6)} ${String(uniqueFiles).padStart(6)}  ${status.padEnd(8)}`,
             );
         }
     }
 
-    if (analysis.skipped.length > 0) {
-        output += chalk.yellow("\n⚠️  跳过的图片：\n");
-        for (const skipped of analysis.skipped) {
-            output += chalk.dim(`  • ${skipped.localPath} (${skipped.reason})\n`);
+    lines.push("");
+    lines.push(
+        `Summary: ${analysis.summary.referenced} referenced, ${analysis.summary.orphan} orphan, ` +
+            `${(analysis.summary.totalSize / 1024).toFixed(1)} KB total, ${totalReferences} references, ` +
+            `${analysis.summary.mdFiles} md files`,
+    );
+
+    const withRefs = analysis.images.filter((i) => !isLocal(i) || !i.orphan);
+    if (withRefs.length > 0) {
+        lines.push("");
+        lines.push("Reference Details:");
+        for (const entry of withRefs) {
+            const refCount = new Map<string, number>();
+            for (const fp of entry.referencedBy) {
+                refCount.set(fp, (refCount.get(fp) ?? 0) + 1);
+            }
+            lines.push(`  ${entry.src}`);
+            for (const [filePath, count] of refCount) {
+                lines.push(`    ${filePath}  (${count})`);
+            }
         }
     }
 
-    const totalSize = (analysis.totalSize / 1024).toFixed(1);
-    output += chalk.bold("\n📊 统计：\n");
-    output += chalk.dim(
-        `  总图片数: ${analysis.images.length}\n` +
-            `  跳过数: ${analysis.skipped.length}\n` +
-            `  总大小: ${totalSize}KB\n` +
-            `  总引用数: ${analysis.images.reduce((sum, img) => sum + img.referencedIn.length, 0)}\n`,
-    );
-
-    return output;
-}
-
-/**
- * 纯文本格式输出（日志风格）
- */
-function formatAnalyzePlain(analysis: AnalysisResult): string {
-    const lines: string[] = [
-        `[分析完成] 有效图片: ${analysis.images.length}, 跳过: ${analysis.skipped.length}`,
-        `[大小统计] ${(analysis.totalSize / 1024).toFixed(1)}KB`,
-    ];
-
-    for (const img of analysis.images) {
-        lines.push(`  ✓ ${img.localPath}`);
-    }
-
-    for (const skipped of analysis.skipped) {
-        lines.push(`  ✗ ${skipped.localPath} (${skipped.reason})`);
+    const orphans = analysis.images.filter((i) => isLocal(i) && i.orphan);
+    if (orphans.length > 0) {
+        lines.push("");
+        lines.push("Orphan Images:");
+        for (const entry of orphans) {
+            lines.push(`  ${entry.src}  [orphan]`);
+        }
     }
 
     return lines.join("\n");
 }
 
-/**
- * 格式化上传预览结果（dry-run）
- */
+function formatAnalyzePlain(analysis: DirectoryAnalysis): string {
+    const totalReferences = analysis.images.reduce((sum, img) => sum + img.referencedBy.length, 0);
+    const lines: string[] = [
+        `[ANALYZE] ${analysis.summary.referenced} referenced, ${analysis.summary.orphan} orphan, ` +
+            `${analysis.summary.totalSize} bytes, ${totalReferences} references, ${analysis.summary.mdFiles} md files`,
+    ];
+
+    if (analysis.images.length > 0) {
+        lines.push("");
+        lines.push("images:");
+        for (const entry of analysis.images) {
+            const uniqueFiles = new Set(entry.referencedBy).size;
+            const sizeStr = isLocal(entry) && entry.fileSize > 0 ? `${entry.fileSize} bytes` : "-";
+            const orphanTag = isLocal(entry) && entry.orphan ? " [orphan]" : "";
+            lines.push(
+                `  ${entry.src}${orphanTag} (${sizeStr}, ${entry.referencedBy.length} refs, ${uniqueFiles} files)`,
+            );
+            if (isLocal(entry) && !entry.orphan && entry.referencedBy.length > 0) {
+                const refCount = new Map<string, number>();
+                for (const fp of entry.referencedBy) {
+                    refCount.set(fp, (refCount.get(fp) ?? 0) + 1);
+                }
+                for (const [filePath, count] of refCount) {
+                    lines.push(`    ${filePath}  (${count})`);
+                }
+            }
+        }
+    }
+
+    return lines.join("\n");
+}
+
 export function formatUploadPreview(
     preview: { imagePath: string; remotePath: string }[],
     willReplace: number,
@@ -153,76 +164,58 @@ export function formatUploadPreview(
     }
 }
 
-/**
- * 上传预览表格格式
- */
 function formatPreviewTable(
     preview: { imagePath: string; remotePath: string }[],
     willReplace: number,
     willDelete: number,
 ): string {
-    let output = chalk.bold("\n📋 上传预览（干运行）\n");
+    let output = chalk.bold("\nUpload Preview (dry-run)\n");
 
-    output += chalk.cyan("📤 待上传文件：\n");
+    output += chalk.cyan("Files to upload:\n");
     for (const item of preview) {
-        output += chalk.dim(`  • ${item.imagePath} → ${item.remotePath}\n`);
+        output += chalk.dim(`  ${item.imagePath} -> ${item.remotePath}\n`);
     }
 
-    output += chalk.bold("\n📊 预期操作：\n");
-    output += chalk.dim(`  将在 ${willReplace} 个文件中替换引用\n`);
-    output += chalk.dim(`  将删除 ${willDelete} 个本地文件\n`);
-    output += chalk.yellow("\n⚠️  这是预览，未实际执行任何操作\n");
+    output += chalk.bold("\nExpected operations:\n");
+    output += chalk.dim(`  Replace references in ${willReplace} files\n`);
+    output += chalk.dim(`  Delete ${willDelete} local files\n`);
+    output += chalk.yellow("\nThis is a preview, no changes were made.\n");
 
     return output;
 }
 
-/**
- * 上传预览纯文本格式
- */
 function formatPreviewPlain(
     preview: { imagePath: string; remotePath: string }[],
     willReplace: number,
     willDelete: number,
 ): string {
     const lines: string[] = [
-        "[DRY-RUN] 上传预览",
-        `[待上传] ${preview.length} 个文件`,
-        `[替换] ${willReplace} 个文件中的引用`,
-        `[删除] ${willDelete} 个本地文件`,
+        "[DRY-RUN] Upload Preview",
+        `[Upload] ${preview.length} files`,
+        `[Replace] ${willReplace} files`,
+        `[Delete] ${willDelete} local files`,
     ];
 
     for (const item of preview) {
-        lines.push(`  • ${item.imagePath} → ${item.remotePath}`);
+        lines.push(`  ${item.imagePath} -> ${item.remotePath}`);
     }
 
     return lines.join("\n");
 }
 
-/**
- * 格式化错误消息
- */
 export function formatError(error: Error | string): string {
     const message = typeof error === "string" ? error : error.message;
-    return chalk.red(`✗ 错误: ${message}`);
+    return chalk.red(`ERROR: ${message}`);
 }
 
-/**
- * 格式化成功消息
- */
 export function formatSuccess(message: string): string {
-    return chalk.green(`✓ ${message}`);
+    return chalk.green(`OK: ${message}`);
 }
 
-/**
- * 格式化警告消息
- */
 export function formatWarning(message: string): string {
-    return chalk.yellow(`⚠️  ${message}`);
+    return chalk.yellow(`WARN: ${message}`);
 }
 
-/**
- * 格式化信息消息
- */
 export function formatInfo(message: string): string {
-    return chalk.blue(`ℹ ${message}`);
+    return chalk.blue(`INFO: ${message}`);
 }

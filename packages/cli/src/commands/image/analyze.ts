@@ -1,20 +1,14 @@
 /* eslint-disable no-console */
-/**
- * analyze 命令 - 分析并列出 Markdown 中的所有图片
- *
- * 用法：cmtx analyze <searchDir> [options]
- * 示例：cmtx analyze ./docs --depth 3 --output table
- */
-
+import { resolve } from "node:path";
 import { FileService } from "@cmtx/asset/file";
-import type { ImageMatch } from "@cmtx/core";
+import type { AnalyzeOptions } from "@cmtx/asset/file";
 import type { Argv, CommandModule } from "yargs";
-import type { AnalyzeCommandOptions } from "../types/cli.js";
-import { formatAnalyzeResult, formatError } from "../utils/formatter.js";
-import { createLogger } from "../utils/logger.js";
+import type { AnalyzeCommandOptions } from "../../types/cli.js";
+import { formatAnalyzeResult, formatError } from "../../utils/formatter.js";
+import { createLogger } from "../../utils/logger.js";
 
 export const command = "analyze <searchDir>";
-export const description = "扫描并分析 Markdown 文件中的图片";
+export const description = "扫描并分析目录中的所有图片";
 
 export function builder(yargs: Argv): Argv {
     return yargs
@@ -29,7 +23,7 @@ export function builder(yargs: Argv): Argv {
         })
         .option("extensions", {
             alias: "e",
-            description: "允许的文件扩展名，逗号分隔 (.jpg,.png,.gif)",
+            description: "扫描的图片扩展名，逗号分隔（默认: png,jpg,jpeg,gif,svg,webp）",
             type: "string",
         })
         .option("maxSize", {
@@ -51,26 +45,20 @@ export async function handler(argv: AnalyzeCommandOptions): Promise<void> {
         const logger = createLogger(argv.verbose, argv.quiet);
         const fileService = new FileService();
 
-        logger.info(`扫描目录: ${argv.searchDir}`);
+        const searchDir = resolve(argv.searchDir);
+        logger.info(`扫描目录: ${searchDir}`);
 
-        const result = await fileService.filterImagesFromDirectory(argv.searchDir);
+        const options: AnalyzeOptions = {};
+        if (argv.extensions) {
+            options.extensions = argv.extensions.split(",").map((e) => e.trim().replace(/^\./, ""));
+        }
+        if (argv.maxSize) {
+            options.maxSize = argv.maxSize;
+        }
 
-        // 转换为分析格式
-        const analysis = {
-            images: result.map((item: ImageMatch) => ({
-                localPath: item.src,
-                fileSize: 0,
-                referencedIn: [],
-            })),
-            skipped: [],
-            totalSize: 0,
-            totalCount: result.length,
-        };
+        const result = await fileService.analyzeDirectory(searchDir, options);
 
-        const formatted = formatAnalyzeResult(analysis, argv.output as "json" | "table" | "plain");
-        console.log(formatted);
-
-        logger.info(`扫描完成，找到 ${result.length} 个图片`);
+        console.log(formatAnalyzeResult(result, argv.output as "json" | "table" | "plain"));
     } catch (error) {
         const message = error instanceof Error ? error : String(error);
         console.error(formatError(message));
@@ -78,7 +66,6 @@ export async function handler(argv: AnalyzeCommandOptions): Promise<void> {
     }
 }
 
-// 默认导出为 yargs CommandModule
 const analyzeModule: CommandModule = {
     command,
     describe: description,

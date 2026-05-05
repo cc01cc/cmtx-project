@@ -3,7 +3,7 @@
  *
  * @module rules/rule-adapter
  * @description
- * 为 CLI 提供 Rule 引擎适配层，使 CLI 能够方便地使用 @cmtx/publish 的 Rule 引擎。
+ * 为 CLI 提供 Rule 引擎适配层，使 CLI 能够方便地使用 @cmtx/rule-engine 的 Rule 引擎。
  *
  * 职责：
  * 1. 创建和配置 ServiceRegistry
@@ -13,16 +13,15 @@
  */
 
 import path from "node:path";
-import type { RuleEngine, ServiceRegistry } from "@cmtx/publish";
+import type { RuleEngine, ServiceRegistry } from "@cmtx/rule-engine";
 import {
-    createRuleEngine,
-    createAssetService,
     createCoreService,
-    createDefaultRuleEngine,
-    createServiceRegistry,
+    createRuleEngineContext,
     type RuleContext,
     type RuleResult,
-} from "@cmtx/publish";
+} from "@cmtx/rule-engine";
+import { createUploadService } from "@cmtx/asset";
+import type { ConflictResolutionStrategy } from "@cmtx/asset/upload";
 import type { IStorageAdapter } from "@cmtx/storage";
 
 /**
@@ -32,18 +31,17 @@ export class RuleEngineAdapter {
     private engine: RuleEngine;
     private registry: ServiceRegistry;
 
-    private constructor() {
-        this.engine = createRuleEngine();
-        this.registry = createServiceRegistry();
+    private constructor(engine: RuleEngine, registry: ServiceRegistry) {
+        this.engine = engine;
+        this.registry = registry;
     }
 
     /**
      * 异步创建 RuleEngineAdapter 实例
      */
     static async create(): Promise<RuleEngineAdapter> {
-        const adapter = new RuleEngineAdapter();
-        adapter.engine = createDefaultRuleEngine();
-        return adapter;
+        const { engine, registry } = createRuleEngineContext();
+        return new RuleEngineAdapter(engine, registry);
     }
 
     /**
@@ -68,18 +66,22 @@ export class RuleEngineAdapter {
         options?: {
             prefix?: string;
             namingTemplate?: string;
+            conflictStrategy?: ConflictResolutionStrategy;
         },
     ): void {
-        const assetService = createAssetService({
+        const uploadService = createUploadService({
             adapter,
             prefix: options?.prefix,
             namingTemplate: options?.namingTemplate,
+            conflictStrategy: options?.conflictStrategy,
         });
-        this.registry.register(assetService);
+        this.registry.register(uploadService);
     }
 
     /**
      * 配置核心服务
+     *
+     * @deprecated Core 服务未被任何内置规则使用，无需注册
      */
     configureCore(): void {
         const coreService = createCoreService();

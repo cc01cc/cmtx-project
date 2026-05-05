@@ -35,10 +35,9 @@ export interface UploadCommandOptions extends GlobalOptions {
     filePath: string;
     provider?: "aliyun-oss" | "tencent-cos";
     prefix?: string;
-    namingPattern?: string; // CLI 选项 --naming-pattern 转换为 namingPattern
-    enableDelete?: boolean;
-    deleteStrategy?: "trash" | "move" | "hard-delete";
-    trashDir?: string;
+    region?: string;
+    bucket?: string;
+    conflictStrategy?: "skip" | "overwrite";
 }
 
 /**
@@ -54,9 +53,27 @@ export interface FindCommandOptions extends GlobalOptions {
  */
 export interface DeleteCommandOptions extends GlobalOptions {
     imagePath: string;
-    strategy?: string;
+    strategy?: "trash" | "move" | "hard-delete";
     force?: boolean;
-    moveDir?: string;
+    "remove-references"?: boolean;
+    "move-dir"?: string;
+    "dry-run"?: boolean;
+    yes?: boolean;
+    projectRoot?: string;
+}
+
+/**
+ * Prune 命令选项
+ */
+export interface PruneCommandOptions extends GlobalOptions {
+    searchDir: string;
+    strategy?: "trash" | "move" | "hard-delete";
+    "move-dir"?: string;
+    "dry-run"?: boolean;
+    force?: boolean;
+    yes?: boolean;
+    extensions?: string;
+    "max-size"?: number;
 }
 
 /**
@@ -149,18 +166,15 @@ export interface CmtxConfig {
 }
 
 /**
- * adapt 命令选项
+ * publish 命令选项
  */
-export interface AdaptCommandOptions extends GlobalOptions {
+export interface PublishCommandOptions extends GlobalOptions {
     input: string;
-    ruleFile?: string;
-    platform?: string;
-    check?: boolean;
-    render?: "html";
-    out?: string;
-    outDir?: string;
+    preset?: string;
+    toDir?: string;
     dryRun: boolean;
     verbose: boolean;
+    force: boolean;
 }
 
 /**

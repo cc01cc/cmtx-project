@@ -2,11 +2,7 @@
 /**
  * download 命令 - 下载 Markdown 中的远程图片到本地
  *
- * 注意：此命令暂时保留独立实现，未来可以考虑扩展 Rule 引擎支持公开 URL 下载。
- *
- * TODO: 未来实现 - 当 Rule 引擎支持公开 URL 下载时，迁移到使用 download-images Rule。
- * 当前 download-images Rule 需要 AssetService（需要存储适配器配置），
- * 而 CLI 的 download 命令支持从公开 URL 下载，不一定需要存储适配器。
+ * 使用 @cmtx/asset/download 的 DownloadService 实现。
  */
 
 import { resolve } from "node:path";
@@ -14,8 +10,8 @@ import type { DownloadOptions, DownloadProgress } from "@cmtx/asset/download";
 import { createDownloadService } from "@cmtx/asset/download";
 import type { Argv, CommandModule } from "yargs";
 import type { DownloadResult } from "@cmtx/asset/download";
-import { formatError, formatInfo, formatSuccess, formatWarning } from "../utils/formatter.js";
-import { createLogger } from "../utils/logger.js";
+import { formatError, formatInfo, formatSuccess, formatWarning } from "../../utils/formatter.js";
+import { createLogger } from "../../utils/logger.js";
 
 export const command = "download <input>";
 export const describe = "下载 Markdown 中的远程图片到本地";

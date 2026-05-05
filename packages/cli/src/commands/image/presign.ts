@@ -13,13 +13,15 @@
 
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { filterImagesInText, type WebImageMatch } from "@cmtx/core";
+import type { CmtxConfig } from "@cmtx/asset/config";
+import { ConfigLoader } from "@cmtx/asset/config";
+import { filterImagesInText, type ImageMatch } from "@cmtx/core";
 import type { CloudCredentials, IStorageAdapter } from "@cmtx/storage";
+import { createCredentials } from "@cmtx/storage";
 import { createAdapter } from "@cmtx/storage/adapters/factory";
 import type { Argv, CommandModule } from "yargs";
-import { type CLIConfig, ConfigLoader } from "../config/config-loader.js";
-import { formatError, formatInfo, formatSuccess, formatWarning } from "../utils/formatter.js";
-import { createLogger } from "../utils/logger.js";
+import { formatError, formatInfo, formatSuccess, formatWarning } from "../../utils/formatter.js";
+import { createLogger } from "../../utils/logger.js";
 
 export const command = "presign [input]";
 export const describe = "生成预签名 URL";
@@ -78,101 +80,6 @@ export function builder(yargs: Argv): Argv {
 }
 
 /**
- * 从环境变量或配置创建凭证
- */
-function createCredentials(
-    provider: "aliyun-oss" | "tencent-cos",
-    config: Record<string, unknown> = {},
-): CloudCredentials {
-    switch (provider) {
-        case "aliyun-oss": {
-            const accessKeyId =
-                (config.accessKeyId as string) || process.env.ALIYUN_OSS_ACCESS_KEY_ID;
-            const accessKeySecret =
-                (config.accessKeySecret as string) || process.env.ALIYUN_OSS_ACCESS_KEY_SECRET;
-            const region =
-                (config.region as string) || process.env.ALIYUN_OSS_REGION || "oss-cn-hangzhou";
-            const bucket = (config.bucket as string) || process.env.ALIYUN_OSS_BUCKET;
-
-            if (!accessKeyId || !accessKeySecret || !bucket) {
-                throw new Error(
-                    "缺少阿里云 OSS 凭证，请设置以下环境变量或配置：\n" +
-                        "  - ALIYUN_OSS_ACCESS_KEY_ID\n" +
-                        "  - ALIYUN_OSS_ACCESS_KEY_SECRET\n" +
-                        "  - ALIYUN_OSS_BUCKET\n" +
-                        "  - ALIYUN_OSS_REGION (可选，默认 oss-cn-hangzhou)",
-                );
-            }
-
-            return {
-                provider: "aliyun-oss",
-                accessKeyId,
-                accessKeySecret,
-                region,
-                bucket,
-            };
-        }
-
-        case "tencent-cos": {
-            const secretId = (config.secretId as string) || process.env.TENCENT_COS_SECRET_ID;
-            const secretKey = (config.secretKey as string) || process.env.TENCENT_COS_SECRET_KEY;
-            const region =
-                (config.region as string) || process.env.TENCENT_COS_REGION || "ap-guangzhou";
-            const bucket = (config.bucket as string) || process.env.TENCENT_COS_BUCKET;
-
-            if (!secretId || !secretKey || !bucket) {
-                throw new Error(
-                    "缺少腾讯云 COS 凭证，请设置以下环境变量或配置：\n" +
-                        "  - TENCENT_COS_SECRET_ID\n" +
-                        "  - TENCENT_COS_SECRET_KEY\n" +
-                        "  - TENCENT_COS_BUCKET (格式: bucketname-appid)\n" +
-                        "  - TENCENT_COS_REGION (可选，默认 ap-guangzhou)",
-                );
-            }
-
-            return {
-                provider: "tencent-cos",
-                secretId,
-                secretKey,
-                region,
-                bucket,
-            };
-        }
-
-        default:
-            throw new Error(`不支持的云存储提供商: ${String(provider)}`);
-    }
-}
-
-/**
- * 从 URL 提取远程路径
- */
-function extractRemotePath(url: string): string {
-    try {
-        const urlObj = new URL(url);
-        let path = urlObj.pathname;
-        if (path.startsWith("/")) {
-            path = path.substring(1);
-        }
-        return path;
-    } catch {
-        return url;
-    }
-}
-
-/**
- * 从 URL 提取域名
- */
-function extractDomain(url: string): string {
-    try {
-        const urlObj = new URL(url);
-        return urlObj.hostname;
-    } catch {
-        return "";
-    }
-}
-
-/**
  * 生成默认域名
  */
 function generateDefaultDomain(
@@ -196,7 +103,7 @@ export async function handler(argv: PresignCommandOptions): Promise<void> {
 
     try {
         // 加载配置
-        let cliConfig: CLIConfig | undefined;
+        let cliConfig: CmtxConfig | undefined;
         if (argv.config) {
             logger.info(`加载配置文件：${argv.config}`);
             cliConfig = await configLoader.loadFromFile(argv.config);
@@ -209,7 +116,8 @@ export async function handler(argv: PresignCommandOptions): Promise<void> {
         }
 
         // 获取使用的 storage ID 和配置
-        const storageId = cliConfig?.upload?.useStorage || "default";
+        const uploadRule = cliConfig?.rules?.["upload-images"] ?? {};
+        const storageId = (uploadRule.useStorage as string) || "default";
         const storages = cliConfig?.storages || {};
         const selectedStorage = storages[storageId];
 
@@ -273,7 +181,8 @@ async function handleSingleUrl(
 ): Promise<void> {
     logger.info(`处理 URL: ${url}`);
 
-    const domain = extractDomain(url);
+    const urlObj = new URL(url);
+    const domain = urlObj.hostname;
     logger.info(`域名: ${domain}`);
 
     // 检查是否匹配默认域名
@@ -283,7 +192,7 @@ async function handleSingleUrl(
         );
     }
 
-    const remotePath = extractRemotePath(url);
+    const remotePath = urlObj.pathname.replace(/^\//, "");
     logger.info(`远程路径: ${remotePath}`);
 
     try {
@@ -310,13 +219,14 @@ async function handleSingleUrl(
 }
 
 async function processSingleImage(
-    image: WebImageMatch,
+    image: ImageMatch,
     adapter: IStorageAdapter,
     expire: number,
     index: number,
     total: number,
 ): Promise<boolean> {
-    const remotePath = extractRemotePath(image.src);
+    const urlObj = new URL(image.src);
+    const remotePath = urlObj.pathname.replace(/^\//, "");
     try {
         const signedUrl = await adapter.getSignedUrl?.(remotePath, expire, {
             disposition: "inline",
@@ -351,7 +261,7 @@ async function handleMarkdownFile(
         value: "web",
     });
 
-    const webImages = images.filter((img): img is WebImageMatch => img.type === "web");
+    const webImages = images.filter((img) => img.type === "web");
 
     if (webImages.length === 0) {
         console.log(formatWarning("未找到远程图片"));
@@ -369,7 +279,7 @@ async function handleMarkdownFile(
     console.log("");
 
     for (const image of webImages) {
-        const domain = extractDomain(image.src);
+        const domain = new URL(image.src).hostname;
 
         // 检查是否匹配默认域名
         if (domain !== defaultDomain && !domain.includes(defaultDomain.split(".")[0] || "")) {

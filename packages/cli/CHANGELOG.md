@@ -1,48 +1,55 @@
 # @cmtx/cli 更新日志 / Changelog
 
+## [0.2.0-alpha.0] - 2026-05-05
+
+### Breaking Changes
+
+- **命令分组重构**: 6 个图片相关命令从顶层移入 `image` 分组：
+
+  - `cmtx copy <file>` -> `cmtx image copy <file>`
+  - `cmtx move <file>` -> `cmtx image move <file>`
+  - `cmtx upload <file>` -> `cmtx image upload <file>`
+  - `cmtx download <file>` -> `cmtx image download <file>`
+  - `cmtx analyze <dir>` -> `cmtx image analyze <dir>`
+  - `cmtx presign [input]` -> `cmtx image presign [input]`
+
+  顶层命令保持不变：`cmtx config`、`cmtx format`、`cmtx publish`。迁移指南：将脚本中的 `cmtx <command>` 替换为 `cmtx image <command>`。
+
 ### Added
 
-- **Logger**: 使用 winston 重构 CLI Logger，支持每日日志轮转
-- **Storage Pool**: 支持多存储后端配置，适配 v2 存储池配置结构
-- **namingTemplate**: 新增 `namingTemplate` 选项支持
+- **`cmtx image prune`**: 新增 `cmtx image prune <searchDir>` 命令，清理目录下所有未被引用的图片，支持 `--dry-run`、`--force`、`--yes`、`--strategy`、`--extensions`、`--max-size`、`--output` 选项
 
 ### Changed
 
-- **Rule Engine**: 集成 `@cmtx/publish` 的规则引擎，统一 CLI 和 MCP 命令
-- **配置加载**: 配置验证和加载逻辑迁移至 `@cmtx/asset`
-- **构建迁移**: 构建系统从 `tsc` 迁移至 `tsdown`，新增 `tsdown.config.ts`
-- **Node.js 版本要求**: Node.js 最低版本从 `>=18.0.0` 提升至 `>=22.0.0`
-- **二进制文件路径**: `bin` 字段从 `./dist/bin/cmtx.js` 变更为 `./dist/cli.mjs`
-- **双格式构建**: `exports` 新增 ESM 和 CJS 双格式入口
+- **cmtx copy/move/upload/download** 命令内部改用新服务层（TransferAssetsService / UploadService / DownloadAssetsService）
+- **文档重构**: 拆分用户文档到 `docs/` 目录，README 精简为安装说明和文档链接导航
 
 ### Fixed
 
-- 修复 `cmtx adapt` 和 `cmtx download` 命令的日志方法
-- 修复 TypeScript 编译错误（缺少 `createRuleEngine` 导入）
-- 修复 DeleteConfig 类型错误
+- **`upload` 命令**: `baseDirectory` 传值修复，配合 pipeline 的 `basePath` 自动检测，兼容文件路径和目录路径
+- **`upload` 命令**: `--enable-delete` 配置声明，删除功能待 `RuleResult` 扩展后实现，目前仅写回文件
 
 ---
 
+### Breaking Changes
+
+- **Command grouping restructured**: 6 image-related commands moved from top-level to `image` subcommand group
+
+  Migration: `cmtx <command>` -> `cmtx image <command>` for image commands
+
 ### Added
 
-- **Logger**: Refactored CLI Logger with winston, supporting daily log rotation
-- **Storage Pool**: Support for multi-backend storage configuration with v2 pool config structure
-- **namingTemplate**: Added `namingTemplate` option support
+- **`cmtx image prune`**: New `cmtx image prune <searchDir>` command to clean up unreferenced images with `--dry-run`, `--force`, `--yes`, `--strategy`, `--extensions`, `--max-size`, `--output` options
 
 ### Changed
 
-- **Rule Engine**: Integrated `@cmtx/publish` rule engine, unifying CLI and MCP commands
-- **Config Loading**: Configuration validation and loading migrated to `@cmtx/asset`
-- **Build Migration**: Build system migrated from `tsc` to `tsdown`; added `tsdown.config.ts`
-- **Node.js Version Requirement**: Minimum Node.js version raised from `>=18.0.0` to `>=22.0.0`
-- **Binary Path**: `bin` field changed from `./dist/bin/cmtx.js` to `./dist/cli.mjs`
-- **Dual Format Build**: `exports` now provides both ESM and CJS entry points
+- **cmtx copy/move/upload/download** commands now use the new service layer (TransferAssetsService / UploadService / DownloadAssetsService)
+- **Docs restructuring**: Split user docs to `docs/` directory, README simplified to installation and navigation
 
 ### Fixed
 
-- Fixed logging methods for `cmtx adapt` and `cmtx download` commands
-- Fixed TypeScript compilation error (missing `createRuleEngine` import)
-- Fixed `DeleteConfig` type error
+- **`upload` command**: Fixed `baseDirectory` to work with pipeline's `basePath` auto-detection for both file and directory paths
+- **`upload` command**: `--enable-delete` config declaration; delete functionality pending `RuleResult` extension
 
 ## 0.1.0 - 2026-04-11
 
@@ -77,14 +84,14 @@
 
 #### 技术细节
 
-- 基于 @cmtx/publish、@cmtx/core 和 @cmtx/asset 构建
+- 基于 @cmtx/rule-engine、@cmtx/core 和 @cmtx/asset 构建
 - 支持 Node.js 18.0.0 或更高版本
 - ESM 模块格式
 - 完整的 TypeScript 类型定义支持
 
 #### 依赖
 
-- @cmtx/publish: 发布工作流
+- @cmtx/rule-engine: 发布工作流
 - @cmtx/core: Markdown 处理核心
 - @cmtx/asset: 资产管理
 - ali-oss: 阿里云 OSS SDK
@@ -125,14 +132,14 @@
 
 #### Technical Details
 
-- Built on top of @cmtx/publish, @cmtx/core, and @cmtx/asset
+- Built on top of @cmtx/rule-engine, @cmtx/core, and @cmtx/asset
 - Supports Node.js 18.0.0 or higher
 - ESM module format
 - TypeScript support with full type definitions
 
 #### Dependencies
 
-- @cmtx/publish: Publishing workflow
+- @cmtx/rule-engine: Publishing workflow
 - @cmtx/core: Core markdown processing
 - @cmtx/asset: Asset management
 - ali-oss: Aliyun OSS SDK

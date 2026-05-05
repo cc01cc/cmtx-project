@@ -10,7 +10,7 @@
 
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { RuleResult } from "@cmtx/publish";
+import type { RuleResult } from "@cmtx/rule-engine";
 import type { Argv, CommandModule } from "yargs";
 import { createRuleEngineAdapter } from "../rules/rule-adapter.js";
 import type { RuleEngineAdapter } from "../rules/rule-adapter.js";

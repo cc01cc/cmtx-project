@@ -6,29 +6,20 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
 // 命令模块
-import adaptCmd from "./commands/adapt.js";
-import analyzeCmd from "./commands/analyze.js";
 import configCmd from "./commands/config.js";
-import copyCmd from "./commands/copy.js";
-import downloadCmd from "./commands/download.js";
 import formatCmd from "./commands/format.js";
-import moveCmd from "./commands/move.js";
-import presignCmd from "./commands/presign.js";
-import uploadCmd from "./commands/upload.js";
+import imageCmd from "./commands/image.js";
+import publishCmd from "./commands/publish.js";
 
 export const cli = yargs(hideBin(process.argv))
     .scriptName("cmtx")
     .usage("$0 <command> [options]")
-    .command(analyzeCmd)
-    .command(copyCmd)
-    .command(downloadCmd)
-    .command(moveCmd)
-    .command(presignCmd)
-    .command(uploadCmd)
     .command(configCmd)
     .command(formatCmd)
-    .command(adaptCmd)
+    .command(imageCmd)
+    .command(publishCmd)
+    .demandCommand(1, "请提供一个命令，运行 cmtx --help 查看帮助")
+    .strictCommands()
     .recommendCommands()
-    .strict()
     .help()
     .alias("h", "help");

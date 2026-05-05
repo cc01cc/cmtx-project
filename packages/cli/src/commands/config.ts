@@ -11,13 +11,14 @@
  * - 不再支持 --preset 参数，统一使用默认配置模板
  */
 
-import { access } from "node:fs/promises";
-import { resolve } from "node:path";
+import { access, copyFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { generateDefaultConfig } from "@cmtx/asset/config";
 import { FileService } from "@cmtx/asset/file";
 import type { Argv, CommandModule } from "yargs";
 import type { ConfigCommandOptions } from "../types/cli.js";
-import { formatError, formatInfo } from "../utils/formatter.js";
+import { formatError, formatInfo, formatWarning } from "../utils/formatter.js";
 
 const fileService = new FileService();
 
@@ -75,6 +76,7 @@ export async function handler(argv: ConfigCommandOptions): Promise<void> {
 
 async function handleInit(argv: ConfigCommandOptions): Promise<void> {
     const outputPath = resolve(argv.outputFile || "cmtx.config.yaml");
+    const outputDir = dirname(outputPath);
 
     // 检查文件是否存在
     const exists = await fileExists(outputPath);
@@ -87,6 +89,33 @@ async function handleInit(argv: ConfigCommandOptions): Promise<void> {
 
     await fileService.writeFileContent(outputPath, configContent);
     console.log(formatInfo(`配置文件已创建: ${outputPath}`));
+
+    // 复制 schema 文件到输出目录
+    // 通过查找 @cmtx/asset 的入口点来定位 schema 文件
+    let schemaSource: string;
+    try {
+        const assetEntry = require.resolve("@cmtx/asset/config");
+        // assetEntry 是 dist/config.cjs 或 dist/config.mjs
+        // schema 文件在 dist/config/cmtx.schema.json
+        const assetDistDir = dirname(assetEntry); // dist/
+        schemaSource = join(assetDistDir, "config", "cmtx.schema.json");
+    } catch {
+        // 如果无法找到，跳过 schema 复制
+        schemaSource = "";
+    }
+
+    const schemaDest = join(outputDir, "config.schema.json");
+
+    if (schemaSource) {
+        try {
+            await copyFile(schemaSource, schemaDest);
+            console.log(formatInfo(`Schema 文件已创建: ${schemaDest}`));
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.warn(formatWarning(`Schema 文件复制失败: ${message}`));
+        }
+    }
+
     console.log("\n请记得设置以下环境变量：");
     console.log("  CMTX_ALIYUN_ACCESS_KEY_ID");
     console.log("  CMTX_ALIYUN_ACCESS_KEY_SECRET");

@@ -9,16 +9,7 @@
 
 import { cli } from "../src/cli.js";
 
-try {
-    await cli.parseAsync(process.argv.slice(2));
-} catch (error) {
+void cli.parseAsync(process.argv.slice(2)).catch((error: unknown) => {
     console.error((error as Error).message);
     process.exit(1);
-}
-
-try {
-    await cli.parseAsync(process.argv.slice(2));
-} catch (error) {
-    console.error((error as Error).message);
-    process.exit(1);
-}
+});

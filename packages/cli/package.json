@@ -1,6 +1,6 @@
 {
     "name": "@cmtx/cli",
-    "version": "0.1.0",
+    "version": "0.2.0-alpha.0",
     "private": true,
     "description": "Command line interface for Markdown image management",
     "keywords": [
@@ -31,10 +31,10 @@
     ],
     "type": "module",
     "main": "./dist/index.cjs",
-    "types": "./dist/index.d.ts",
+    "types": "./dist/index.d.mts",
     "exports": {
         ".": {
-            "types": "./dist/index.d.ts",
+            "types": "./dist/index.d.mts",
             "import": "./dist/index.mjs",
             "require": "./dist/index.cjs"
         }
@@ -54,7 +54,8 @@
     "dependencies": {
         "@cmtx/asset": "workspace:*",
         "@cmtx/core": "workspace:*",
-        "@cmtx/publish": "workspace:*",
+        "@cmtx/rule-engine": "workspace:*",
+        "@cmtx/storage": "workspace:*",
         "ali-oss": "catalog:",
         "chalk": "catalog:cli",
         "ora": "catalog:cli",

@@ -10,45 +10,19 @@
  */
 
 import type { CmtxConfig } from "@cmtx/asset/config";
-import type {
-    CloudCredentials,
-    InternalTransferConfig,
-    TransferConfig,
-} from "@cmtx/asset/transfer";
-import { createTransferManager } from "@cmtx/asset/transfer";
+import { ConfigLoader } from "@cmtx/asset/config";
+import { createTransferAssetsService } from "@cmtx/asset";
+import type { CloudCredentials } from "@cmtx/asset/transfer";
+import type { TransferConfig } from "@cmtx/asset/transfer";
+import { createUrlParser } from "@cmtx/asset/transfer";
+import fs from "node:fs";
 import type { Logger } from "@cmtx/core";
+import { createCredentials } from "@cmtx/storage";
 import { createAdapter } from "@cmtx/storage/adapters/factory";
 import type { Argv, CommandModule } from "yargs";
-import { ConfigLoader } from "../config/config-loader.js";
-import type { CopyCommandOptions } from "../types/cli.js";
-import { formatError } from "../utils/formatter.js";
-import { createLogger } from "../utils/logger.js";
-
-/**
- * 创建云存储凭证
- */
-function createCredentials(
-    provider: CloudCredentials["provider"],
-    config: Record<string, string>,
-): CloudCredentials {
-    if (provider === "aliyun-oss") {
-        return {
-            provider: "aliyun-oss",
-            accessKeyId: config.accessKeyId || config.ACCESS_KEY_ID || "",
-            accessKeySecret: config.accessKeySecret || config.ACCESS_KEY_SECRET || "",
-            region: config.region || config.REGION || "",
-            bucket: config.bucket || config.BUCKET || "",
-        };
-    } else {
-        return {
-            provider: "tencent-cos",
-            secretId: config.secretId || config.SECRET_ID || "",
-            secretKey: config.secretKey || config.SECRET_KEY || "",
-            region: config.region || config.REGION || "",
-            bucket: config.bucket || config.BUCKET || "",
-        };
-    }
-}
+import type { CopyCommandOptions } from "../../types/cli.js";
+import { formatError } from "../../utils/formatter.js";
+import { createLogger } from "../../utils/logger.js";
 
 export const command = "copy <filePath>";
 export const description = "复制 Markdown 文件中的远程图片到目标存储（源文件保留）";
@@ -219,7 +193,8 @@ function convertCmtxConfigToTransferConfig(
     cmtxConfig: CmtxConfig,
     argv: CopyCommandOptions,
 ): TransferConfig {
-    const storageId = cmtxConfig.upload?.useStorage || "default";
+    const uploadRule = cmtxConfig.rules?.["upload-images"] ?? {};
+    const storageId = (uploadRule.useStorage as string) || "default";
     const storages = cmtxConfig.storages || {};
     const selectedStorage = storages[storageId];
 
@@ -248,41 +223,6 @@ function convertCmtxConfigToTransferConfig(
             concurrency: argv.concurrency,
             tempDir: argv.tempDir,
         },
-    };
-}
-
-interface BuildCredentialsOptions {
-    provider: CloudCredentials["provider"];
-    idField: string | undefined;
-    secretField: string | undefined;
-    region: string;
-    bucket: string | undefined;
-    label: string;
-}
-
-function buildCredentials(opts: BuildCredentialsOptions): CloudCredentials {
-    const { provider, idField, secretField, region, bucket, label } = opts;
-    if (provider === "aliyun-oss") {
-        if (!idField || !secretField || !bucket) {
-            throw new Error(`缺少阿里云 OSS ${label}存储凭证`);
-        }
-        return {
-            provider: "aliyun-oss",
-            accessKeyId: idField,
-            accessKeySecret: secretField,
-            region,
-            bucket,
-        };
-    }
-    if (!idField || !secretField || !bucket) {
-        throw new Error(`缺少腾讯云 COS ${label}存储凭证`);
-    }
-    return {
-        provider: "tencent-cos",
-        secretId: idField,
-        secretKey: secretField,
-        region,
-        bucket,
     };
 }
 
@@ -339,22 +279,65 @@ function buildConfigFromEnv(argv: CopyCommandOptions): TransferConfig {
         throw new Error("缺少目标存储凭证，请设置环境变量");
     }
 
-    const sourceCredentials = buildCredentials({
-        provider,
-        idField: process.env.SOURCE_ACCESS_KEY_ID || process.env.SOURCE_SECRET_ID,
-        secretField: process.env.SOURCE_ACCESS_KEY_SECRET || process.env.SOURCE_SECRET_KEY,
-        region: process.env.SOURCE_REGION || "oss-cn-hangzhou",
-        bucket: sourceBucket,
-        label: "源",
-    });
-    const targetCredentials = buildCredentials({
-        provider,
-        idField: process.env.TARGET_ACCESS_KEY_ID || process.env.TARGET_SECRET_ID,
-        secretField: process.env.TARGET_ACCESS_KEY_SECRET || process.env.TARGET_SECRET_KEY,
-        region: process.env.TARGET_REGION || "oss-cn-hangzhou",
-        bucket: targetBucket,
-        label: "目标",
-    });
+    const sourceRegion = process.env.SOURCE_REGION || "oss-cn-hangzhou";
+    const targetRegion = process.env.TARGET_REGION || "oss-cn-hangzhou";
+
+    let sourceCredentials: CloudCredentials;
+    let targetCredentials: CloudCredentials;
+
+    if (provider === "aliyun-oss") {
+        const sourceKeyId = process.env.SOURCE_ACCESS_KEY_ID || "";
+        const sourceKeySecret = process.env.SOURCE_ACCESS_KEY_SECRET || "";
+        if (!sourceKeyId || !sourceKeySecret || !sourceBucket) {
+            throw new Error("缺少阿里云 OSS 源存储凭证");
+        }
+        sourceCredentials = {
+            provider: "aliyun-oss",
+            accessKeyId: sourceKeyId,
+            accessKeySecret: sourceKeySecret,
+            region: sourceRegion,
+            bucket: sourceBucket,
+        };
+
+        const targetKeyId = process.env.TARGET_ACCESS_KEY_ID || "";
+        const targetKeySecret = process.env.TARGET_ACCESS_KEY_SECRET || "";
+        if (!targetKeyId || !targetKeySecret || !targetBucket) {
+            throw new Error("缺少阿里云 OSS 目标存储凭证");
+        }
+        targetCredentials = {
+            provider: "aliyun-oss",
+            accessKeyId: targetKeyId,
+            accessKeySecret: targetKeySecret,
+            region: targetRegion,
+            bucket: targetBucket,
+        };
+    } else {
+        const sourceId = process.env.SOURCE_SECRET_ID || "";
+        const sourceKey = process.env.SOURCE_SECRET_KEY || "";
+        if (!sourceId || !sourceKey || !sourceBucket) {
+            throw new Error("缺少腾讯云 COS 源存储凭证");
+        }
+        sourceCredentials = {
+            provider: "tencent-cos",
+            secretId: sourceId,
+            secretKey: sourceKey,
+            region: sourceRegion,
+            bucket: sourceBucket,
+        };
+
+        const targetId = process.env.TARGET_SECRET_ID || "";
+        const targetKey = process.env.TARGET_SECRET_KEY || "";
+        if (!targetId || !targetKey || !targetBucket) {
+            throw new Error("缺少腾讯云 COS 目标存储凭证");
+        }
+        targetCredentials = {
+            provider: "tencent-cos",
+            secretId: targetId,
+            secretKey: targetKey,
+            region: targetRegion,
+            bucket: targetBucket,
+        };
+    }
 
     return {
         source: {
@@ -421,9 +404,6 @@ async function previewCopy(
     format: "json" | "table" | "plain",
     _logger: Logger,
 ): Promise<void> {
-    const { createUrlParser } = await import("@cmtx/asset/transfer");
-    const fs = await import("node:fs");
-
     const content = await fs.promises.readFile(filePath, "utf-8");
     const urlParser = createUrlParser({
         sourceDomains: config.source.customDomain ? [config.source.customDomain] : [],
@@ -469,36 +449,34 @@ async function executeCopy(
     format: "json" | "table" | "plain",
     logger: Logger,
 ): Promise<void> {
-    const fs = await import("node:fs");
-
     // 使用工厂创建适配器
     const sourceAdapter = await createAdapter(config.source.credentials);
     const targetAdapter = await createAdapter(config.target.credentials);
 
-    // 创建适配器包装的配置
-    const adapterConfig: InternalTransferConfig = {
-        source: {
-            customDomain: config.source.customDomain,
-            adapter: sourceAdapter,
-            useSignedUrl: config.source.useSignedUrl,
-            signedUrlExpires: config.source.signedUrlExpires,
-        },
-        target: {
-            customDomain: config.target.customDomain,
-            adapter: targetAdapter,
-            prefix: config.target.prefix,
-            namingTemplate: config.target.namingTemplate,
-            overwrite: config.target.overwrite,
-        },
-        options: config.options,
-    };
+    // 使用 TransferAssetsService
+    const transferService = createTransferAssetsService({
+        sourceAdapters: [
+            {
+                domain: config.source.customDomain ?? "",
+                adapter: sourceAdapter,
+            },
+        ],
+        targetAdapter,
+        targetPrefix: config.target.prefix,
+        targetCustomDomain: config.target.customDomain,
+        namingTemplate: config.target.namingTemplate,
+        concurrency: config.options?.concurrency,
+        deleteSource: false,
+    });
 
-    const manager = createTransferManager(adapterConfig);
+    const content = await fs.promises.readFile(filePath, "utf-8");
+    const result = await transferService.transferImages(content, filePath, {
+        sourceDomain: config.source.customDomain,
+        concurrency: config.options?.concurrency,
+    });
 
-    const result = await manager.transferMarkdown(filePath);
-
-    if (result.newContent && result.success > 0) {
-        await fs.promises.writeFile(filePath, result.newContent, "utf-8");
+    if (result.content !== content && result.transferred > 0) {
+        await fs.promises.writeFile(filePath, result.content, "utf-8");
         logger.info(`已更新 Markdown 文件：${filePath}`);
     }
 
@@ -509,14 +487,16 @@ async function executeCopy(
         case "table":
             console.log("\n复制完成！");
             console.log("═".repeat(80));
-            console.log(`总文件数：${result.total}`);
-            console.log(`成功：${result.success}`);
+            console.log(`总文件数：${result.transferred + result.failed + result.skipped}`);
+            console.log(`成功：${result.transferred}`);
             console.log(`失败：${result.failed}`);
             console.log(`跳过：${result.skipped}`);
             console.log("═".repeat(80));
             break;
         case "plain":
-            console.log(`复制完成：${result.success}/${result.total}`);
+            console.log(
+                `复制完成：${result.transferred}/${result.transferred + result.failed + result.skipped}`,
+            );
             if (result.failed > 0) {
                 console.log(`失败：${result.failed}`);
             }
