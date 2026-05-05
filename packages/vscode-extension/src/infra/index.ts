@@ -34,3 +34,4 @@ export {
     ModuleLogger,
     UnifiedLogger,
 } from "./unified-logger.js";
+export { VSCodeFileAccessor } from "./vscode-file-accessor.js";

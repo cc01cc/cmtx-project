@@ -6,13 +6,13 @@
  * 提供应用 Preset 到 Markdown 文档的命令。
  */
 import {
-    RuleEngine,
-    createAssetService,
-    createDefaultRuleEngine,
+    createRuleEngineContext,
     type PresetConfig,
     type RuleContext,
+    type RuleEngine,
     type SimplePreset,
-} from "@cmtx/publish";
+} from "@cmtx/rule-engine";
+import { createUploadService } from "@cmtx/asset";
 import * as vscode from "vscode";
 import { createStorageAdapterAsync, createVsCodeContainer } from "../container.js";
 import {
@@ -83,7 +83,7 @@ export async function applyPreset(): Promise<void> {
         }
 
         // 创建 Rule 引擎并加载内置 Rules
-        const engine = createDefaultRuleEngine();
+        const { engine } = createRuleEngineContext();
 
         // 执行 Preset
         await executePreset({
@@ -134,12 +134,12 @@ async function executePreset(options: ExecutePresetOptions): Promise<void> {
                 if (storageConfig) {
                     const adapter = await createStorageAdapterAsync(storageConfig);
                     const uploadConfig = getUploadConfigFromCmtx(config);
-                    const assetService = createAssetService({
+                    const uploadService = createUploadService({
                         adapter,
-                        prefix: uploadConfig.prefix || "",
-                        namingTemplate: uploadConfig.namingTemplate,
+                        prefix: (uploadConfig.prefix as string) || "",
+                        namingTemplate: uploadConfig.namingTemplate as string | undefined,
                     });
-                    container.register(assetService);
+                    container.register(uploadService);
                 }
             }
 

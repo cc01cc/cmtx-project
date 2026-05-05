@@ -15,13 +15,12 @@ suite("Command Integration Tests", () => {
 
         const expectedCommands = [
             "cmtx.upload",
-            "cmtx.uploadSelected",
-            "cmtx.download",
-            "cmtx.formatToHtml",
+            "cmtx.image.upload",
+            "cmtx.image.formatToHtml",
             "cmtx.formatToMarkdown",
-            "cmtx.setImageWidth",
-            "cmtx.zoomIn",
-            "cmtx.zoomOut",
+            "cmtx.image.setWidth",
+            "cmtx.image.zoomIn",
+            "cmtx.image.zoomOut",
             "cmtx.adapt",
             "cmtx.analyze",
             "cmtx.findReferences",
@@ -38,7 +37,7 @@ suite("Command Integration Tests", () => {
     });
 
     test("Format to HTML command should show error when no markdown file", async () => {
-        await vscode.commands.executeCommand("cmtx.formatToHtml");
+        await vscode.commands.executeCommand("cmtx.image.formatToHtml");
     });
 
     test("Analyze command should show error when no markdown file", async () => {

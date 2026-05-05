@@ -24,7 +24,7 @@ export class ImageCodeActionProvider implements vscode.CodeActionProvider {
             vscode.CodeActionKind.QuickFix,
         );
         uploadAction.command = {
-            command: "cmtx.uploadSelected",
+            command: "cmtx.image.upload",
             title: "Upload selected images",
         };
         actions.push(uploadAction);
@@ -34,7 +34,7 @@ export class ImageCodeActionProvider implements vscode.CodeActionProvider {
             vscode.CodeActionKind.QuickFix,
         );
         resizeAction.command = {
-            command: "cmtx.setImageWidth",
+            command: "cmtx.image.setWidth",
             title: "Set image width",
         };
         actions.push(resizeAction);
@@ -44,7 +44,7 @@ export class ImageCodeActionProvider implements vscode.CodeActionProvider {
             vscode.CodeActionKind.QuickFix,
         );
         formatToHtmlAction.command = {
-            command: "cmtx.formatToHtml",
+            command: "cmtx.image.formatToHtml",
             title: "Convert to HTML format",
         };
         actions.push(formatToHtmlAction);

@@ -727,7 +727,98 @@ panel.webview.onDidReceiveMessage((message) => {
 - 考虑添加 Tree View 展示图片资源列表
 - 可在 Sidebar 中显示文档图片概览
 
-### 7.3 extensionKind 建议
+### 7.3 图片上传入口对比
+
+系统共有 5 个上传入口，按触发方式分为**编辑器文本级**和**文件级**两类：
+
+#### 7.3.1 入口总览
+
+| # | 入口 | 触发方式 | 处理范围 | 实现路径 | 如何获取编辑器引用 | 支持未保存编辑器？ |
+|---|------|----------|----------|---------|-------------------|-------------------|
+| 1 | `cmtx.image.upload` | 编辑器右键 → CMTX 子菜单 / `Ctrl+Shift+P` | **选区**内图片 | editor text → rule → `engine.executeRule("upload-images", { selection })` → `editor.edit()` | `vscode.window.activeTextEditor` — 直接返回当前编辑器 | **是** — 读 editor.document.getText()，写 editor.edit() |
+| 2 | `cmtx.rule.upload-images` | `Ctrl+Shift+P` | 整个**编辑器文档** | editor text → rule → `engine.executeRule("upload-images")` → `editor.edit()` | `vscode.window.activeTextEditor` — 同上 | **是** — 同上 |
+| 3 | `cmtx.explorer.uploadFile` | Explorer 右键 `.md` 文件 | 整个**文件** | `FileAccessor` → `publishAndReplaceFile` → rule → `FileAccessor.writeText` | `vscode.workspace.textDocuments.find(d => d.uri.fsPath === path)` — 遍历已打开的文档 | **是** — VSCodeFileAccessor 探知文件是否已打开 |
+| 4 | `cmtx.explorer.uploadDirectory` | Explorer 右键目录 | 目录内所有 md | `FileAccessor` → `publishAndReplaceDirectory` → rule → 批量写回 | 同上，逐文件探知 | **是** — 同上 |
+| 5 | `cmtx upload` (CLI) | 命令行 | 单个 md 文件 | `fs.readFile` → `publishAndReplaceFile` → `fs.writeFile` | 无，CLI 无 VSCode API | **不适用** |
+
+#### 7.3.2 两类获取编辑器引用的方式
+
+**入口 1/2（编辑器文本级）**:
+
+依赖 `vscode.window.activeTextEditor` —— 直接获取当前活动编辑器。如果用户没有打开 Markdown 编辑器，命令直接报错退出。
+
+```typescript
+// executeRuleCommand -> validateMarkdownEditor
+const editor = vscode.window.activeTextEditor;
+if (!editor || editor.document.languageId !== "markdown") {
+    showError("Please open a Markdown file first");
+    return;
+}
+// 确定知道"当前正在编辑哪个文件"
+const context = {
+    document: editor.document.getText(),    // 包含未保存修改
+    filePath: editor.document.uri.fsPath,
+};
+```
+
+**入口 3/4（文件级）**:
+
+收到的是 `vscode.Uri`（Explorer 右键传入的文件路径），文件可能没打开。通过遍历 `vscode.workspace.textDocuments` 来**探知**该文件是否已打开。
+
+```typescript
+// VSCodeFileAccessor.readText
+const doc = vscode.workspace.textDocuments
+    .find(d => d.uri.fsPath === path);
+if (doc) {
+    return doc.getText();         // 编辑器内存版本，包含未保存修改
+}
+return fs.readFile(path, "utf-8"); // 磁盘版本
+```
+
+写回同理：
+
+```typescript
+// VSCodeFileAccessor.writeText
+const doc = vscode.workspace.textDocuments
+    .find(d => d.uri.fsPath === path);
+if (doc) {
+    const edit = new vscode.WorkspaceEdit();
+    edit.replace(doc.uri, fullRange, newContent);
+    await vscode.workspace.applyEdit(edit);  // 通过 VSCode 编辑引擎
+    return;
+}
+await fs.writeFile(path, content, "utf-8");
+```
+
+#### 7.3.3 FileAccessor 策略模式
+
+`FileAccessor` 是库包层（`@cmtx/asset`, `@cmtx/rule-engine`）定义的接口，将"未保存编辑器"的处理与库包逻辑解耦：
+
+```typescript
+interface FileAccessor {
+    readText(path: string): Promise<string>;
+    writeText(path: string, content: string): Promise<void>;
+}
+```
+
+| 环境 | 实现类 | readText | writeText |
+|------|--------|----------|-----------|
+| VSCode | `VSCodeFileAccessor` | 编辑器打开 → `doc.getText()` : `fs.readFile` | 编辑器打开 → `WorkspaceEdit.apply` : `fs.writeFile` |
+| CLI | `FsFileAccessor` | `fs.readFile` | `fs.writeFile` |
+
+入口 1/2 不经过 `FileAccessor`，它们在 VSCode 应用层直接用 VSCode API。入口 3/4/5 通过 `publishAndReplaceFile` 调用库包，库包函数只认 `FileAccessor` 接口。
+
+#### 7.3.4 统一的上传路径
+
+所有入口最终都收敛于 `batchUploadImages`：
+
+```
+入口 1/2 → executeRuleCommand → engine.executeRule("upload-images") → assetService.uploadImagesInDocument → batchUploadImages(sources) → uploadSingleImage
+入口 3/4 → publishAndReplaceFile → engine.executeRule("upload-images") → 同上                                      → 同上
+入口 5   → publishAndReplaceFile → engine.executeRule("upload-images") → 同上                                      → 同上
+```
+
+区别仅在于：1/2 在 VSCode 应用层处理文件 I/O，3/4/5 通过 `publishAndReplaceFile` 和注入的 `FileAccessor` 处理。
 
 ```json
 {

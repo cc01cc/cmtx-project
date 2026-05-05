@@ -11,7 +11,6 @@ import {
     convertImagesRuleCommand,
     deleteImage,
     deleteImageRuleCommand,
-    downloadImages,
     downloadImagesRuleCommand,
     executePresetCommand,
     executeRuleCommand,
@@ -21,16 +20,22 @@ import {
     frontmatterTitleRuleCommand,
     frontmatterUpdatedRuleCommand,
     initConfig,
+    updateConfigSchema,
     promoteHeadingsRuleCommand,
     removeSectionNumbersCommand,
     removeSectionNumbersRuleCommand,
     resizeImageRuleCommand,
     setImageWidth,
     stripFrontmatterRuleCommand,
+    togglePresignedUrlsCommand,
+    uploadFileFromExplorer,
+    uploadDirectoryFromExplorer,
     uploadImagesRuleCommand,
     uploadSelectedImages,
     zoomIn,
     zoomOut,
+    pruneDirectoryCommand,
+    downloadFromExplorer,
 } from "./commands/index.js";
 import {
     getUnifiedLogger,
@@ -46,7 +51,9 @@ import {
     deactivatePresignedUrl,
     extendMarkdownIt,
     initializePresignedUrl,
+    setPresignedUrlEnabled,
 } from "./providers/markdown-preview.js";
+import { resolvePresignedUrlOptions } from "@cmtx/asset/config";
 
 async function initExtensionServices(
     context: vscode.ExtensionContext,
@@ -83,16 +90,17 @@ async function initExtensionServices(
 
 function registerCommands(context: vscode.ExtensionContext): void {
     const commandList = [
-        ["cmtx.uploadSelected", uploadSelectedImages],
-        ["cmtx.download", downloadImages],
-        ["cmtx.formatToHtml", formatToHtml],
+        ["cmtx.image.upload", uploadSelectedImages],
+        ["cmtx.image.formatToHtml", formatToHtml],
         ["cmtx.applyPreset", applyPreset],
-        ["cmtx.setImageWidth", setImageWidth],
-        ["cmtx.zoomIn", zoomIn],
-        ["cmtx.zoomOut", zoomOut],
+        ["cmtx.image.setWidth", setImageWidth],
+        ["cmtx.image.zoomIn", zoomIn],
+        ["cmtx.image.zoomOut", zoomOut],
         ["cmtx.configInit", initConfig],
+        ["cmtx.updateConfigSchema", updateConfigSchema],
         ["cmtx.clearPresignedCache", clearPresignedCacheCommand],
-        ["cmtx.deleteImage", deleteImage],
+        ["cmtx.togglePresignedUrls", togglePresignedUrlsCommand],
+        ["cmtx.image.delete", deleteImage],
         ["cmtx.refreshConfig", refreshConfig],
         ["cmtx.addSectionNumbers", addSectionNumbersCommand],
         ["cmtx.removeSectionNumbers", removeSectionNumbersCommand],
@@ -111,6 +119,10 @@ function registerCommands(context: vscode.ExtensionContext): void {
         ["cmtx.rule.download-images", downloadImagesRuleCommand],
         ["cmtx.rule.delete-image", deleteImageRuleCommand],
         ["cmtx.rule.resize-image", resizeImageRuleCommand],
+        ["cmtx.explorer.uploadFile", uploadFileFromExplorer],
+        ["cmtx.explorer.uploadDirectory", uploadDirectoryFromExplorer],
+        ["cmtx.explorer.pruneDirectory", pruneDirectoryCommand],
+        ["cmtx.explorer.downloadImages", downloadFromExplorer],
     ] as const;
 
     for (const [name, handler] of commandList) {
@@ -149,6 +161,14 @@ function registerProviders(context: vscode.ExtensionContext, statusBar: StatusBa
             if (e.affectsConfiguration("cmtx")) {
                 void statusBar.update();
                 if (e.affectsConfiguration("cmtx.presignedUrls")) {
+                    if (e.affectsConfiguration("cmtx.presignedUrls.enabled")) {
+                        const newEnabled = vscode.workspace
+                            .getConfiguration("cmtx")
+                            .get<boolean>("presignedUrls.enabled", true);
+                        setPresignedUrlEnabled(newEnabled);
+                        await vscode.commands.executeCommand("markdown.preview.refresh");
+                        return;
+                    }
                     const action = await showQuickPick(
                         "Presigned URL 配置已变更，需要重新加载窗口才能生效",
                         ["立即重载窗口", "稍后手动重载"],
@@ -181,7 +201,13 @@ export async function activate(
 
     const workspaceFolder = getCurrentWorkspaceFolder();
     const cmtxConfig = workspaceFolder ? await loadCmtxConfig(workspaceFolder) : undefined;
-    initializePresignedUrl(cmtxConfig?.presignedUrls ?? null, outputChannel);
+    const presignedEnabled = vscode.workspace
+        .getConfiguration("cmtx")
+        .get<boolean>("presignedUrls.enabled", true);
+    if (presignedEnabled && cmtxConfig?.presignedUrls) {
+        const options = resolvePresignedUrlOptions(cmtxConfig.presignedUrls, cmtxConfig.storages);
+        initializePresignedUrl(options, outputChannel);
+    }
 
     outputChannel.appendLine("CMTX for VS Code activated");
 

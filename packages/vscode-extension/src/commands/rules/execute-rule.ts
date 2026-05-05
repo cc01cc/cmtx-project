@@ -1,8 +1,16 @@
-import { createAssetService, createDefaultRuleEngine, type RuleContext } from "@cmtx/publish";
+import {
+    createRuleEngineContext,
+    type RuleContext,
+    type RuleEngine,
+    type RuleResult,
+} from "@cmtx/rule-engine";
+import { createUploadService, createDownloadAssetsService } from "@cmtx/asset";
+import { dirname } from "node:path";
 import * as vscode from "vscode";
 import { createStorageAdapterAsync, createVsCodeContainer } from "../../container.js";
 import {
     getCurrentWorkspaceFolder,
+    getDownloadConfigFromCmtx,
     getGlobalRulesConfig,
     getStorageConfig,
     getUploadConfigFromCmtx,
@@ -20,7 +28,7 @@ interface ValidatedEditor {
 }
 
 interface RuleEngineServices {
-    engine: ReturnType<typeof createDefaultRuleEngine>;
+    engine: RuleEngine;
     container: ReturnType<typeof createVsCodeContainer>;
 }
 
@@ -50,7 +58,7 @@ async function setupRuleEngineServices(
     config: Awaited<ReturnType<typeof loadCmtxConfig>>,
     workspaceFolder: vscode.WorkspaceFolder,
 ): Promise<RuleEngineServices> {
-    const engine = createDefaultRuleEngine();
+    const { engine } = createRuleEngineContext();
     const container = createVsCodeContainer(workspaceFolder, config ?? null);
 
     if (config) {
@@ -58,12 +66,28 @@ async function setupRuleEngineServices(
         if (storageConfig) {
             const adapter = await createStorageAdapterAsync(storageConfig);
             const uploadConfig = getUploadConfigFromCmtx(config);
-            const assetService = createAssetService({
+            const uploadService = createUploadService({
                 adapter,
-                prefix: uploadConfig.prefix || "",
-                namingTemplate: uploadConfig.namingTemplate,
+                prefix: (uploadConfig.prefix as string) || "",
+                namingTemplate: uploadConfig.namingTemplate as string | undefined,
             });
-            container.register(assetService);
+            container.register(uploadService);
+
+            // 注册 DownloadAssetsService
+            const downloadConfig = getDownloadConfigFromCmtx(config);
+            const downloadStorageId = downloadConfig.useStorage;
+            const downloadStorageConfig =
+                downloadStorageId !== "default"
+                    ? config.storages?.[downloadStorageId]
+                    : storageConfig;
+
+            if (downloadStorageConfig) {
+                const downloadAdapter = await createStorageAdapterAsync(downloadStorageConfig);
+                const downloadService = createDownloadAssetsService({
+                    sourceAdapters: [{ domain: "*", adapter: downloadAdapter }],
+                });
+                container.register(downloadService);
+            }
         }
     }
 
@@ -72,13 +96,13 @@ async function setupRuleEngineServices(
 
 function buildRuleContext(
     editor: vscode.TextEditor,
-    workspaceFolder: vscode.WorkspaceFolder,
+    _workspaceFolder: vscode.WorkspaceFolder,
     container: ReturnType<typeof createVsCodeContainer>,
 ): RuleContext {
     return {
         document: editor.document.getText(),
         filePath: editor.document.uri.fsPath,
-        baseDirectory: workspaceFolder.uri.fsPath,
+        baseDirectory: dirname(editor.document.uri.fsPath),
         services: container,
     };
 }
@@ -99,6 +123,48 @@ function applyDocumentEdit(
     );
     edit.replace(editor.document.uri, fullRange, newContent);
     void vscode.workspace.applyEdit(edit);
+}
+
+function resolveConflictStrategy(uploadConfig: Record<string, unknown>): Record<string, unknown> {
+    const strategy = (uploadConfig.conflictStrategy as string) ?? "skip";
+    if (strategy === "overwrite") {
+        return { type: "replace-all" };
+    }
+    return { type: "skip-all" };
+}
+
+async function executeRuleWithProgress(
+    engine: RuleEngine,
+    ruleId: string,
+    context: RuleContext,
+    config: Record<string, unknown>,
+    editor: vscode.TextEditor,
+): Promise<RuleResult> {
+    return await vscode.window.withProgress(
+        {
+            location: vscode.ProgressLocation.Notification,
+            title: `Executing rule: ${ruleId}...`,
+            cancellable: false,
+        },
+        async () => {
+            const result = await engine.executeRule(ruleId, context, config);
+            applyDocumentEdit(editor, result.content, editor.document.getText());
+            return result;
+        },
+    );
+}
+
+function notifyRuleCompletion(ruleId: string, result: RuleResult): void {
+    const messages = result.messages || [];
+    if (messages.length > 0) {
+        const message = messages.join("; ");
+        logger.info(`[Rule:${ruleId}] ${message}`);
+        void showInfo(message);
+    } else {
+        const defaultMsg = `Rule "${ruleId}" executed successfully`;
+        logger.info(`[Rule:${ruleId}] ${defaultMsg}`);
+        void showInfo(defaultMsg);
+    }
 }
 
 export async function executeRuleCommand(
@@ -132,40 +198,13 @@ export async function executeRuleCommand(
 
         if (ruleId === "upload-images") {
             const uploadConfig = config ? getUploadConfigFromCmtx(config) : {};
-            const configConflictStrategy = uploadConfig.conflictStrategy ?? "skip";
-
-            let strategyConfig: Record<string, unknown> = {};
-            if (configConflictStrategy === "skip") {
-                strategyConfig = { type: "skip-all" };
-            } else if (configConflictStrategy === "overwrite") {
-                strategyConfig = { type: "replace-all" };
-            }
-
-            if (Object.keys(strategyConfig).length > 0) {
-                (context as Record<string, unknown>).conflictStrategy = strategyConfig;
-                (mergedConfig as Record<string, unknown>).conflictStrategy = strategyConfig;
-            }
+            const strategyConfig = resolveConflictStrategy(uploadConfig);
+            (context as Record<string, unknown>).conflictStrategy = strategyConfig;
+            (mergedConfig as Record<string, unknown>).conflictStrategy = strategyConfig;
         }
 
-        await vscode.window.withProgress(
-            {
-                location: vscode.ProgressLocation.Notification,
-                title: `Executing rule: ${ruleId}...`,
-                cancellable: false,
-            },
-            async () => {
-                const result = await engine.executeRule(ruleId, context, mergedConfig);
-                applyDocumentEdit(editor, result.content, editor.document.getText());
-
-                const messages = result.messages || [];
-                if (messages.length > 0) {
-                    const message = messages.join("; ");
-                    logger.info(`[Rule:${ruleId}] ${message}`);
-                } else {
-                    logger.info(`[Rule:${ruleId}] Rule "${ruleId}" executed successfully`);
-                }
-            },
-        );
+        const result = await executeRuleWithProgress(engine, ruleId, context, mergedConfig, editor);
+        notifyRuleCompletion(ruleId, result);
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         logger.error(`Failed to execute rule ${ruleId}:`, error);

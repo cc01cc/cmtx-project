@@ -185,7 +185,7 @@ export default defineConfig({
 
 ```
 src/extension.ts
-  + @cmtx/core, @cmtx/asset, @cmtx/publish
+  + @cmtx/core, @cmtx/asset, @cmtx/rule-engine
   + ali-oss, tinyglobby, trash  (第三方依赖)
   ↓ tsdown (alwaysBundle: [/.*/])
 dist/extension.cjs               ← 所有 JS 依赖已打包

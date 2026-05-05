@@ -266,13 +266,14 @@ describe("CMTX Config from .cmtx", () => {
         it("should return custom upload config when specified", () => {
             const config = {
                 version: "v2",
-                upload: {
-                    imageFormat: "html" as const,
-                    batchLimit: 10,
-                    auto: true,
-
-                    imageAltTemplate: "Image",
-                    namingTemplate: "{md5}.{ext}",
+                rules: {
+                    "upload-images": {
+                        imageFormat: "html",
+                        batchLimit: 10,
+                        auto: true,
+                        imageAltTemplate: "Image",
+                        namingTemplate: "{md5}.{ext}",
+                    },
                 },
             };
             const upload = getUploadConfigFromCmtx(config);
@@ -296,8 +297,10 @@ describe("CMTX Config from .cmtx", () => {
         it("should return custom widths when specified", () => {
             const config = {
                 version: "v2",
-                resize: {
-                    widths: [100, 200, 300],
+                rules: {
+                    "resize-image": {
+                        widths: [100, 200, 300],
+                    },
                 },
             };
             const widths = getResizeWidths(config);
@@ -365,12 +368,14 @@ describe("Config Validation", () => {
         it("should report error for invalid batchLimit", () => {
             const config = {
                 version: "v2",
-                upload: { batchLimit: 0 },
+                rules: {
+                    "upload-images": { batchLimit: 0 },
+                },
             };
             const errors = validateConfig(config);
 
             expect(errors).toContainEqual({
-                path: "upload.batchLimit",
+                path: "rules.upload-images.batchLimit",
                 message: "Batch limit must be at least 1",
                 severity: "error",
             });
@@ -379,12 +384,14 @@ describe("Config Validation", () => {
         it("should report error for invalid imageFormat", () => {
             const config = {
                 version: "v2",
-                upload: { imageFormat: "invalid" as any },
+                rules: {
+                    "upload-images": { imageFormat: "invalid" },
+                },
             };
             const errors = validateConfig(config);
 
             expect(errors).toContainEqual({
-                path: "upload.imageFormat",
+                path: "rules.upload-images.imageFormat",
                 message: 'Image format must be "markdown" or "html"',
                 severity: "error",
             });
@@ -393,12 +400,14 @@ describe("Config Validation", () => {
         it("should report error for invalid resize widths type", () => {
             const config = {
                 version: "v2",
-                resize: { widths: "invalid" as any },
+                rules: {
+                    "resize-image": { widths: "invalid" },
+                },
             };
             const errors = validateConfig(config);
 
             expect(errors).toContainEqual({
-                path: "resize.widths",
+                path: "rules.resize-image.widths",
                 message: "Widths must be an array",
                 severity: "error",
             });
@@ -407,12 +416,14 @@ describe("Config Validation", () => {
         it("should report error for non-positive width values", () => {
             const config = {
                 version: "v2",
-                resize: { widths: [100, -50, 200] },
+                rules: {
+                    "resize-image": { widths: [100, -50, 200] },
+                },
             };
             const errors = validateConfig(config);
 
             expect(errors).toContainEqual({
-                path: "resize.widths",
+                path: "rules.resize-image.widths",
                 message: "All widths must be positive numbers",
                 severity: "error",
             });

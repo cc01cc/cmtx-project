@@ -25,176 +25,20 @@ CMTX for VS Code - Markdown 工具包。
 - **查找引用** - 查找图片的所有引用
 - **配置向导** - 初始化 CMTX 配置
 
-## 命令
+## 安装
 
-| 命令                                      | 描述                        |
-| ----------------------------------------- | --------------------------- |
-| `CMTX: Upload selected images`            | 上传选中文字中的图片        |
-| `CMTX: Download remote images`            | 下载远程图片到本地          |
-| `CMTX: Delete image...`                   | 删除指定图片                |
-| `CMTX: Convert images to HTML format`     | 将 Markdown 图片转换为 HTML |
-| `CMTX: Set image width...`                | 使用 QuickPick 设置图片宽度 |
-| `CMTX: Increase image size (zoom in)`     | 增加图片宽度 (Ctrl+Up)      |
-| `CMTX: Decrease image size (zoom out)`    | 减小图片宽度 (Ctrl+Down)    |
-| `CMTX: Apply preset...`                   | 应用预设                    |
-| `CMTX: Add/Update section numbers`        | 添加/更新章节编号           |
-| `CMTX: Remove section numbers`            | 移除章节编号                |
-| `CMTX: Clear presigned URL cache`         | 清除预签名 URL 缓存         |
-| `CMTX: Create configuration...`           | 创建 CMTX 配置文件          |
-| `CMTX: Refresh configuration`             | 刷新配置（需重载窗口后生效）|
-| `CMTX: Reload window to apply config changes` | 重载窗口以应用配置变更 |
-| `CMTX (Rule): Upload images`              | 上传图片（规则模式）        |
-| `CMTX (Rule): Download remote images`     | 下载远程图片（规则模式）    |
-| `CMTX (Rule): Delete image`               | 删除图片（规则模式）        |
-| `CMTX (Rule): Convert images to HTML`     | 转换图片为 HTML（规则模式） |
-| `CMTX (Rule): Resize image`               | 调整图片尺寸（规则模式）    |
-| `CMTX (Rule): Generate frontmatter ID`    | 生成 frontmatter ID         |
-| `CMTX (Rule): Convert title to frontmatter` | 将标题转换为 frontmatter |
-| `CMTX (Rule): Strip frontmatter`          | 移除 frontmatter            |
-| `CMTX (Rule): Add frontmatter date`       | 添加 frontmatter 日期       |
-| `CMTX (Rule): Add frontmatter updated date` | 添加 frontmatter 更新日期 |
-| `CMTX (Rule): Promote headings`           | 提升标题级别                |
-| `CMTX (Rule): Add section numbers`        | 添加章节编号（规则模式）    |
-| `CMTX (Rule): Remove section numbers`     | 移除章节编号（规则模式）    |
-
-## 配置
-
-CMTX 使用 `.cmtx/config.yaml` 进行所有配置。运行 `CMTX: Initialize configuration` 来创建配置文件。
-
-详细配置指南请参见 [CFG-001-config-guide.md](./docs/CFG-001-config-guide.md)。
-
-### 环境变量
-
-你可以在配置文件中使用 `"${VAR}"` 语法来使用环境变量（Docker Compose 标准）：
-
-```yaml
-storage:
-    config:
-        bucket: "${CMTX_ALIYUN_BUCKET}"
-        accessKeyId: "${CMTX_ALIYUN_ACCESS_KEY_ID}"
-        accessKeySecret: "${CMTX_ALIYUN_ACCESS_KEY_SECRET}"
-```
-
-**重要**：环境变量必须用**双引号**包裹（`"${VAR}"`），不能使用裸 `${VAR}`。
-
-**为什么需要引号？** YAML 解析器会将未加引号的 `${VAR}` 解释为锚点/别名语法，解析为 `null`。
-
-**支持的语法**：
-
-- 简单语法：`"${VAR_NAME}"`
-- 带默认值：`"${VAR_NAME:-default_value}"`
-
-**带默认值的示例**：
-
-```yaml
-storage:
-    config:
-        bucket: "${CMTX_ALIYUN_BUCKET:-my-default-bucket}"
-```
-
-### 快速设置
-
-1. 设置环境变量：
-
-```bash
-# 阿里云 OSS
-export CMTX_ALIYUN_ACCESS_KEY_ID="your-access-key-id"
-export CMTX_ALIYUN_ACCESS_KEY_SECRET="your-access-key-secret"
-export CMTX_ALIYUN_BUCKET="your-bucket"
-export CMTX_ALIYUN_REGION="oss-cn-hangzhou"
-
-# 腾讯云 COS
-export CMTX_TENCENT_SECRET_ID="your-secret-id"
-export CMTX_TENCENT_SECRET_KEY="your-secret-key"
-```
-
-1. 运行 `CMTX: Initialize configuration` 创建 `.cmtx/config.yaml`
-
-2. 编辑配置文件，设置你的参数
-
-### 预签名 URL 配置
-
-对于私有存储桶图片预览，在 `.cmtx/config.yaml` 中配置：
-
-```yaml
-presignedUrls:
-    expire: 600
-    maxRetryCount: 3
-    imageFormat: all
-    domains:
-        - domain: private-bucket.oss-cn-hangzhou.aliyuncs.com
-          provider: aliyun-oss
-          bucket: "${CMTX_ALIYUN_BUCKET}"
-          region: oss-cn-hangzhou
-          accessKeyId: "${CMTX_ALIYUN_ACCESS_KEY_ID}"
-          accessKeySecret: "${CMTX_ALIYUN_ACCESS_KEY_SECRET}"
-```
-
-## 快捷键
-
-| 快捷键         | 命令             |
-| -------------- | ---------------- |
-| `Ctrl+Shift+H` | 转换为 HTML 格式 |
-| `Ctrl+Up`      | 增加图片宽度     |
-| `Ctrl+Down`    | 减小图片宽度     |
-
-## 要求
-
-- VS Code 1.110.0 或更高版本
-- Node.js 18.0.0 或更高版本
-
-## 开发
-
-### 快速打包
-
-从项目根目录直接打包，无需切换目录：
-
-```bash
-# 一步打包（构建 + 打包）
-pnpm -F cmtx-vscode build && pnpm -F cmtx-vscode package
-
-# 仅构建
-pnpm -F cmtx-vscode build
-
-# 仅打包（需要先构建）
-pnpm -F cmtx-vscode package
-```
-
-**打包产物**：`cmtx-vscode-<version>.vsix` 位于 `packages/vscode-extension/` 目录
-
-**替代方式**：
-
-```bash
-# 使用 --dir 参数
-pnpm --dir packages/vscode-extension build
-pnpm --dir packages/vscode-extension package
-```
-
-### 安装测试
-
-```bash
-# 从 VSIX 文件安装
-code --install-extension cmtx-vscode-0.1.0.vsix
-
-# 卸载
-code --uninstall-extension cc01cc.cmtx-vscode
-```
-
-### 开发指南
-
-开发指南请参见 [docs](./docs/) 目录：
-
-- [DEV-001-vscode_extension_debugging.md](./docs/DEV-001-vscode_extension_debugging.md) - 调试指南与日志最佳实践
-- [DEV-002-vscode_extension_architecture.md](./docs/DEV-002-vscode_extension_architecture.md) - 扩展架构层次详解
-- [DEV-003-vscode-extension-devcontainer-profile.md](./docs/DEV-003-vscode-extension-devcontainer-profile.md) - DevContainer 中 Profile 机制与扩展管理
-- [DEV-004-markdown-it-plugin-guide.md](./docs/DEV-004-markdown-it-plugin-guide.md) - Markdown-it 插件开发指南
-- [DEV-005-vsce-pnpm-workspace-integration.md](./docs/DEV-005-vsce-pnpm-workspace-integration.md) - VSCE 与 pnpm Workspace 集成指南
-- [DEV-006-tsdown-dependency-bundling-guide.md](./docs/DEV-006-tsdown-dependency-bundling-guide.md) - tsdown 依赖打包与构建指南
-- [DEV-007-vscode-testing-conflict.md](./docs/DEV-007-vscode-testing-conflict.md) - 冲突处理配置测试清单
+从 VS Code Marketplace 安装 `cc01cc.cmtx-vscode`。
 
 ## 文档
 
-- [English Documentation](./README.en.md)
+- [USR-001 - 安装与快速开始](./docs/USR-001-getting-started.md)
+- [USR-002 - 命令参考](./docs/USR-002-commands-reference.md)
+- [CFG-001 - 配置指南](./docs/CFG-001-config-guide.md)
+- [文档索引](./docs/INDEX.md)
+
+## 开发
+
+参见 [docs](./docs/) 目录中的开发指南。
 
 ## 许可证
 

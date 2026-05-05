@@ -1,57 +1,57 @@
+/**
+ * Explorer 右键下载命令
+ *
+ * @module download-from-explorer
+ * @description
+ * 支持在 Explorer 中右键 Markdown 文件，下载其中所有 web 图片到本地目录。
+ * 不依赖存储配置，直接通过 HTTP 下载公开 URL。
+ */
+
+import { dirname } from "node:path";
 import { createDownloadService } from "@cmtx/asset/download";
 import * as vscode from "vscode";
-import { showError, showInfo, validateMarkdownEditor } from "../infra/index.js";
+import { showError, showInfo } from "../infra/notification.js";
 
-export async function downloadImages(): Promise<void> {
-    const editor = validateMarkdownEditor();
-    if (!editor) {
-        await showError("Please open a Markdown file first");
+/**
+ * 从 Explorer 右键菜单下载 Markdown 文件中的 web 图片
+ *
+ * @param uri - 右键选中的文件 URI（由 VS Code 菜单传入）
+ */
+export async function downloadFromExplorer(uri: vscode.Uri): Promise<void> {
+    if (uri.fsPath.endsWith(".md") === false) {
+        await showError("Selected file is not a Markdown file");
         return;
     }
 
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(editor.document.uri);
-    if (!workspaceFolder) {
-        await showError("Please open a workspace folder");
-        return;
-    }
+    const fileDir = dirname(uri.fsPath);
+    const defaultOutputDir = `${fileDir}/images`;
 
     const outputDir = await vscode.window.showInputBox({
         prompt: "Enter output directory for downloaded images",
-        value: "./images",
-        placeHolder: "./images",
+        value: defaultOutputDir,
+        placeHolder: defaultOutputDir,
     });
 
     if (!outputDir) {
         return;
     }
 
-    const filePath = editor.document.uri.fsPath;
-
     try {
         await vscode.window.withProgress(
             {
                 location: vscode.ProgressLocation.Notification,
-                title: "Downloading images...",
-                cancellable: true,
+                title: "CMTX: Downloading images...",
+                cancellable: false,
             },
-            async (progress, token) => {
+            async () => {
                 const service = createDownloadService({
                     options: {
                         outputDir,
                         concurrency: 5,
-                        onProgress: (p) => {
-                            progress.report({
-                                message: `${p.current}/${p.total}: ${p.fileName}`,
-                            });
-                        },
                     },
                 });
 
-                const result = await service.downloadFromMarkdown(filePath);
-
-                if (token.isCancellationRequested) {
-                    return;
-                }
+                const result = await service.downloadFromMarkdown(uri.fsPath);
 
                 if (result.failed > 0) {
                     await showError(

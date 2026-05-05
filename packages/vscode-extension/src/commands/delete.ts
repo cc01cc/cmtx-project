@@ -4,6 +4,8 @@ import {
     getStorageConfig,
     loadCmtxConfig,
 } from "../infra/cmtx-config.js";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { showError, showInfo, showWarning } from "../infra/notification.js";
 import { getModuleLogger } from "../infra/unified-logger.js";
 
@@ -189,9 +191,6 @@ async function performDelete(
 ): Promise<void> {
     if (target.isLocal) {
         // Delete local file
-        const fs = await import("node:fs/promises");
-        const path = await import("node:path");
-
         const fullPath = path.isAbsolute(target.path)
             ? target.path
             : path.join(workspaceFolder.uri.fsPath, target.path);

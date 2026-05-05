@@ -127,16 +127,7 @@ presets:
 
 ## 环境变量参考
 
-| 环境变量 | 说明 | 用于 |
-| --- | --- | --- |
-| `CMTX_ALIYUN_ACCESS_KEY_ID` | 阿里云 AccessKey ID | 上传、预签名 URL |
-| `CMTX_ALIYUN_ACCESS_KEY_SECRET` | 阿里云 AccessKey Secret | 上传、预签名 URL |
-| `CMTX_ALIYUN_BUCKET` | 阿里云 OSS Bucket 名称 | 上传、预签名 URL |
-| `CMTX_TENCENT_SECRET_ID` | 腾讯云 Secret ID | 上传、预签名 URL |
-| `CMTX_TENCENT_SECRET_KEY` | 腾讯云 Secret Key | 上传、预签名 URL |
-| `CMTX_TENCENT_BUCKET` | 腾讯云 COS Bucket 名称 | 上传、预签名 URL |
-
-也可以在配置文件中直接使用传统环境变量名（如 `ALIYUN_OSS_ACCESS_KEY_ID`）。
+完整环境变量清单请参考 [CFG-001 配置参考](../../docs/CFG-001-configuration-reference.md#环境变量)。
 
 ## 配置验证
 

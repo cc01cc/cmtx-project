@@ -6,7 +6,6 @@ import type {
     CmtxPresignedUrlConfig,
     CmtxPresignedUrlDomain,
     CmtxStorageConfig,
-    CmtxUploadConfig,
 } from "@cmtx/asset/config";
 import {
     ConfigLoader,
@@ -14,7 +13,7 @@ import {
     saveConfigToFile,
     substituteEnvVarsInObject,
 } from "@cmtx/asset/config";
-import type { PresetConfig, RuleConfig } from "@cmtx/publish";
+import type { PresetConfig, RuleConfig } from "@cmtx/rule-engine";
 import * as vscode from "vscode";
 import { getModuleLogger } from "./unified-logger.js";
 
@@ -60,27 +59,44 @@ function logStorageConfig(config: CmtxConfig, logToChannel: LogFn): void {
         logToChannel(`[CMTX] [config] INFO:     Access Key: ${keyPreview}`);
         logToChannel(`[CMTX] [config] INFO:     Access Secret: ${secretPreview}`);
     }
-    logToChannel("[CMTX] [config] INFO:   Upload Prefix: " + (config.upload?.prefix || "(none)"));
+    const uploadConfig = config.rules?.["upload-images"] ?? {};
+    const useStorage = (uploadConfig.useStorage as string) || "default";
+    logToChannel(
+        "[CMTX] [config] INFO:   Upload Prefix: " + ((uploadConfig.prefix as string) || "(none)"),
+    );
     logToChannel("");
-    const useStorage = config.upload?.useStorage || "default";
     logger.info(`Storages: ${Object.keys(config.storages).join(", ")}, useStorage=${useStorage}`);
 }
 
 function logUploadConfig(config: CmtxConfig, logToChannel: LogFn): void {
-    if (!config.upload) return;
+    const uploadRule = config.rules?.["upload-images"];
+    if (!uploadRule) return;
 
-    logToChannel("[CMTX] [config] INFO: Upload:");
+    logToChannel("[CMTX] [config] INFO: Rules.upload-images:");
     logToChannel(
-        `[CMTX] [config] INFO:   Image Format: ${config.upload.imageFormat ?? "markdown"}`,
+        `[CMTX] [config] INFO:   Image Format: ${(uploadRule.imageFormat as string) ?? "markdown"}`,
     );
-    logToChannel(`[CMTX] [config] INFO:   Batch Limit: ${config.upload.batchLimit ?? 5}`);
-    logToChannel(`[CMTX] [config] INFO:   Auto: ${config.upload.auto ?? false}`);
+    logToChannel(`[CMTX] [config] INFO:   Batch Limit: ${(uploadRule.batchLimit as number) ?? 5}`);
+    logToChannel(`[CMTX] [config] INFO:   Auto: ${(uploadRule.auto as boolean) ?? false}`);
     logToChannel("");
     logger.info(
         `Upload: imageFormat=${
-            config.upload.imageFormat ?? "markdown"
-        }, batchLimit=${config.upload.batchLimit ?? 5}`,
+            (uploadRule.imageFormat as string) ?? "markdown"
+        }, batchLimit=${(uploadRule.batchLimit as number) ?? 5}`,
     );
+}
+
+function logResizeConfig(config: CmtxConfig, logToChannel: LogFn): void {
+    const resizeRule = config.rules?.["resize-image"];
+    if (!resizeRule) return;
+
+    logToChannel("[CMTX] [config] INFO: Rules.resize-image:");
+    const widths = resizeRule.widths as number[] | undefined;
+    if (widths?.length) {
+        logToChannel(`[CMTX] [config] INFO:   Widths: [${widths.join(", ")}]`);
+    }
+    logToChannel("");
+    logger.info(`Resize: widths=[${widths?.join(", ") ?? ""}]`);
 }
 
 function logPresignedUrlsConfig(config: CmtxConfig, logToChannel: LogFn): void {
@@ -95,17 +111,6 @@ function logPresignedUrlsConfig(config: CmtxConfig, logToChannel: LogFn): void {
             config.presignedUrls.expire ?? 600
         }s, maxRetry=${config.presignedUrls.maxRetryCount ?? 3}`,
     );
-}
-
-function logResizeConfig(config: CmtxConfig, logToChannel: LogFn): void {
-    if (!config.resize) return;
-
-    logToChannel("[CMTX] [config] INFO: Resize:");
-    if (config.resize.widths?.length) {
-        logToChannel(`[CMTX] [config] INFO:   Widths: [${config.resize.widths.join(", ")}]`);
-    }
-    logToChannel("");
-    logger.info(`Resize: widths=[${config.resize.widths?.join(", ") ?? ""}]`);
 }
 
 /**
@@ -218,31 +223,47 @@ export function getStorageConfig(
     config: CmtxConfig,
     storageId?: string,
 ): CmtxStorageConfig | undefined {
-    const useStorageId = storageId || config.upload?.useStorage || "default";
+    const uploadConfig = config.rules?.["upload-images"] ?? {};
+    const useStorageId = storageId || (uploadConfig.useStorage as string) || "default";
     return config.storages?.[useStorageId];
 }
 
-export function getUploadConfigFromCmtx(config: CmtxConfig): CmtxUploadConfig {
+export function getUploadConfigFromCmtx(config: CmtxConfig): Record<string, unknown> {
+    const uploadRule = config.rules?.["upload-images"] ?? {};
     return {
-        imageFormat: config.upload?.imageFormat ?? "markdown",
-        batchLimit: config.upload?.batchLimit ?? 5,
-        imageAltTemplate: config.upload?.imageAltTemplate ?? "",
-        namingTemplate: config.upload?.namingTemplate ?? "{name}.{ext}",
-        auto: config.upload?.auto ?? false,
-        conflictStrategy: config.upload?.conflictStrategy ?? "skip",
-        useStorage: config.upload?.useStorage ?? "default",
-        prefix: config.upload?.prefix ?? "",
+        imageFormat: (uploadRule.imageFormat as string) ?? "markdown",
+        batchLimit: (uploadRule.batchLimit as number) ?? 5,
+        imageAltTemplate: (uploadRule.imageAltTemplate as string) ?? "",
+        namingTemplate: (uploadRule.namingTemplate as string) ?? "{name}.{ext}",
+        auto: (uploadRule.auto as boolean) ?? false,
+        conflictStrategy: (uploadRule.conflictStrategy as string) ?? "skip",
+        useStorage: (uploadRule.useStorage as string) ?? "default",
+        prefix: (uploadRule.prefix as string) ?? "",
+    };
+}
+
+/**
+ * 获取 download-images 规则配置
+ */
+export function getDownloadConfigFromCmtx(config: CmtxConfig): {
+    useStorage: string;
+} {
+    const downloadRule = config.rules?.["download-images"] ?? {};
+    return {
+        useStorage: (downloadRule.useStorage as string) ?? "default",
     };
 }
 
 export function getResizeWidths(config: CmtxConfig): number[] {
-    return config.resize?.widths ?? [360, 480, 640, 800, 960, 1200];
+    const resizeRule = config.rules?.["resize-image"] ?? {};
+    return (resizeRule.widths as number[]) ?? [360, 480, 640, 800, 960, 1200];
 }
 
 export function getResizeDomains(
     config: CmtxConfig,
 ): Array<{ domain: string; provider: "aliyun-oss" | "tencent-cos" | "html" }> {
-    const domains = config.resize?.domains ?? [];
+    const resizeRule = config.rules?.["resize-image"] ?? {};
+    const domains = (resizeRule.domains as Array<{ domain: string; provider: string }>) ?? [];
     return domains.map((d) => ({
         domain: d.domain,
         provider: (d.provider || "html") as "aliyun-oss" | "tencent-cos" | "html",

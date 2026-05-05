@@ -3,7 +3,7 @@ import {
     createCounterService,
     createServiceRegistry,
     type ServiceRegistry,
-} from "@cmtx/publish";
+} from "@cmtx/rule-engine";
 import { createAdapter } from "@cmtx/storage/adapters/factory";
 import type * as vscode from "vscode";
 import type { CmtxConfig, CmtxStorageConfig } from "@cmtx/asset/config";

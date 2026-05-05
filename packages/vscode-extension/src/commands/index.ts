@@ -1,10 +1,13 @@
 export { applyPreset } from "./apply-preset.js";
-export { initConfig } from "./config.js";
+export { initConfig, updateConfigSchema } from "./config.js";
 export { deleteImage } from "./delete.js";
-export { downloadImages } from "./download.js";
+export { downloadFromExplorer } from "./download-from-explorer.js";
 export { formatToHtml } from "./format.js";
 export { clearPresignedCacheCommand } from "./presigned-cache.js";
+export { togglePresignedUrlsCommand } from "./presigned-toggle.js";
 export { setImageWidth, zoomIn, zoomOut } from "./resize.js";
 export * from "./rules/index.js";
 export { addSectionNumbersCommand, removeSectionNumbersCommand } from "./section-numbers.js";
 export { uploadSelectedImages } from "./upload.js";
+export { uploadFileFromExplorer, uploadDirectoryFromExplorer } from "./upload-from-explorer.js";
+export { pruneDirectoryCommand } from "./delete-from-explorer.js";

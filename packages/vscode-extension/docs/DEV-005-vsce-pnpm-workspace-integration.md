@@ -305,7 +305,7 @@ unzip -l cmtx-vscode-0.1.0.vsix | grep wasm
     "dependencies": {
         "@cmtx/asset": "workspace:*",
         "@cmtx/core": "workspace:*",
-        "@cmtx/publish": "workspace:*",
+        "@cmtx/rule-engine": "workspace:*",
         "@cmtx/storage": "workspace:*",
         "ali-oss": "catalog:"
     }

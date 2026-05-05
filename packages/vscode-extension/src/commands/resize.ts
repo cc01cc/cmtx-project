@@ -1,4 +1,3 @@
-import { updateImageAttribute } from "@cmtx/core";
 import * as vscode from "vscode";
 import { validateMarkdownEditor } from "../infra/editor.js";
 import {
@@ -7,11 +6,7 @@ import {
     loadCmtxConfig,
 } from "../infra/cmtx-config.js";
 import { showError, showInfo } from "../infra/notification.js";
-import {
-    calculateTargetWidth,
-    detectCurrentWidth,
-    parseImageElements,
-} from "../utils/image-processor.js";
+import { executeRuleCommand } from "./rules/execute-rule.js";
 
 export async function zoomIn(): Promise<void> {
     await zoomImage("in");
@@ -41,7 +36,6 @@ export async function setImageWidth(): Promise<void> {
     }
 
     const widths = await getWidths();
-
     const picked = await vscode.window.showQuickPick(
         widths.map((w) => ({ label: `${w}px`, value: w })),
         { placeHolder: "Select image width" },
@@ -51,7 +45,16 @@ export async function setImageWidth(): Promise<void> {
         return;
     }
 
-    await applyWidthChange(editor, selection, picked.value);
+    await executeRuleCommand("resize-image", {
+        resize: true,
+        targetWidth: picked.value,
+        selection: {
+            startOffset: editor.document.offsetAt(selection.start),
+            endOffset: editor.document.offsetAt(selection.end),
+        },
+    });
+
+    await showInfo(`Set image width to ${picked.value}px`);
 }
 
 async function zoomImage(direction: "in" | "out"): Promise<void> {
@@ -68,78 +71,16 @@ async function zoomImage(direction: "in" | "out"): Promise<void> {
     }
 
     const widths = await getWidths();
-    const selectedText = editor.document.getText(selection);
-    const elements = parseImageElements(selectedText);
 
-    if (elements.length === 0) {
-        await showError("No images found in selection");
-        return;
-    }
-
-    const currentWidth = detectCurrentWidth(elements, widths);
-    const targetWidth = calculateTargetWidth(currentWidth, direction, widths);
-
-    await applyWidthChange(editor, selection, targetWidth);
-}
-
-async function applyWidthChange(
-    editor: vscode.TextEditor,
-    selection: vscode.Selection,
-    targetWidth: number,
-): Promise<void> {
-    const selectedText = editor.document.getText(selection);
-    const elements = parseImageElements(selectedText);
-
-    if (elements.length === 0) {
-        await showError("No images found in selection");
-        return;
-    }
-
-    // Check for markdown images that need conversion
-    const markdownElements = elements.filter((e) => e.type === "markdown");
-    const htmlElements = elements.filter((e) => e.type === "html");
-
-    // If there are markdown images, show quick pick for confirmation
-    if (markdownElements.length > 0) {
-        const result = await vscode.window.showQuickPick(
-            [
-                {
-                    label: "Convert & Set Width",
-                    description: `Convert Markdown to HTML and set width to ${targetWidth}px`,
-                },
-                {
-                    label: "Cancel",
-                    description: "Keep Markdown format (width cannot be set)",
-                },
-            ],
-            {
-                placeHolder: `Markdown syntax doesn't support width attributes. Select an action:`,
-                ignoreFocusOut: false,
-            },
-        );
-
-        if (!result || result.label !== "Convert & Set Width") {
-            return; // User cancelled
-        }
-    }
-
-    let newText = selectedText;
-
-    // Process markdown elements - convert to HTML with width
-    for (const element of markdownElements) {
-        const newHtml = `<img src="${element.src}" alt="${element.alt || ""}" width="${targetWidth}">`;
-        newText = newText.replace(element.originalText, newHtml);
-    }
-
-    // Process HTML elements - update width attribute
-    for (const element of htmlElements) {
-        const newHtml = updateImageAttribute(element.originalText, "width", targetWidth.toString());
-        newText = newText.replace(element.originalText, newHtml);
-    }
-
-    await editor.edit((editBuilder) => {
-        editBuilder.replace(selection, newText);
+    await executeRuleCommand("resize-image", {
+        resize: true,
+        direction,
+        availableWidths: widths,
+        selection: {
+            startOffset: editor.document.offsetAt(selection.start),
+            endOffset: editor.document.offsetAt(selection.end),
+        },
     });
 
-    await showInfo(`Set image width to ${targetWidth}px`);
+    await showInfo(`Zoomed image (${direction})`);
 }

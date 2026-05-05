@@ -1,7 +1,7 @@
 {
     "name": "cmtx-vscode",
     "displayName": "CMTX for VS Code",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "private": true,
     "description": "Markdown Toolkit",
     "categories": [
@@ -42,7 +42,7 @@
         "@cmtx/fpe-wasm": "workspace:*",
         "@cmtx/markdown-it-presigned-url": "workspace:*",
         "@cmtx/markdown-it-presigned-url-adapter-nodejs": "workspace:*",
-        "@cmtx/publish": "workspace:*",
+        "@cmtx/rule-engine": "workspace:*",
         "@cmtx/storage": "workspace:*",
         "ali-oss": "catalog:",
         "tinyglobby": "catalog:",
@@ -70,32 +70,27 @@
     "contributes": {
         "commands": [
             {
-                "command": "cmtx.uploadSelected",
+                "command": "cmtx.image.upload",
                 "title": "Upload selected images",
                 "category": "CMTX"
             },
             {
-                "command": "cmtx.download",
-                "title": "Download remote images",
-                "category": "CMTX"
-            },
-            {
-                "command": "cmtx.formatToHtml",
+                "command": "cmtx.image.formatToHtml",
                 "title": "Convert images to HTML format",
                 "category": "CMTX"
             },
             {
-                "command": "cmtx.setImageWidth",
+                "command": "cmtx.image.setWidth",
                 "title": "Set image width...",
                 "category": "CMTX"
             },
             {
-                "command": "cmtx.zoomIn",
+                "command": "cmtx.image.zoomIn",
                 "title": "Increase image size (zoom in)",
                 "category": "CMTX"
             },
             {
-                "command": "cmtx.zoomOut",
+                "command": "cmtx.image.zoomOut",
                 "title": "Decrease image size (zoom out)",
                 "category": "CMTX"
             },
@@ -110,12 +105,22 @@
                 "category": "CMTX"
             },
             {
+                "command": "cmtx.updateConfigSchema",
+                "title": "Update configuration schema",
+                "category": "CMTX"
+            },
+            {
                 "command": "cmtx.clearPresignedCache",
                 "title": "Clear presigned URL cache",
                 "category": "CMTX"
             },
             {
-                "command": "cmtx.deleteImage",
+                "command": "cmtx.togglePresignedUrls",
+                "title": "Toggle presigned URLs",
+                "category": "CMTX"
+            },
+            {
+                "command": "cmtx.image.delete",
                 "title": "Delete image...",
                 "category": "CMTX"
             },
@@ -203,11 +208,36 @@
                 "command": "cmtx.rule.resize-image",
                 "title": "Resize image",
                 "category": "CMTX"
+            },
+            {
+                "command": "cmtx.explorer.uploadFile",
+                "title": "Upload images in current file",
+                "category": "CMTX"
+            },
+            {
+                "command": "cmtx.explorer.uploadDirectory",
+                "title": "Upload images in directory",
+                "category": "CMTX"
+            },
+            {
+                "command": "cmtx.explorer.pruneDirectory",
+                "title": "Delete unused images in directory",
+                "category": "CMTX"
+            },
+            {
+                "command": "cmtx.explorer.downloadImages",
+                "title": "Download images in file",
+                "category": "CMTX"
             }
         ],
         "submenus": [
             {
                 "id": "cmtx.submenu",
+                "label": "CMTX",
+                "icon": "$(file-media)"
+            },
+            {
+                "id": "cmtx.explorerSubmenu",
                 "label": "CMTX",
                 "icon": "$(file-media)"
             }
@@ -222,27 +252,27 @@
             ],
             "cmtx.submenu": [
                 {
-                    "command": "cmtx.uploadSelected",
+                    "command": "cmtx.image.upload",
                     "when": "editorLangId == markdown && editorHasSelection",
                     "group": "upload@1"
                 },
                 {
-                    "command": "cmtx.setImageWidth",
+                    "command": "cmtx.image.setWidth",
                     "when": "editorLangId == markdown && editorHasSelection",
                     "group": "resize@1"
                 },
                 {
-                    "command": "cmtx.zoomIn",
+                    "command": "cmtx.image.zoomIn",
                     "when": "editorLangId == markdown && editorHasSelection",
                     "group": "resize@2"
                 },
                 {
-                    "command": "cmtx.zoomOut",
+                    "command": "cmtx.image.zoomOut",
                     "when": "editorLangId == markdown && editorHasSelection",
                     "group": "resize@3"
                 },
                 {
-                    "command": "cmtx.formatToHtml",
+                    "command": "cmtx.image.formatToHtml",
                     "when": "editorLangId == markdown && editorHasSelection",
                     "group": "format@1"
                 },
@@ -251,21 +281,68 @@
                     "when": "editorLangId == markdown",
                     "group": "preset@1"
                 }
+            ],
+            "explorer/context": [
+                {
+                    "submenu": "cmtx.explorerSubmenu",
+                    "when": "explorerResourceIsFolder == true || resourceExtname == .md",
+                    "group": "9_cmtx@1"
+                }
+            ],
+            "cmtx.explorerSubmenu": [
+                {
+                    "command": "cmtx.explorer.uploadFile",
+                    "when": "explorerResourceIsFolder == false && resourceExtname == .md",
+                    "group": "9_cmtx@1"
+                },
+                {
+                    "command": "cmtx.explorer.uploadDirectory",
+                    "when": "explorerResourceIsFolder == true",
+                    "group": "9_cmtx@2"
+                },
+                {
+                    "command": "cmtx.explorer.pruneDirectory",
+                    "when": "explorerResourceIsFolder == true",
+                    "group": "9_cmtx@3"
+                },
+                {
+                    "command": "cmtx.explorer.downloadImages",
+                    "when": "explorerResourceIsFolder == false && resourceExtname == .md",
+                    "group": "9_cmtx@4"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "cmtx.explorer.uploadFile",
+                    "when": false
+                },
+                {
+                    "command": "cmtx.explorer.uploadDirectory",
+                    "when": false
+                },
+                {
+                    "command": "cmtx.explorer.pruneDirectory",
+                    "when": false
+                },
+                {
+                    "command": "cmtx.explorer.downloadImages",
+                    "when": false
+                }
             ]
         },
         "keybindings": [
             {
-                "command": "cmtx.formatToHtml",
+                "command": "cmtx.image.formatToHtml",
                 "key": "ctrl+shift+h",
                 "when": "editorLangId == markdown"
             },
             {
-                "command": "cmtx.zoomIn",
+                "command": "cmtx.image.zoomIn",
                 "key": "ctrl+up",
                 "when": "editorLangId == markdown && editorHasSelection"
             },
             {
-                "command": "cmtx.zoomOut",
+                "command": "cmtx.image.zoomOut",
                 "key": "ctrl+down",
                 "when": "editorLangId == markdown && editorHasSelection"
             }
@@ -277,6 +354,11 @@
                     "type": "string",
                     "default": ".cmtx",
                     "description": "CMTX configuration directory path. Relative to workspace folder or absolute path. All other CMTX settings are configured in .cmtx/config.yaml"
+                },
+                "cmtx.presignedUrls.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable or disable presigned URL generation for Markdown preview."
                 }
             }
         },
