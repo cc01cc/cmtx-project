@@ -1,8 +1,10 @@
 import path from "node:path";
+import fs from "node:fs/promises";
 import { FileService } from "@cmtx/asset/file";
 import type { CloudCredentials, InternalTransferConfig } from "@cmtx/asset/transfer";
 import { createTransferManager, createUrlParser } from "@cmtx/asset/transfer";
 import { createAdapter } from "@cmtx/storage/adapters/factory";
+import { createCredentials } from "@cmtx/storage";
 import { createRuleEngineAdapter } from "./rules/rule-adapter.js";
 
 interface JsonRpcRequest {
@@ -157,20 +159,22 @@ async function handleScanAnalyze(
         return;
     }
 
-    const images = await fileService.filterImagesFromDirectory(searchDir, {
+    const fileMatches = await fileService.filterImagesFromDirectory(searchDir, {
         mode: "sourceType",
         value: "local",
     });
 
+    const localMatches = fileMatches.filter((f) => f.type === "local");
+
     const analysis = {
-        images: images.map((img) => ({
-            localPath: "absLocalPath" in img ? img.absLocalPath : img.src,
+        images: localMatches.map((fmatch) => ({
+            localPath: fmatch.absPath,
             fileSize: 0,
             referencedIn: [],
         })),
         skipped: [],
         totalSize: 0,
-        totalCount: images.length,
+        totalCount: localMatches.length,
     };
 
     write({
@@ -191,13 +195,15 @@ async function handleUploadPreview(
         return;
     }
 
-    const images = await fileService.filterImagesFromDirectory(searchDir, {
+    const fileMatches = await fileService.filterImagesFromDirectory(searchDir, {
         mode: "sourceType",
         value: "local",
     });
 
-    const preview = images.map((img) => ({
-        imagePath: "absLocalPath" in img ? img.absLocalPath : img.src,
+    const localMatches = fileMatches.filter((f) => f.type === "local");
+
+    const preview = localMatches.map((fmatch) => ({
+        imagePath: fmatch.absPath,
         remotePath: "",
         referencedIn: [],
     }));
@@ -209,7 +215,7 @@ async function handleUploadPreview(
             preview,
             totals: {
                 toReplace: 0,
-                toDelete: images.length,
+                toDelete: localMatches.length,
             },
         },
     });
@@ -231,48 +237,17 @@ async function handleUploadRun(
 
     let credentials: CloudCredentials;
 
-    if (provider === "aliyun-oss") {
-        const region =
-            getStringArg(args, "region") ?? process.env.ALIYUN_OSS_REGION ?? "oss-cn-hangzhou";
-        const accessKeyId =
-            getStringArg(args, "accessKeyId") ?? process.env.ALIYUN_OSS_ACCESS_KEY_ID;
-        const accessKeySecret =
-            getStringArg(args, "accessKeySecret") ?? process.env.ALIYUN_OSS_ACCESS_KEY_SECRET;
-        const bucket = getStringArg(args, "bucket") ?? process.env.ALIYUN_OSS_BUCKET;
-
-        if (!accessKeyId || !accessKeySecret || !bucket) {
-            error(id, 4101, "Missing OSS credentials or bucket");
-            return;
-        }
-
-        credentials = {
-            provider: "aliyun-oss",
-            accessKeyId,
-            accessKeySecret,
-            region,
-            bucket,
-        };
-    } else if (provider === "tencent-cos") {
-        const region =
-            getStringArg(args, "region") ?? process.env.TENCENT_COS_REGION ?? "ap-guangzhou";
-        const secretId = getStringArg(args, "secretId") ?? process.env.TENCENT_COS_SECRET_ID;
-        const secretKey = getStringArg(args, "secretKey") ?? process.env.TENCENT_COS_SECRET_KEY;
-        const bucket = getStringArg(args, "bucket") ?? process.env.TENCENT_COS_BUCKET;
-
-        if (!secretId || !secretKey || !bucket) {
-            error(id, 4101, "Missing COS credentials or bucket");
-            return;
-        }
-
-        credentials = {
-            provider: "tencent-cos",
-            secretId,
-            secretKey,
-            region,
-            bucket,
-        };
-    } else {
-        error(id, 4102, `Unsupported provider: ${String(provider)}`);
+    try {
+        credentials = createCredentials(provider, {
+            accessKeyId: getStringArg(args, "accessKeyId"),
+            accessKeySecret: getStringArg(args, "accessKeySecret"),
+            secretId: getStringArg(args, "secretId"),
+            secretKey: getStringArg(args, "secretKey"),
+            region: getStringArg(args, "region"),
+            bucket: getStringArg(args, "bucket"),
+        });
+    } catch {
+        error(id, 4101, "Missing cloud credentials, set CMTX_ALIYUN_* or CMTX_TENCENT_* env vars");
         return;
     }
 
@@ -285,37 +260,24 @@ async function handleUploadRun(
         namingTemplate: getStringArg(args, "namingTemplate"),
     });
 
-    const images = await fileService.filterImagesFromDirectory(searchDir, {
+    const fileMatches = await fileService.filterImagesFromDirectory(searchDir, {
         mode: "sourceType",
         value: "local",
     });
+    const localMatches = fileMatches.filter((f) => f.type === "local");
 
     const filesWithImages = new Set<string>();
-    images.forEach((img) => {
-        if ("absLocalPath" in img && img.source === "file") {
-            const mdFiles = images
-                .filter(
-                    (i) =>
-                        "absLocalPath" in i &&
-                        i.absLocalPath === img.absLocalPath &&
-                        i.source === "file",
-                )
-                .map((i) => {
-                    if (i.source === "file" && "filePath" in i) {
-                        return (i as unknown as { filePath: string }).filePath;
-                    }
-                    return null;
-                })
-                .filter((f): f is string => f !== null);
-            mdFiles.forEach((file) => filesWithImages.add(file));
-        }
+    localMatches.forEach((fmatch) => {
+        const mdFiles = localMatches
+            .filter((i) => i.absPath === fmatch.absPath)
+            .map((i) => i.filePath);
+        mdFiles.forEach((file) => filesWithImages.add(file));
     });
 
     const results: Array<Record<string, unknown>> = [];
 
     for (const filePath of Array.from(filesWithImages)) {
         try {
-            const fs = await import("node:fs/promises");
             const document = await fs.readFile(filePath, "utf-8");
 
             const result = await ruleAdapter.executeRule("upload-images", document, filePath, {
@@ -361,13 +323,17 @@ async function handleFindFilesReferencingImage(
         return;
     }
 
-    const images = await fileService.filterImagesFromDirectory(searchDir, undefined, undefined);
+    const fileMatches = await fileService.filterImagesFromDirectory(
+        searchDir,
+        undefined,
+        undefined,
+    );
 
     const referencingFiles = new Set<string>();
 
-    for (const img of images) {
-        if (img.type === "local") {
-            const imgPath = "absLocalPath" in img ? img.absLocalPath : img.src;
+    for (const fmatch of fileMatches) {
+        if (fmatch.type === "local") {
+            const imgPath = fmatch.absPath;
 
             const normalizedImagePath = path.normalize(imagePath);
             const normalizedImgPath = path.normalize(imgPath);
@@ -376,21 +342,19 @@ async function handleFindFilesReferencingImage(
                 normalizedImagePath === normalizedImgPath ||
                 normalizedImagePath.endsWith(path.basename(normalizedImgPath))
             ) {
-                if ("source" in img && img.source === "file") {
-                    const fileName = path.basename(imagePath);
-                    const allFiles = await fileService.scanDirectory(searchDir, {
-                        patterns: ["**/*.md", "**/*.markdown"],
-                    });
+                const fileName = path.basename(imagePath);
+                const allFiles = await fileService.scanDirectory(searchDir, {
+                    patterns: ["**/*.md", "**/*.markdown"],
+                });
 
-                    for (const fPath of allFiles) {
-                        try {
-                            const content = await fileService.readFileContent(fPath);
-                            if (content.includes(fileName) || content.includes(imagePath)) {
-                                referencingFiles.add(path.relative(searchDir, fPath));
-                            }
-                        } catch {
-                            // ignore
+                for (const fPath of allFiles) {
+                    try {
+                        const content = await fileService.readFileContent(fPath);
+                        if (content.includes(fileName) || content.includes(imagePath)) {
+                            referencingFiles.add(path.relative(searchDir, fPath));
                         }
+                    } catch {
+                        // ignore
                     }
                 }
             }

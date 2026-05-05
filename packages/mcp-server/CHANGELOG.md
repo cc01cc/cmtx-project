@@ -1,15 +1,18 @@
 # @cmtx/mcp-server 更新日志 / Changelog
 
-### Added
-
-- **错误处理**: 新增上传命令的错误处理和日志改进
+## [0.1.1-alpha.0] - 2026-05-05
 
 ### Changed
 
-- **Rule Engine**: 集成 `@cmtx/publish` 的规则引擎，统一 CLI 和 MCP 命令
+- **Rule Engine**: 集成 `@cmtx/rule-engine` 的规则引擎，统一 CLI 和 MCP 命令
 - **RuleEngineAdapter**: 重构为异步工厂方法（`createAsync`）加载内置规则
+- **文档重构**: 拆分用户文档到 `docs/` 目录，README 精简为安装说明和文档链接导航
 - **构建工具**: 从 `tsc` 迁移到 `tsdown`，新增 `tsdown.config.ts`
 - **Node.js 版本**: 引擎要求从 `>=18.0.0` 升级到 `>=22.0.0`
+
+### Added
+
+- **错误处理**: 新增上传命令的错误处理和日志改进
 
 ### Fixed
 
@@ -18,16 +21,17 @@
 
 ---
 
+### Changed
+
+- **Rule Engine**: Integrated `@cmtx/rule-engine` rule engine, unifying CLI and MCP commands
+- **RuleEngineAdapter**: Refactored to async factory method (`createAsync`) for built-in rules
+- **Docs restructuring**: Split user docs to `docs/` directory, README simplified to installation and navigation
+- **Build Tool**: Migrated from `tsc` to `tsdown`, added `tsdown.config.ts`
+- **Node.js Version**: Engine requirement bumped from `>=18.0.0` to `>=22.0.0`
+
 ### Added
 
 - **Error Handling**: Added upload command error handling and logging improvements
-
-### Changed
-
-- **Rule Engine**: Integrated `@cmtx/publish` rule engine, unified CLI and MCP commands
-- **RuleEngineAdapter**: Refactored to async factory method (`createAsync`) for built-in rules
-- **Build Tool**: Migrated from `tsc` to `tsdown`, added `tsdown.config.ts`
-- **Node.js Version**: Engine requirement bumped from `>=18.0.0` to `>=22.0.0`
 
 ### Fixed
 
@@ -87,12 +91,12 @@ npx @cmtx/mcp-server
 
 ```json
 {
-    "mcpServers": {
-        "cmtx": {
-            "command": "npx",
-            "args": ["-y", "@cmtx/mcp-server"]
-        }
+  "mcpServers": {
+    "cmtx": {
+      "command": "npx",
+      "args": ["-y", "@cmtx/mcp-server"]
     }
+  }
 }
 ```
 
@@ -149,11 +153,11 @@ This MCP server can be integrated with AI agents like Claude Desktop by adding t
 
 ```json
 {
-    "mcpServers": {
-        "cmtx": {
-            "command": "npx",
-            "args": ["-y", "@cmtx/mcp-server"]
-        }
+  "mcpServers": {
+    "cmtx": {
+      "command": "npx",
+      "args": ["-y", "@cmtx/mcp-server"]
     }
+  }
 }
 ```

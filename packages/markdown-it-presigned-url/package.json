@@ -1,6 +1,6 @@
 {
     "name": "@cmtx/markdown-it-presigned-url",
-    "version": "0.1.1-alpha.1",
+    "version": "0.1.1-alpha.2",
     "description": "Markdown-it plugin for presigned URL image rendering",
     "keywords": [
         "cmtx",
@@ -31,10 +31,10 @@
     "type": "module",
     "main": "./dist/index.cjs",
     "module": "./dist/index.mjs",
-    "types": "./dist/index.d.ts",
+    "types": "./dist/index.d.mts",
     "exports": {
         ".": {
-            "types": "./dist/index.d.ts",
+            "types": "./dist/index.d.mts",
             "import": "./dist/index.mjs",
             "require": "./dist/index.cjs"
         }

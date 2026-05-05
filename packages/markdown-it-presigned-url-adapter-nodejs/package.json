@@ -1,6 +1,6 @@
 {
     "name": "@cmtx/markdown-it-presigned-url-adapter-nodejs",
-    "version": "0.1.1-alpha.1",
+    "version": "0.2.0-alpha.2",
     "description": "Node.js adapter for markdown-it presigned URL plugin",
     "keywords": [
         "adapter",
@@ -28,10 +28,10 @@
     "type": "module",
     "main": "./dist/index.cjs",
     "module": "./dist/index.mjs",
-    "types": "./dist/index.d.ts",
+    "types": "./dist/index.d.mts",
     "exports": {
         ".": {
-            "types": "./dist/index.d.ts",
+            "types": "./dist/index.d.mts",
             "import": "./dist/index.mjs",
             "require": "./dist/index.cjs"
         }

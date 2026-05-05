@@ -22,11 +22,11 @@ describe("模板引擎核心功能测试", () => {
             expect(result).toBe("Hello World!");
         });
 
-        it("应该保留未定义的变量", () => {
+        it("未定义变量应替换为空字符串", () => {
             const template = "Hello {name}!";
             const context: TemplateContext = {};
             const result = renderTemplate(template, context);
-            expect(result).toBe("Hello {name}!");
+            expect(result).toBe("Hello !");
         });
 
         it("应该处理数字和布尔值", () => {
@@ -72,9 +72,9 @@ describe("模板引擎核心功能测试", () => {
                 expect(result).toBe("Hello {name}!");
             });
 
-            it("undefined 始终保留占位符", () => {
+            it("undefined 替换为空字符串（不受 emptyString 影响）", () => {
                 const result = renderTemplate("Hello {name}!", {}, { emptyString: "preserve" });
-                expect(result).toBe("Hello {name}!");
+                expect(result).toBe("Hello !");
             });
         });
 
@@ -95,13 +95,13 @@ describe("模板引擎核心功能测试", () => {
                 expect(result).toBe("Hello John!");
             });
 
-            it("trimWhitespace: false 保留原始变量名", () => {
+            it("trimWhitespace: false 时未匹配的变量替换为空", () => {
                 const result = renderTemplate(
                     "Hello { user name }!",
                     { "user name": "John" },
                     { trimWhitespace: false },
                 );
-                expect(result).toBe("Hello { user name }!");
+                expect(result).toBe("Hello !");
             });
         });
 
@@ -131,9 +131,9 @@ describe("模板引擎核心功能测试", () => {
                 expect(result).toBe("Hello World!");
             });
 
-            it("undefined 变量保留占位符", () => {
+            it("undefined 变量替换为空字符串", () => {
                 const result = renderTemplate("Hello {name}!", {});
-                expect(result).toBe("Hello {name}!");
+                expect(result).toBe("Hello !");
             });
         });
     });

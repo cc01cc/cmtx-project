@@ -27,8 +27,8 @@ const signer = new UrlSigner({
             provider: "aliyun-oss",
             region: "oss-cn-hangzhou",
             bucket: "your-bucket",
-            accessKeyId: process.env.OSS_ACCESS_KEY_ID,
-            accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET,
+            accessKeyId: process.env.CMTX_ALIYUN_ACCESS_KEY_ID,
+            accessKeySecret: process.env.CMTX_ALIYUN_ACCESS_KEY_SECRET,
         },
     },
     domains: [

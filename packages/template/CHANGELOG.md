@@ -1,6 +1,21 @@
 # @cmtx/template 更新日志 / Changelog
 
+## [0.2.0-alpha.2] - 2026-05-05
+
+### Changed
+
+- **`renderTemplate`**: 未定义的模板变量不再保留字面量占位符，改为替换为空字符串
+- **命名模板**: 上传时如果 `namingTemplate` 中包含未知变量，通过 `Logger.warn` 输出警告
+
+---
+
+### Changed
+
+- **`renderTemplate`**: Undefined template variables no longer preserve literal placeholders, replaced with empty string instead
+- **Naming template**: Unknown variables in `namingTemplate` now log a warning via `Logger.warn`
+
 ## [0.1.1-alpha.1] - 2026-04-30
+
 ### Added
 
 - **renderTemplate**: 新增 `trimWhitespace` 选项，支持空白字符修剪
@@ -34,33 +49,37 @@
 #### 核心功能
 
 - **模板渲染** (`renderTemplate`)
-    - 使用 `{variable}` 语法进行变量替换
-    - 支持字符串、数字、布尔值类型的变量
-    - 未定义变量保留原始格式
-    - 支持变量名包含空格
+
+  - 使用 `{variable}` 语法进行变量替换
+  - 支持字符串、数字、布尔值类型的变量
+  - 未定义变量保留原始格式
+  - 支持变量名包含空格
 
 - **模板验证** (`validateTemplate`)
-    - 验证模板语法正确性
-    - 检查大括号是否匹配
-    - 检测空的模板变量
-    - 返回详细的错误信息
+
+  - 验证模板语法正确性
+  - 检查大括号是否匹配
+  - 检测空的模板变量
+  - 返回详细的错误信息
 
 - **Builder 模式** (`BaseTemplateBuilder`)
-    - 流式 API 构建模板
-    - 支持链式调用
-    - 内置变量自动添加
-    - 可扩展的 Builder 基类
+
+  - 流式 API 构建模板
+  - 支持链式调用
+  - 内置变量自动添加
+  - 可扩展的 Builder 基类
 
 - **上下文管理** (`ContextManager`)
-    - 管理模板渲染所需的变量上下文
-    - 支持单个/批量添加变量
-    - 变量存在性检查
-    - 上下文合并功能
+
+  - 管理模板渲染所需的变量上下文
+  - 支持单个/批量添加变量
+  - 变量存在性检查
+  - 上下文合并功能
 
 - **内置变量** (`BuiltinVariables`)
-    - `date` - 当前日期 (YYYY-MM-DD)
-    - `timestamp` - 当前时间戳
-    - `uuid` - 随机 UUID
+  - `date` - 当前日期 (YYYY-MM-DD)
+  - `timestamp` - 当前时间戳
+  - `uuid` - 随机 UUID
 
 #### 类型定义
 
@@ -79,9 +98,9 @@
 
 - 33 个单元测试，覆盖所有核心功能
 - 测试文件：
-    - `core.test.ts` - 核心渲染功能测试
-    - `builder.test.ts` - Builder 模式测试
-    - `index.test.ts` - 模块导出测试
+  - `core.test.ts` - 核心渲染功能测试
+  - `builder.test.ts` - Builder 模式测试
+  - `index.test.ts` - 模块导出测试
 
 ---
 
@@ -90,33 +109,37 @@
 #### Core Features
 
 - **Template Rendering** (`renderTemplate`)
-    - Variable substitution using `{variable}` syntax
-    - Support for string, number, and boolean variable types
-    - Undefined variables preserve original format
-    - Support for variable names containing spaces
+
+  - Variable substitution using `{variable}` syntax
+  - Support for string, number, and boolean variable types
+  - Undefined variables preserve original format
+  - Support for variable names containing spaces
 
 - **Template Validation** (`validateTemplate`)
-    - Validate template syntax correctness
-    - Check braces for matching
-    - Detect empty template variables
-    - Return detailed error messages
+
+  - Validate template syntax correctness
+  - Check braces for matching
+  - Detect empty template variables
+  - Return detailed error messages
 
 - **Builder Pattern** (`BaseTemplateBuilder`)
-    - Fluent API for building templates
-    - Support chained calls
-    - Automatic built-in variable addition
-    - Extensible Builder base class
+
+  - Fluent API for building templates
+  - Support chained calls
+  - Automatic built-in variable addition
+  - Extensible Builder base class
 
 - **Context Management** (`ContextManager`)
-    - Manage variable context for template rendering
-    - Support single/batch variable addition
-    - Variable existence check
-    - Context merge functionality
+
+  - Manage variable context for template rendering
+  - Support single/batch variable addition
+  - Variable existence check
+  - Context merge functionality
 
 - **Built-in Variables** (`BuiltinVariables`)
-    - `date` - Current date (YYYY-MM-DD)
-    - `timestamp` - Current timestamp
-    - `uuid` - Random UUID
+  - `date` - Current date (YYYY-MM-DD)
+  - `timestamp` - Current timestamp
+  - `uuid` - Random UUID
 
 #### Type Definitions
 
@@ -135,6 +158,6 @@
 
 - 33 unit tests covering all core functionality
 - Test files:
-    - `core.test.ts` - Core rendering functionality tests
-    - `builder.test.ts` - Builder pattern tests
-    - `index.test.ts` - Module export tests
+  - `core.test.ts` - Core rendering functionality tests
+  - `builder.test.ts` - Builder pattern tests
+  - `index.test.ts` - Module export tests

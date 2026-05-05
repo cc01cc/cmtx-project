@@ -140,7 +140,7 @@ export function validateTemplate(template: string): ValidationResult {
  *
  * @remarks
  * - 变量名中的前后空格默认会被自动去除（可通过 trimWhitespace 选项关闭）
- * - 未定义的变量会保留原始的 {variable} 格式
+ * - 未定义的变量替换为空字符串
  * - 空字符串默认替换为空（可通过 emptyString 选项保留占位符）
  * - 支持变量名包含空格的情况
  *
@@ -157,9 +157,9 @@ export function validateTemplate(template: string): ValidationResult {
  * });
  * // 返回: 'Hello World!'
  *
- * // 处理未定义变量
+ * // 未定义变量替换为空字符串
  * const undefinedVar = renderTemplate('Hello {name}!', {});
- * // 返回: 'Hello {name}!'
+ * // 返回: 'Hello !'
  *
  * // 变量名带空格（默认 trim）
  * const spaced = renderTemplate('Hello { user name }!', { 'user name': 'John' });
@@ -190,9 +190,9 @@ export function renderTemplate(
         const normalizedKey = trimWhitespace ? key.trim() : key;
         const value = context[normalizedKey];
 
-        // undefined 始终保留占位符
+        // undefined 替换为空字符串
         if (value === undefined) {
-            return match;
+            return "";
         }
 
         // 空字符串处理

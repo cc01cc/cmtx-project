@@ -14,6 +14,13 @@ export interface PresignedUrlPluginOptions {
     getSignedUrl: (src: string) => string | null;
     requestSignedUrl?: (src: string) => Promise<string>;
     onSignedUrlReady?: () => void;
+    /**
+     * Runtime toggle for the plugin.
+     * When `false` or a getter returning `false`, all handler methods skip
+     * presigned URL processing and fall through to default rendering.
+     * When `undefined` or `true`, normal processing applies.
+     */
+    enabled?: boolean | (() => boolean);
 }
 
 export type PresignedUrlPlugin = (md: MarkdownIt, options: PresignedUrlPluginOptions) => void;

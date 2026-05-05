@@ -249,17 +249,17 @@ console.log("radix-16:", enc16); // 仅包含 0-9, A-F
 
 ### 6.6. 集成测试
 
-本包被 `@cmtx/publish` 包集成使用，相关集成测试位于：
+本包被 `@cmtx/rule-engine` 包集成使用，相关集成测试位于：
 
 ```bash
 # 运行集成测试
-pnpm -F @cmtx/publish run test
+pnpm -F @cmtx/rule-engine run test
 ```
 
 主要集成测试文件：
 
-- `packages/publish/tests/encrypted-id.test.ts` - FF1 加密 ID 生成器测试（45 tests）
-- `packages/publish/tests/id-validator.test.ts` - ID 验证测试（8 tests）
+- `packages/rule-engine/tests/encrypted-id.test.ts` - FF1 加密 ID 生成器测试（45 tests）
+- `packages/rule-engine/tests/id-validator.test.ts` - ID 验证测试（8 tests）
 
 ### 6.7. 测试覆盖率
 

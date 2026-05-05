@@ -13,8 +13,7 @@
 - **WASM loading strategy simplified**: Removed `import.meta.url` fallback, unified on `__dirname` via tsdown shims; added `existsSync()` file existence check with `console.warn` debug logging on missing WASM file
 - **package.json**: Added metadata fields (`publishConfig`, `homepage`, `bugs`, `repository`, `author`)
 
-## 0.1.1-alpha.0
-
+## [0.1.1-alpha.0] - 2026-05-05
 ### Patch Changes
 
 - 7d85dec: changeset test
@@ -58,7 +57,7 @@
 
 - 17 个 Rust wasm-bindgen 测试
 - 70 个 TypeScript vitest 测试
-- 115 个集成测试（在 @cmtx/publish 包中）
+- 115 个集成测试（在 @cmtx/rule-engine 包中）
 - 测试覆盖：
     - FF1Cipher 核心功能
     - 加密解密正确性
@@ -112,7 +111,7 @@
 
 - 17 Rust wasm-bindgen tests
 - 70 TypeScript vitest tests
-- 115 integration tests (in @cmtx/publish package)
+- 115 integration tests (in @cmtx/rule-engine package)
 - Test coverage:
     - FF1Cipher core functionality
     - Encryption/decryption correctness

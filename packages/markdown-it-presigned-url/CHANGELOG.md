@@ -1,6 +1,27 @@
 # @cmtx/markdown-it-presigned-url 更新日志 / Changelog
 
+## [0.1.1-alpha.2] - 2026-05-05
+
+### Added
+
+- **PresignedUrlPluginOptions**: 新增 `enabled` 可选字段，支持运行时通过 getter 函数开关 presigned URL 处理，无需重注册插件
+
+### Changed
+
+- **PresignedUrlHandler**: 5 个 handler 方法入口均添加 enabled 检查，disabled 时回退到默认渲染规则
+
+---
+
+### Added
+
+- **PresignedUrlPluginOptions**: Added optional `enabled` field, supports runtime toggle via getter function without re-registering the plugin
+
+### Changed
+
+- **PresignedUrlHandler**: Added `isEnabled()` check to all 5 handler methods, fall back to default renderer when disabled
+
 ## [0.1.1-alpha.1] - 2026-04-30
+
 ### Fixed
 
 - **handleHtmlBlockImageRenderer**: HTML 块级图片在未匹配预签名域名时，正确回退到默认渲染器，避免生成无效预签名 Token
@@ -30,19 +51,21 @@
 ### 核心功能
 
 - **预签名 URL 插件** (`presignedUrlPlugin`)
-    - 为私有云存储（OSS、S3、COS）的图片 URL 生成预签名
-    - 支持 Markdown 图片格式：`![alt](url)`
-    - 支持 HTML 图片格式：`<img src="url" />`
-    - 异步 URL 签名与刷新回调机制
+
+  - 为私有云存储（OSS、S3、COS）的图片 URL 生成预签名
+  - 支持 Markdown 图片格式：`![alt](url)`
+  - 支持 HTML 图片格式：`<img src="url" />`
+  - 异步 URL 签名与刷新回调机制
 
 - **双模式处理**
-    - 同步模式：从缓存获取签名 URL
-    - 异步模式：按需生成签名 URL 并触发刷新
+
+  - 同步模式：从缓存获取签名 URL
+  - 异步模式：按需生成签名 URL 并触发刷新
 
 - **灵活的配置选项**
-    - 域名白名单过滤
-    - 图片格式选择（markdown/html/all）
-    - 可选的日志接口
+  - 域名白名单过滤
+  - 图片格式选择（markdown/html/all）
+  - 可选的日志接口
 
 ### API 接口
 
@@ -71,23 +94,24 @@
 
 - 16 个单元测试
 - 测试覆盖：
-    - 插件初始化
-    - URL 匹配逻辑
-    - 缓存机制
-    - 异步签名流程
-    - 日志功能
+  - 插件初始化
+  - URL 匹配逻辑
+  - 缓存机制
+  - 异步签名流程
+  - 日志功能
 
 ### 依赖
 
 - **Peer Dependencies**:
-    - `markdown-it`: `^14.0.0`
+
+  - `markdown-it`: `^14.0.0`
 
 - **Dev Dependencies**:
-    - `@types/markdown-it`: `^14.1.2`
-    - `@vitest/coverage-v8`: `catalog:`
-    - `typedoc`: `catalog:`
-    - `typescript`: `catalog:`
-    - `vitest`: `catalog:`
+  - `@types/markdown-it`: `^14.1.2`
+  - `@vitest/coverage-v8`: `catalog:`
+  - `typedoc`: `catalog:`
+  - `typescript`: `catalog:`
+  - `vitest`: `catalog:`
 
 ### 文档
 
@@ -100,19 +124,21 @@
 ### Core Features
 
 - **Presigned URL Plugin** (`presignedUrlPlugin`)
-    - Generate presigned URLs for private cloud storage (OSS, S3, COS) image URLs
-    - Support Markdown image format: `![alt](url)`
-    - Support HTML image format: `<img src="url" />`
-    - Async URL signing and refresh callback mechanism
+
+  - Generate presigned URLs for private cloud storage (OSS, S3, COS) image URLs
+  - Support Markdown image format: `![alt](url)`
+  - Support HTML image format: `<img src="url" />`
+  - Async URL signing and refresh callback mechanism
 
 - **Dual Mode Processing**
-    - Sync mode: Get signed URLs from cache
-    - Async mode: Generate signed URLs on demand and trigger refresh
+
+  - Sync mode: Get signed URLs from cache
+  - Async mode: Generate signed URLs on demand and trigger refresh
 
 - **Flexible Configuration Options**
-    - Domain whitelist filtering
-    - Image format selection (markdown/html/all)
-    - Optional logger interface
+  - Domain whitelist filtering
+  - Image format selection (markdown/html/all)
+  - Optional logger interface
 
 ### API
 
@@ -121,14 +147,14 @@
 
 ### Configuration Options
 
-| Option            | Type                              | Required | Description                             |
-| ----------------- | --------------------------------- | -------- | --------------------------------------- |
-| `domains`         | `string[]`                        | Yes      | Hostnames requiring signed URLs         |
-| `imageFormat`     | `'markdown' \| 'html' \| 'all'`   | Yes      | Image formats to process                |
-| `logger`          | `Logger`                          | No       | Optional logger interface               |
-| `getSignedUrl`    | `(src: string) => string \| null` | Yes      | Sync get cached signed URL              |
-| `requestSignedUrl`| `(src: string) => Promise<string>`| No       | Async generate signed URL               |
-| `onSignedUrlReady`| `() => void`                      | No       | Callback when async signing completes   |
+| Option             | Type                               | Required | Description                           |
+| ------------------ | ---------------------------------- | -------- | ------------------------------------- |
+| `domains`          | `string[]`                         | Yes      | Hostnames requiring signed URLs       |
+| `imageFormat`      | `'markdown' \| 'html' \| 'all'`    | Yes      | Image formats to process              |
+| `logger`           | `Logger`                           | No       | Optional logger interface             |
+| `getSignedUrl`     | `(src: string) => string \| null`  | Yes      | Sync get cached signed URL            |
+| `requestSignedUrl` | `(src: string) => Promise<string>` | No       | Async generate signed URL             |
+| `onSignedUrlReady` | `() => void`                       | No       | Callback when async signing completes |
 
 ### Technical Features
 
@@ -141,23 +167,24 @@
 
 - 16 unit tests
 - Test coverage:
-    - Plugin initialization
-    - URL matching logic
-    - Cache mechanism
-    - Async signing flow
-    - Logger functionality
+  - Plugin initialization
+  - URL matching logic
+  - Cache mechanism
+  - Async signing flow
+  - Logger functionality
 
 ### Dependencies
 
 - **Peer Dependencies**:
-    - `markdown-it`: `^14.0.0`
+
+  - `markdown-it`: `^14.0.0`
 
 - **Dev Dependencies**:
-    - `@types/markdown-it`: `^14.1.2`
-    - `@vitest/coverage-v8`: `catalog:`
-    - `typedoc`: `catalog:`
-    - `typescript`: `catalog:`
-    - `vitest`: `catalog:`
+  - `@types/markdown-it`: `^14.1.2`
+  - `@vitest/coverage-v8`: `catalog:`
+  - `typedoc`: `catalog:`
+  - `typescript`: `catalog:`
+  - `vitest`: `catalog:`
 
 ### Documentation
 

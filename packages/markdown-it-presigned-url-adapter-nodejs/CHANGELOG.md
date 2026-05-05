@@ -1,6 +1,21 @@
 # @cmtx/markdown-it-presigned-url-adapter-nodejs 更新日志 / Changelog
 
+## [0.2.0-alpha.2] - 2026-05-05
+
+### Changed
+
+- **`resolveStorageCredentials`**: 移除内联凭证分支，凭证解析统一走 `useStorage` -> `storageConfigs` 路径
+- **`UrlSigner`**: 凭证解析重构，移除内联凭证支持
+
+---
+
+### Changed
+
+- **`resolveStorageCredentials`**: Removed inline credential branch, credential resolution unified to `useStorage` -> `storageConfigs` path
+- **`UrlSigner`**: Credential resolution refactored, inline credential support removed
+
 ## [0.1.1-alpha.1] - 2026-04-30
+
 ### Added
 
 - `PresignedUrlDomainConfig` 类型导出，用于预签名 URL 域名配置
@@ -9,9 +24,9 @@
 ### Breaking Changes
 
 - 配置参数重构：`UrlSigner` 构造函数签名变更
-    - 移除 `providerConfigs: CloudStorageConfig[]` 参数
-    - 新增 `storageConfigs: Record<string, CloudStorageConfig>` 参数
-    - 新增 `domains: PresignedUrlDomainConfig[]` 参数
+  - 移除 `providerConfigs: CloudStorageConfig[]` 参数
+  - 新增 `storageConfigs: Record<string, CloudStorageConfig>` 参数
+  - 新增 `domains: PresignedUrlDomainConfig[]` 参数
 - **迁移指南**：将原有数组格式的 `providerConfigs` 改为按存储 ID 索引的对象格式，并新增 `domains` 配置项：
 
 ```typescript
@@ -39,9 +54,9 @@ new UrlSigner(client, {
 ### Breaking Changes
 
 - Configuration parameter refactor: `UrlSigner` constructor signature changed
-    - Removed `providerConfigs: CloudStorageConfig[]` parameter
-    - Added `storageConfigs: Record<string, CloudStorageConfig>` parameter
-    - Added `domains: PresignedUrlDomainConfig[]` parameter
+  - Removed `providerConfigs: CloudStorageConfig[]` parameter
+  - Added `storageConfigs: Record<string, CloudStorageConfig>` parameter
+  - Added `domains: PresignedUrlDomainConfig[]` parameter
 - **Migration guide**: Convert the original array-format `providerConfigs` to an object keyed by storage ID, and add a new `domains` configuration item
 
 ## 0.1.1-alpha.0
@@ -50,47 +65,50 @@ new UrlSigner(client, {
 
 - 7d85dec: changeset test
 - Updated dependencies [7d85dec]
-    - @cmtx/core@0.3.1-alpha.0
-    - @cmtx/markdown-it-presigned-url@0.1.1-alpha.0
-    - @cmtx/storage@0.1.1-alpha.0
+  - @cmtx/core@0.3.1-alpha.0
+  - @cmtx/markdown-it-presigned-url@0.1.1-alpha.0
+  - @cmtx/storage@0.1.1-alpha.0
 
 ## 0.1.0 - 2026-04-13
 
 ### 核心功能
 
 - **预签名 URL 生成器** (`UrlSigner`)
-    - 为阿里云 OSS 等云存储生成预签名 URL
-    - 支持自定义 URL 有效期（默认 3600 秒）
-    - 域名白名单过滤
-    - 可选的日志接口
+
+  - 为阿里云 OSS 等云存储生成预签名 URL
+  - 支持自定义 URL 有效期（默认 3600 秒）
+  - 域名白名单过滤
+  - 可选的日志接口
 
 - **URL 缓存管理器** (`UrlCacheManager`)
-    - 内置 LRU 缓存机制
-    - 可配置最大缓存条目数（默认 1000）
-    - 支持 TTL 过期（默认 1 小时）
-    - 提供 get/set/has/delete/clear 方法
+
+  - 内置 LRU 缓存机制
+  - 可配置最大缓存条目数（默认 1000）
+  - 支持 TTL 过期（默认 1 小时）
+  - 提供 get/set/has/delete/clear 方法
 
 - **类型定义**
-    - `PresignedUrlAdapter` - 预签名 URL 适配器接口
-    - `PresignedUrlCache` - 预签名 URL 缓存接口
-    - `UrlSignerOptions` - 签名器配置选项
-    - `UrlCacheManagerOptions` - 缓存管理器配置选项
-    - `CacheManagerLogger` - 缓存管理器日志接口
-    - `SignerLogger` - 签名器日志接口
+  - `PresignedUrlAdapter` - 预签名 URL 适配器接口
+  - `PresignedUrlCache` - 预签名 URL 缓存接口
+  - `UrlSignerOptions` - 签名器配置选项
+  - `UrlCacheManagerOptions` - 缓存管理器配置选项
+  - `CacheManagerLogger` - 缓存管理器日志接口
+  - `SignerLogger` - 签名器日志接口
 
 ### API 接口
 
 - `UrlSigner` - 预签名 URL 生成器类
-    - `constructor(client: OSS, options: UrlSignerOptions)`
-    - `sign(src: string): Promise<string>`
+
+  - `constructor(client: OSS, options: UrlSignerOptions)`
+  - `sign(src: string): Promise<string>`
 
 - `UrlCacheManager` - URL 缓存管理器类
-    - `constructor(options?: UrlCacheManagerOptions)`
-    - `get(src: string): string | null`
-    - `set(src: string, url: string): void`
-    - `has(src: string): boolean`
-    - `delete(src: string): boolean`
-    - `clear(): void`
+  - `constructor(options?: UrlCacheManagerOptions)`
+  - `get(src: string): string | null`
+  - `set(src: string, url: string): void`
+  - `has(src: string): boolean`
+  - `delete(src: string): boolean`
+  - `clear(): void`
 
 ### 技术特性
 
@@ -103,29 +121,31 @@ new UrlSigner(client, {
 ### 依赖
 
 - **Peer Dependencies**:
-    - `@cmtx/markdown-it-presigned-url`: `workspace:*`
+
+  - `@cmtx/markdown-it-presigned-url`: `workspace:*`
 
 - **Dependencies**:
-    - `@cmtx/storage`: `workspace:*`
-    - `@cmtx/core`: `workspace:*`
-    - `ali-oss`: `catalog:`
+
+  - `@cmtx/storage`: `workspace:*`
+  - `@cmtx/core`: `workspace:*`
+  - `ali-oss`: `catalog:`
 
 - **Dev Dependencies**:
-    - `@types/ali-oss`: `catalog:`
-    - `@types/node`: `catalog:`
-    - `typescript`: `catalog:`
-    - `vitest`: `catalog:`
+  - `@types/ali-oss`: `catalog:`
+  - `@types/node`: `catalog:`
+  - `typescript`: `catalog:`
+  - `vitest`: `catalog:`
 
 ### 测试覆盖
 
 - 44 个单元测试
 - 测试覆盖：
-    - UrlCacheManager 基本操作
-    - UrlCacheManager 过期机制
-    - UrlCacheManager LRU 淘汰策略
-    - UrlSigner 签名功能
-    - UrlSigner 域名验证
-    - 日志功能
+  - UrlCacheManager 基本操作
+  - UrlCacheManager 过期机制
+  - UrlCacheManager LRU 淘汰策略
+  - UrlSigner 签名功能
+  - UrlSigner 域名验证
+  - 日志功能
 
 ### 文档
 
@@ -143,38 +163,41 @@ new UrlSigner(client, {
 ### Features
 
 - **Presigned URL Generator** (`UrlSigner`)
-    - Generate presigned URLs for Alibaba Cloud OSS and other cloud storage
-    - Customizable URL expiration (default 3600 seconds)
-    - Domain whitelist filtering
-    - Optional logger interface
+
+  - Generate presigned URLs for Alibaba Cloud OSS and other cloud storage
+  - Customizable URL expiration (default 3600 seconds)
+  - Domain whitelist filtering
+  - Optional logger interface
 
 - **URL Cache Manager** (`UrlCacheManager`)
-    - Built-in LRU cache mechanism
-    - Configurable max cache entries (default 1000)
-    - TTL expiration support (default 1 hour)
-    - Provides get/set/has/delete/clear methods
+
+  - Built-in LRU cache mechanism
+  - Configurable max cache entries (default 1000)
+  - TTL expiration support (default 1 hour)
+  - Provides get/set/has/delete/clear methods
 
 - **Type Definitions**
-    - `PresignedUrlAdapter` - Presigned URL adapter interface
-    - `PresignedUrlCache` - Presigned URL cache interface
-    - `UrlSignerOptions` - Signer configuration options
-    - `UrlCacheManagerOptions` - Cache manager configuration options
-    - `CacheManagerLogger` - Cache manager logger interface
-    - `SignerLogger` - Signer logger interface
+  - `PresignedUrlAdapter` - Presigned URL adapter interface
+  - `PresignedUrlCache` - Presigned URL cache interface
+  - `UrlSignerOptions` - Signer configuration options
+  - `UrlCacheManagerOptions` - Cache manager configuration options
+  - `CacheManagerLogger` - Cache manager logger interface
+  - `SignerLogger` - Signer logger interface
 
 ### API
 
 - `UrlSigner` - Presigned URL generator class
-    - `constructor(client: OSS, options: UrlSignerOptions)`
-    - `sign(src: string): Promise<string>`
+
+  - `constructor(client: OSS, options: UrlSignerOptions)`
+  - `sign(src: string): Promise<string>`
 
 - `UrlCacheManager` - URL cache manager class
-    - `constructor(options?: UrlCacheManagerOptions)`
-    - `get(src: string): string | null`
-    - `set(src: string, url: string): void`
-    - `has(src: string): boolean`
-    - `delete(src: string): boolean`
-    - `clear(): void`
+  - `constructor(options?: UrlCacheManagerOptions)`
+  - `get(src: string): string | null`
+  - `set(src: string, url: string): void`
+  - `has(src: string): boolean`
+  - `delete(src: string): boolean`
+  - `clear(): void`
 
 ### Technical Highlights
 
@@ -187,29 +210,31 @@ new UrlSigner(client, {
 ### Dependencies
 
 - **Peer Dependencies**:
-    - `@cmtx/markdown-it-presigned-url`: `workspace:*`
+
+  - `@cmtx/markdown-it-presigned-url`: `workspace:*`
 
 - **Dependencies**:
-    - `@cmtx/storage`: `workspace:*`
-    - `@cmtx/core`: `workspace:*`
-    - `ali-oss`: `catalog:`
+
+  - `@cmtx/storage`: `workspace:*`
+  - `@cmtx/core`: `workspace:*`
+  - `ali-oss`: `catalog:`
 
 - **Dev Dependencies**:
-    - `@types/ali-oss`: `catalog:`
-    - `@types/node`: `catalog:`
-    - `typescript`: `catalog:`
-    - `vitest`: `catalog:`
+  - `@types/ali-oss`: `catalog:`
+  - `@types/node`: `catalog:`
+  - `typescript`: `catalog:`
+  - `vitest`: `catalog:`
 
 ### Test Coverage
 
 - 44 unit tests
 - Test coverage includes:
-    - UrlCacheManager basic operations
-    - UrlCacheManager expiration mechanism
-    - UrlCacheManager LRU eviction strategy
-    - UrlSigner signing functionality
-    - UrlSigner domain validation
-    - Logger functionality
+  - UrlCacheManager basic operations
+  - UrlCacheManager expiration mechanism
+  - UrlCacheManager LRU eviction strategy
+  - UrlSigner signing functionality
+  - UrlSigner domain validation
+  - Logger functionality
 
 ### Documentation
 

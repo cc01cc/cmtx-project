@@ -49,6 +49,12 @@ export class PresignedUrlHandler {
         this.formatValidator = new FormatValidator(options.imageFormat);
     }
 
+    private isEnabled(): boolean {
+        if (this.options.enabled === undefined) return true;
+        if (typeof this.options.enabled === "function") return this.options.enabled();
+        return this.options.enabled;
+    }
+
     private renderPresignedToken(
         tokens: ReturnType<MarkdownIt["parse"]>,
         idx: number,
@@ -65,6 +71,8 @@ export class PresignedUrlHandler {
     }
 
     handleInlineHtmlImageRule(state: InlineStateLike, silent: boolean): boolean {
+        if (!this.isEnabled()) return false;
+
         this.logger?.info(
             `[DIAG] handleInlineHtmlImageRule 被调用, silent: ${silent}, pos: ${state.pos}`,
         );
@@ -138,6 +146,12 @@ export class PresignedUrlHandler {
         self: MarkdownIt["renderer"],
         defaultImageRule: MarkdownRenderRule | undefined,
     ): string {
+        if (!this.isEnabled()) {
+            return defaultImageRule
+                ? defaultImageRule(tokens, idx, options, env, self)
+                : self.renderToken(tokens, idx, options);
+        }
+
         const token = tokens[idx];
         this.logger?.debug(`处理 Markdown 图片 token`);
 
@@ -166,6 +180,12 @@ export class PresignedUrlHandler {
         self: MarkdownIt["renderer"],
         defaultHtmlInlineRule: MarkdownRenderRule | undefined,
     ): string {
+        if (!this.isEnabled()) {
+            return defaultHtmlInlineRule
+                ? defaultHtmlInlineRule(tokens, idx, options, env, self)
+                : self.renderToken(tokens, idx, options);
+        }
+
         const token = tokens[idx];
         this.logger?.info(`[DIAG] handleHtmlInlineImageRenderer 被调用`);
         this.logger?.info(`[DIAG] token.content: ${token.content?.substring(0, 200)}`);
@@ -188,7 +208,6 @@ export class PresignedUrlHandler {
             : self.renderToken(tokens, idx, options);
     }
 
-    // eslint-disable-next-line max-params
     handleHtmlBlockImageRenderer(
         tokens: ReturnType<MarkdownIt["parse"]>,
         idx: number,
@@ -197,6 +216,10 @@ export class PresignedUrlHandler {
         self: MarkdownIt["renderer"],
         defaultHtmlBlockRule: MarkdownRenderRule,
     ): string {
+        if (!this.isEnabled()) {
+            return defaultHtmlBlockRule(tokens, idx, options, env, self);
+        }
+
         const token = tokens[idx];
         this.logger?.info(`[DIAG] handleHtmlBlockImageRenderer 被调用`);
         this.logger?.info(`[DIAG] token.content: ${token.content?.substring(0, 200)}`);
@@ -240,6 +263,14 @@ export class PresignedUrlHandler {
         _env: unknown,
         self: MarkdownIt["renderer"],
     ): string {
+        if (!this.isEnabled()) {
+            const token = tokens[idx];
+            if (token.content && isImageTag(token.content)) {
+                return token.content;
+            }
+            return self.renderToken(tokens, idx, options);
+        }
+
         const token = tokens[idx];
         this.logger?.info(`[DIAG] handleCustomImageRenderer 被调用`);
         this.logger?.info(`[DIAG] token.content: ${token.content?.substring(0, 200)}`);

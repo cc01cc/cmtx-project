@@ -3,7 +3,7 @@
  *
  * @module rules/rule-adapter
  * @description
- * 为 MCP Server 提供 Rule 引擎适配层，使 MCP 能够方便地使用 @cmtx/publish 的 Rule 引擎。
+ * 为 MCP Server 提供 Rule 引擎适配层，使 MCP 能够方便地使用 @cmtx/rule-engine 的 Rule 引擎。
  *
  * 职责：
  * 1. 创建和配置 ServiceRegistry
@@ -13,16 +13,16 @@
  */
 
 import path from "node:path";
-import type { RuleEngine, ServiceRegistry } from "@cmtx/publish";
+import type { RuleEngine, ServiceRegistry } from "@cmtx/rule-engine";
 import {
     createRuleEngine,
-    createAssetService,
     createCoreService,
     createDefaultRuleEngine,
     createServiceRegistry,
     type RuleContext,
     type RuleResult,
-} from "@cmtx/publish";
+} from "@cmtx/rule-engine";
+import { createUploadService } from "@cmtx/asset";
 import type { IStorageAdapter } from "@cmtx/storage";
 
 /**
@@ -70,12 +70,12 @@ export class RuleEngineAdapter {
             namingTemplate?: string;
         },
     ): void {
-        const assetService = createAssetService({
+        const uploadService = createUploadService({
             adapter,
             prefix: options?.prefix,
             namingTemplate: options?.namingTemplate,
         });
-        this.registry.register(assetService);
+        this.registry.register(uploadService);
     }
 
     /**

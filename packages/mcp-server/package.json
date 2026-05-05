@@ -1,6 +1,6 @@
 {
     "name": "@cmtx/mcp-server",
-    "version": "0.1.0",
+    "version": "0.1.1-alpha.0",
     "private": true,
     "description": "MCP-style stdio server for CMTX tools",
     "keywords": [
@@ -31,10 +31,10 @@
     "type": "module",
     "main": "./dist/index.cjs",
     "module": "./dist/index.mjs",
-    "types": "./dist/index.d.ts",
+    "types": "./dist/index.d.mts",
     "exports": {
         ".": {
-            "types": "./dist/index.d.ts",
+            "types": "./dist/index.d.mts",
             "import": "./dist/index.mjs",
             "require": "./dist/index.cjs"
         }
@@ -54,6 +54,7 @@
     "dependencies": {
         "@cmtx/asset": "workspace:*",
         "@cmtx/core": "workspace:*",
+        "@cmtx/rule-engine": "workspace:*",
         "ali-oss": "catalog:"
     },
     "devDependencies": {

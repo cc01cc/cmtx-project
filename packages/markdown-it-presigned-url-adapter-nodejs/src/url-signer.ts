@@ -184,11 +184,8 @@ export class UrlSigner {
     }
 
     private _mergeCredentials(config: CloudStorageConfig): AliyunCredentials {
-        // 检查环境变量和配置文件的凭证
-        const envKeyId =
-            process.env.CMTX_ALIYUN_ACCESS_KEY_ID || process.env.ALIYUN_OSS_ACCESS_KEY_ID;
-        const envSecret =
-            process.env.CMTX_ALIYUN_ACCESS_KEY_SECRET || process.env.ALIYUN_OSS_ACCESS_KEY_SECRET;
+        const envKeyId = process.env.CMTX_ALIYUN_ACCESS_KEY_ID;
+        const envSecret = process.env.CMTX_ALIYUN_ACCESS_KEY_SECRET;
 
         this._logger?.debug(
             `凭证来源检查：envKeyId=${!!envKeyId}, envSecret=${!!envSecret}, configKeyId=${!!config.accessKeyId}, configSecret=${!!config.accessKeySecret}`,
