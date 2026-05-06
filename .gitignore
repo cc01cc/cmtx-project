@@ -70,8 +70,8 @@ web_modules/
 .env.*
 !.env.example
 
-# Integration test config files (contain cloud credentials)
-packages/storage/tests/integration/test-config.json
+# Integration test config files
+**/test-config.json
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
