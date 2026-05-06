@@ -36,6 +36,7 @@ title: USR-002 - 命令参考
 | `CMTX (Rule): Delete image` | 删除图片（规则模式） |
 | `CMTX (Rule): Convert images to HTML` | 转换图片为 HTML（规则模式） |
 | `CMTX (Rule): Resize image` | 调整图片尺寸（规则模式） |
+| `CMTX (Rule): Transfer images` | 跨存储转移图片（规则模式） |
 | `CMTX (Rule): Generate frontmatter ID` | 生成 frontmatter ID |
 | `CMTX (Rule): Convert title to frontmatter` | 将标题转换为 frontmatter |
 | `CMTX (Rule): Strip frontmatter` | 移除 frontmatter |

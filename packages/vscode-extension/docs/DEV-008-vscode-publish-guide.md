@@ -1,4 +1,4 @@
-# PUBLISH-001: CMTX VS Code 插件发布指南
+# DEV-008: CMTX VS Code 插件发布指南
 
 > 本文档记录 CMTX VS Code 插件的发布流程和版本管理策略。
 >
@@ -65,7 +65,7 @@ vsce publish
 
 ### 3.1. 发布前检查
 
-请先参照 [PUBLISH-002-publish-validation.md](./PUBLISH-002-publish-validation.md) 执行完整的发布前验证清单。
+请先参照 [DEV-009-vscode-publish-validation.md](./DEV-009-vscode-publish-validation.md) 执行完整的发布前验证清单。
 
 ### 3.2. 发布预览版
 
@@ -191,5 +191,5 @@ pnpm -F cmtx-vscode publish:pre-release
 
 ---
 
-**文档编号**: PUBLISH-001
+**文档编号**: DEV-008
 **更新时间**: 2026-04-28

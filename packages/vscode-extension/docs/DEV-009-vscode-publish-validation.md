@@ -1,4 +1,4 @@
-# PUBLISH-002: cmtx-vscode 发布前验证清单
+# DEV-009: cmtx-vscode 发布前验证清单
 
 ## 1. 代码质量门禁
 
@@ -138,7 +138,7 @@ fi
 ## 6. 发布元数据
 
 - [ ] `CHANGELOG.md` 已更新目标版本条目
-- [ ] `PUBLISH-001-publish-guide.md` 版本策略与本发布类型一致
+- [ ] `DEV-008-vscode-publish-guide.md` 版本策略与本发布类型一致
 - [ ] vsce 已登录：`vsce login cc01cc`
 - [ ] vsce 为最新版本：`pnpm add -g @vscode/vsce`
 
@@ -176,5 +176,5 @@ fi
 ## 10. 相关文档
 
 - [NPM 包发布前校验与质量门禁指南](../../docs/DOC-003-publish-validation.md) — 库包发布校验标准
-- [PUBLISH-001: VS Code 插件发布指南](./PUBLISH-001-publish-guide.md) — 完整的发布流程
+- [DEV-008: VS Code 插件发布指南](./DEV-008-vscode-publish-guide.md) — 完整的发布流程
 - [VS Code 官方发布文档](https://code.visualstudio.com/api/working-with-extensions/publishing-extension) — vsce 使用参考

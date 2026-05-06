@@ -1,10 +1,15 @@
+import type { Service } from "@cmtx/asset";
 import {
     createRuleEngineContext,
     type RuleContext,
     type RuleEngine,
     type RuleResult,
 } from "@cmtx/rule-engine";
-import { createUploadService, createDownloadAssetsService } from "@cmtx/asset";
+import {
+    createUploadService,
+    createDownloadAssetsService,
+    createTransferAssetsService,
+} from "@cmtx/asset";
 import { dirname } from "node:path";
 import * as vscode from "vscode";
 import { createStorageAdapterAsync, createVsCodeContainer } from "../../container.js";
@@ -13,6 +18,7 @@ import {
     getDownloadConfigFromCmtx,
     getGlobalRulesConfig,
     getStorageConfig,
+    getTransferConfigFromCmtx,
     getUploadConfigFromCmtx,
     loadCmtxConfig,
 } from "../../infra/cmtx-config.js";
@@ -61,49 +67,149 @@ async function setupRuleEngineServices(
     const { engine } = createRuleEngineContext();
     const container = createVsCodeContainer(workspaceFolder, config ?? null);
 
-    if (config) {
-        const storageConfig = getStorageConfig(config);
-        if (storageConfig) {
-            const adapter = await createStorageAdapterAsync(storageConfig);
-            const uploadConfig = getUploadConfigFromCmtx(config);
-            const uploadService = createUploadService({
-                adapter,
-                prefix: (uploadConfig.prefix as string) || "",
-                namingTemplate: uploadConfig.namingTemplate as string | undefined,
-            });
-            container.register(uploadService);
+    if (!config) {
+        return { engine, container };
+    }
 
-            // 注册 DownloadAssetsService
-            const downloadConfig = getDownloadConfigFromCmtx(config);
-            const downloadStorageId = downloadConfig.useStorage;
-            const downloadStorageConfig =
-                downloadStorageId !== "default"
-                    ? config.storages?.[downloadStorageId]
-                    : storageConfig;
+    const storageConfig = getStorageConfig(config);
+    if (!storageConfig) {
+        return { engine, container };
+    }
 
-            if (downloadStorageConfig) {
-                const downloadAdapter = await createStorageAdapterAsync(downloadStorageConfig);
-                const downloadService = createDownloadAssetsService({
-                    sourceAdapters: [{ domain: "*", adapter: downloadAdapter }],
-                });
-                container.register(downloadService);
-            }
-        }
+    const storageAdapter = await createStorageAdapterAsync(storageConfig);
+
+    await setupUploadService(container, config, storageAdapter, storageConfig);
+    await setupDownloadService(container, config, storageConfig);
+    await setupTransferService(container, config, storageConfig);
+
+    const aiConfig = config.ai as { models?: Record<string, unknown> } | undefined;
+    const aiModels = aiConfig?.models;
+    if (aiModels) {
+        const modelKeys = Object.keys(aiModels);
+        logger.debug(`[setupRuleEngineServices] 发现 AI 模型配置: ${modelKeys.join(", ")}`);
+        container.register({
+            id: "aiService",
+            getModelConfig: (id: string) => {
+                const cfg = aiModels[id] ?? undefined;
+                logger.debug(
+                    `[setupRuleEngineServices/getModelConfig] id="${id}" -> ${cfg ? "找到" : "未找到"}`,
+                );
+                return cfg;
+            },
+        } as Service);
+        logger.debug("[setupRuleEngineServices] aiService 已注册到容器");
+    } else {
+        logger.debug(
+            "[setupRuleEngineServices] 未找到 AI 模型配置 (config.ai 或 config.ai.models 为空)",
+        );
     }
 
     return { engine, container };
+}
+
+function resolveStorageConfig(
+    config: NonNullable<Awaited<ReturnType<typeof loadCmtxConfig>>>,
+    useStorage: string | undefined,
+    fallback: NonNullable<ReturnType<typeof getStorageConfig>>,
+): NonNullable<ReturnType<typeof getStorageConfig>> | null {
+    if (!useStorage || useStorage === "default") {
+        return fallback;
+    }
+    return config.storages?.[useStorage] ?? null;
+}
+
+async function setupUploadService(
+    container: ReturnType<typeof createVsCodeContainer>,
+    config: NonNullable<Awaited<ReturnType<typeof loadCmtxConfig>>>,
+    adapter: Awaited<ReturnType<typeof createStorageAdapterAsync>>,
+    _storageConfig: NonNullable<ReturnType<typeof getStorageConfig>>,
+): Promise<void> {
+    const uploadConfig = getUploadConfigFromCmtx(config);
+    const uploadService = createUploadService({
+        adapter,
+        prefix: (uploadConfig.prefix as string) || "",
+        namingTemplate: uploadConfig.namingTemplate as string | undefined,
+        domain: (uploadConfig.domain as string) || undefined,
+    });
+    container.register(uploadService);
+}
+
+async function setupDownloadService(
+    container: ReturnType<typeof createVsCodeContainer>,
+    config: NonNullable<Awaited<ReturnType<typeof loadCmtxConfig>>>,
+    storageConfig: NonNullable<ReturnType<typeof getStorageConfig>>,
+): Promise<void> {
+    const downloadConfig = getDownloadConfigFromCmtx(config);
+    const downloadStorageConfig = resolveStorageConfig(
+        config,
+        downloadConfig.useStorage,
+        storageConfig,
+    );
+    if (!downloadStorageConfig) {
+        return;
+    }
+
+    const downloadAdapter = await createStorageAdapterAsync(downloadStorageConfig);
+    const downloadService = createDownloadAssetsService({
+        sourceAdapters: [{ domain: "*", adapter: downloadAdapter }],
+    });
+    container.register(downloadService);
+}
+
+async function setupTransferService(
+    container: ReturnType<typeof createVsCodeContainer>,
+    config: NonNullable<Awaited<ReturnType<typeof loadCmtxConfig>>>,
+    storageConfig: NonNullable<ReturnType<typeof getStorageConfig>>,
+): Promise<void> {
+    const transferConfig = getTransferConfigFromCmtx(config);
+    const targetStorageConfig = resolveStorageConfig(
+        config,
+        transferConfig.targetStorage.useStorage,
+        storageConfig,
+    );
+    if (!targetStorageConfig) {
+        return;
+    }
+
+    const sourceAdapters: Array<{
+        domain: string;
+        adapter: Awaited<ReturnType<typeof createStorageAdapterAsync>>;
+    }> = [];
+    for (const src of transferConfig.sourceStorages) {
+        const srcCfg = resolveStorageConfig(config, src.useStorage, storageConfig);
+        if (srcCfg) {
+            const adapter = await createStorageAdapterAsync(srcCfg);
+            sourceAdapters.push({ domain: src.domain || "*", adapter });
+        }
+    }
+    if (sourceAdapters.length === 0) {
+        const defaultAdapter = await createStorageAdapterAsync(targetStorageConfig);
+        sourceAdapters.push({ domain: "*", adapter: defaultAdapter });
+    }
+
+    const targetAdapter = await createStorageAdapterAsync(targetStorageConfig);
+    const transferService = createTransferAssetsService({
+        sourceAdapters,
+        targetAdapter,
+        targetDomain: transferConfig.targetStorage.domain || undefined,
+        targetPrefix: transferConfig.prefix || "",
+        namingTemplate: transferConfig.namingTemplate,
+    });
+    container.register(transferService);
 }
 
 function buildRuleContext(
     editor: vscode.TextEditor,
     _workspaceFolder: vscode.WorkspaceFolder,
     container: ReturnType<typeof createVsCodeContainer>,
+    ruleLogger?: ReturnType<typeof getModuleLogger>,
 ): RuleContext {
     return {
         document: editor.document.getText(),
         filePath: editor.document.uri.fsPath,
         baseDirectory: dirname(editor.document.uri.fsPath),
         services: container,
+        logger: ruleLogger,
     };
 }
 
@@ -188,13 +294,19 @@ export async function executeRuleCommand(
 
         if (ruleId === "frontmatter-id") {
             const counterManager = new CounterManager(workspaceFolder.uri.fsPath);
-            const counterName = (ruleConfig?.counter as { name?: string })?.name || "global";
-            (mergedConfig as Record<string, unknown>).getNextCounterValue = async () => {
-                return await counterManager.incrementAndGet(counterName);
+            (mergedConfig as Record<string, unknown>).peekCounterValue = async (
+                counterId: string,
+            ) => {
+                return await counterManager.get(counterId);
+            };
+            (mergedConfig as Record<string, unknown>).commitCounterValue = async (
+                counterId: string,
+            ) => {
+                await counterManager.incrementAndGet(counterId);
             };
         }
 
-        const context = buildRuleContext(editor, workspaceFolder, container);
+        const context = buildRuleContext(editor, workspaceFolder, container, logger);
 
         if (ruleId === "upload-images") {
             const uploadConfig = config ? getUploadConfigFromCmtx(config) : {};
@@ -242,7 +354,7 @@ export async function executePresetCommand(presetId: string): Promise<void> {
             };
         }
 
-        const context = buildRuleContext(editor, workspaceFolder, container);
+        const context = buildRuleContext(editor, workspaceFolder, container, logger);
 
         await vscode.window.withProgress(
             {
@@ -265,4 +377,10 @@ export async function executePresetCommand(presetId: string): Promise<void> {
         logger.error(`Failed to apply preset ${presetId}:`, error);
         await showError(`Failed to apply preset "${presetId}": ${message}`);
     }
+}
+
+export async function transferImagesRuleCommand(): Promise<void> {
+    await executeRuleCommand("transfer-images", {
+        transfer: true,
+    });
 }

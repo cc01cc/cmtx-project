@@ -149,13 +149,21 @@ async function executePreset(options: ExecutePresetOptions): Promise<void> {
                 "steps" in preset &&
                 preset.steps.some((s) => s.id === "frontmatter-id");
 
-            // 为 frontmatter-id 规则准备计数器回调（在规则内部验证通过后才递增）
             if (needCounter) {
                 const counterManager = new CounterManager(workspaceFolder.uri.fsPath);
-                const counterName = "global";
-                (preset as unknown as Record<string, unknown>).getNextCounterValue = async () => {
-                    return await counterManager.incrementAndGet(counterName);
+                const getCounterValue = async (counterId: string) => {
+                    return await counterManager.incrementAndGet(counterId);
                 };
+                if (typeof preset === "object" && "steps" in preset) {
+                    for (const step of preset.steps) {
+                        if (step.id === "frontmatter-id") {
+                            step.config = {
+                                ...step.config,
+                                getNextCounterValue: getCounterValue,
+                            };
+                        }
+                    }
+                }
             }
 
             // 构建 Rule 上下文

@@ -1,8 +1,8 @@
 {
     "name": "cmtx-vscode",
     "displayName": "CMTX for VS Code",
-    "version": "0.1.2",
-    "private": true,
+    "version": "0.1.3",
+    "private": false,
     "description": "Markdown Toolkit",
     "categories": [
         "Formatters",
@@ -44,14 +44,14 @@
         "@cmtx/markdown-it-presigned-url-adapter-nodejs": "workspace:*",
         "@cmtx/rule-engine": "workspace:*",
         "@cmtx/storage": "workspace:*",
-        "ali-oss": "catalog:",
-        "tinyglobby": "catalog:",
-        "trash": "catalog:"
+        "ali-oss": "^6.23.0",
+        "tinyglobby": "^0.2.0",
+        "trash": "^10.1.0"
     },
     "devDependencies": {
-        "@types/ali-oss": "catalog:",
+        "@types/ali-oss": "^6.23.2",
         "@types/mocha": "10.0.10",
-        "@types/node": "catalog:",
+        "@types/node": "^25.2.1",
         "@types/sinon": "21.0.1",
         "@types/vscode": "1.103.0",
         "@vscode/test-electron": "2.5.2",
@@ -61,8 +61,8 @@
         "rolldown-plugin-wasm": "0.2.1",
         "sinon": "21.0.3",
         "tsdown": "0.21.10",
-        "typescript": "catalog:",
-        "vitest": "catalog:"
+        "typescript": "^6.0.3",
+        "vitest": "^4.0.18"
     },
     "optionalDependencies": {
         "proxy-agent": "^8.0.1"
@@ -155,6 +155,11 @@
                 "category": "CMTX"
             },
             {
+                "command": "cmtx.rule.frontmatter-slug",
+                "title": "Generate frontmatter slug",
+                "category": "CMTX"
+            },
+            {
                 "command": "cmtx.rule.frontmatter-title",
                 "title": "Convert title to frontmatter",
                 "category": "CMTX"
@@ -207,6 +212,11 @@
             {
                 "command": "cmtx.rule.resize-image",
                 "title": "Resize image",
+                "category": "CMTX"
+            },
+            {
+                "command": "cmtx.rule.transfer-images",
+                "title": "Transfer images",
                 "category": "CMTX"
             },
             {

@@ -239,6 +239,7 @@ export function getUploadConfigFromCmtx(config: CmtxConfig): Record<string, unkn
         conflictStrategy: (uploadRule.conflictStrategy as string) ?? "skip",
         useStorage: (uploadRule.useStorage as string) ?? "default",
         prefix: (uploadRule.prefix as string) ?? "",
+        domain: (uploadRule.domain as string) ?? "",
     };
 }
 
@@ -251,6 +252,38 @@ export function getDownloadConfigFromCmtx(config: CmtxConfig): {
     const downloadRule = config.rules?.["download-images"] ?? {};
     return {
         useStorage: (downloadRule.useStorage as string) ?? "default",
+    };
+}
+
+/**
+ * 获取 transfer-images 规则配置
+ */
+export interface TransferRuleConfig {
+    targetStorage: {
+        useStorage: string;
+        domain: string;
+    };
+    sourceStorages: Array<{ domain: string; useStorage: string }>;
+    namingTemplate: string;
+    prefix: string;
+    deleteSource: boolean;
+    concurrency: number;
+}
+
+export function getTransferConfigFromCmtx(config: CmtxConfig): TransferRuleConfig {
+    const transferRule = config.rules?.["transfer-images"] ?? {};
+    const targetStorage = (transferRule.targetStorage as Record<string, unknown>) ?? {};
+    return {
+        targetStorage: {
+            useStorage: (targetStorage.useStorage as string) ?? "default",
+            domain: (targetStorage.domain as string) ?? "",
+        },
+        sourceStorages:
+            (transferRule.sourceStorages as Array<{ domain: string; useStorage: string }>) ?? [],
+        namingTemplate: (transferRule.namingTemplate as string) ?? "{name}.{ext}",
+        prefix: (transferRule.prefix as string) ?? "",
+        deleteSource: (transferRule.deleteSource as boolean) ?? false,
+        concurrency: (transferRule.concurrency as number) ?? 5,
     };
 }
 

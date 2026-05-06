@@ -1,5 +1,29 @@
 # @cmtx/vscode-extension 更新日志 / Changelog
 
+## [0.1.3] - 2026-05-06
+
+### Added
+
+- **`frontmatter-slug` Rule 接入**: 新增 `cmtx.rule.frontmatter-slug` 命令，支持三种策略（transform/extract/ai）生成 frontmatter slug 字段
+- **`transfer-images` Rule 接入**: 新增 `cmtx.rule.transfer-images` 命令，支持跨存储图片转移功能（复制/移动）
+- **Transfer 服务配置**: `setupRuleEngineServices()` 支持注册 `TransferAssetsService`，实现源存储到目标存储的图片转移
+
+### Changed
+
+- **配置解析**: `cmtx-config.ts` 新增 `getTransferConfigFromCmtx()` 函数，支持解析 `rules.transfer-images` 配置
+
+---
+
+### Added
+
+- **`frontmatter-slug` Rule**: New `cmtx.rule.frontmatter-slug` command supporting three strategies (transform/extract/ai) for frontmatter slug generation
+- **`transfer-images` Rule**: New `cmtx.rule.transfer-images` command for cross-storage image transfer (copy/move)
+- **Transfer Service Config**: `setupRuleEngineServices()` now registers `TransferAssetsService` for source-to-target storage transfer
+
+### Changed
+
+- **Config Parsing**: `cmtx-config.ts` added `getTransferConfigFromCmtx()` function for parsing `rules.transfer-images` config
+
 ## [0.1.2] - 2026-05-05
 
 ### Added

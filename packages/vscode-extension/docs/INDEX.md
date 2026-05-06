@@ -25,5 +25,5 @@ title: VS Code 扩展文档索引
 
 ## 发布文档
 
-- [PUBLISH-001 - 发布指南](./PUBLISH-001-publish-guide.md)
-- [PUBLISH-002 - 发布验证](./PUBLISH-002-publish-validation.md)
+- [DEV-008 - 发布指南](./DEV-008-vscode-publish-guide.md)
+- [DEV-009 - 发布验证](./DEV-009-vscode-publish-validation.md)
