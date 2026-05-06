@@ -236,6 +236,69 @@ storages:
         });
     });
 
+    describe("ai section parsing", () => {
+        it("should parse ai.models correctly", () => {
+            const yaml = `
+version: v2
+ai:
+  models:
+    deepseek-v4-flash:
+      provider: deepseek
+      model: deepseek-v4-flash
+      apiKey: "sk-test-key"
+      timeout: 30000
+      maxRetries: 3
+  defaultModel: deepseek-v4-flash
+storages:
+  default:
+    adapter: aliyun-oss
+    config:
+      bucket: test-bucket
+      accessKeyId: "\${KEY}"
+      accessKeySecret: "\${SECRET}"
+      region: oss-cn-hangzhou
+`;
+            const loader = createConfigLoader({
+                envResolver: () => "test-value",
+            });
+            const config = loader.loadFromString(yaml);
+
+            expect(config.ai).toBeDefined();
+            const aiConfig = config.ai as Record<string, unknown> | undefined;
+            expect(aiConfig).toBeDefined();
+            const models = aiConfig!.models as Record<string, unknown> | undefined;
+            expect(models).toBeDefined();
+            expect(models!["deepseek-v4-flash"]).toBeDefined();
+            const dsConfig = models!["deepseek-v4-flash"] as Record<string, unknown>;
+            expect(dsConfig.provider).toBe("deepseek");
+            expect(dsConfig.model).toBe("deepseek-v4-flash");
+            expect(dsConfig.apiKey).toBe("sk-test-key");
+            expect(dsConfig.timeout).toBe(30000);
+            expect(dsConfig.maxRetries).toBe(3);
+            expect(aiConfig!.defaultModel).toBe("deepseek-v4-flash");
+        });
+
+        it("should handle config without ai section", () => {
+            const yaml = `
+version: v2
+storages:
+  default:
+    adapter: aliyun-oss
+    config:
+      bucket: test-bucket
+      accessKeyId: "\${KEY}"
+      accessKeySecret: "\${SECRET}"
+      region: oss-cn-hangzhou
+`;
+            const loader = createConfigLoader({
+                envResolver: () => "test-value",
+            });
+            const config = loader.loadFromString(yaml);
+
+            expect(config.ai).toBeUndefined();
+        });
+    });
+
     describe("ConfigLoader class", () => {
         it("should create instance without options", () => {
             const loader = new ConfigLoader();

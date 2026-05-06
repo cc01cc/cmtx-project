@@ -149,8 +149,8 @@ export class TransferManager {
     private getSourceDomains(): string[] {
         const domains: string[] = [];
 
-        if (this.config.source.customDomain) {
-            domains.push(this.config.source.customDomain);
+        if (this.config.source.domain) {
+            domains.push(this.config.source.domain);
         }
 
         return domains;

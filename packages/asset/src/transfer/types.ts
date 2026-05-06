@@ -56,7 +56,7 @@ export interface TransferConfig {
  */
 export interface SourceConfig {
     /** 自定义域名（用于识别属于该存储的 URL） */
-    customDomain?: string;
+    domain?: string;
 
     /** 云服务凭证配置 */
     credentials: CloudCredentials;
@@ -73,7 +73,7 @@ export interface SourceConfig {
  */
 export interface TargetConfig {
     /** 自定义域名（用于生成新 URL） */
-    customDomain?: string;
+    domain?: string;
 
     /** 云服务凭证配置 */
     credentials: CloudCredentials;
@@ -318,7 +318,7 @@ export interface TransferEvent {
  * ```typescript
  * const config = new TransferConfigBuilder()
  *   .source({
- *     customDomain: 'https://private.example.com',
+ *     domain: 'https://private.example.com',
  *     credentials: {
  *       accessKeyId: process.env.SOURCE_ACCESS_KEY_ID!,
  *       accessKeySecret: process.env.SOURCE_ACCESS_KEY_SECRET!,
@@ -327,7 +327,7 @@ export interface TransferEvent {
  *     }
  *   })
  *   .target({
- *     customDomain: 'https://cdn.example.com',
+ *     domain: 'https://cdn.example.com',
  *     credentials: {
  *       accessKeyId: process.env.TARGET_ACCESS_KEY_ID!,
  *       accessKeySecret: process.env.TARGET_ACCESS_KEY_SECRET!,
@@ -353,13 +353,13 @@ export class TransferConfigBuilder {
      * @returns this - 支持链式调用
      */
     source(options: {
-        customDomain?: string;
+        domain?: string;
         credentials: CloudCredentials;
         useSignedUrl?: boolean;
         signedUrlExpires?: number;
     }): this {
         this.config.source = {
-            customDomain: options?.customDomain,
+            domain: options?.domain,
             credentials: options.credentials,
             useSignedUrl: options?.useSignedUrl,
             signedUrlExpires: options?.signedUrlExpires,
@@ -373,13 +373,13 @@ export class TransferConfigBuilder {
      * @returns this - 支持链式调用
      */
     target(options: {
-        customDomain?: string;
+        domain?: string;
         credentials: CloudCredentials;
         prefix?: string;
         overwrite?: boolean;
     }): this {
         this.config.target = {
-            customDomain: options?.customDomain,
+            domain: options?.domain,
             credentials: options.credentials,
             prefix: options?.prefix,
             overwrite: options?.overwrite ?? false,

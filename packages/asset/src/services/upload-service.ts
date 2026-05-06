@@ -36,6 +36,8 @@ export interface UploadServiceConfig {
     replace?: ReplaceConfig;
     /** 日志回调 */
     logger?: Logger;
+    /** 自定义域名（上传后 URL 替换为此域名） */
+    domain?: string;
 }
 
 /**
@@ -104,13 +106,23 @@ export class UploadService implements Service<UploadServiceConfig> {
             logger: this.config.logger,
         });
 
+        const replaceDomain = (url: string): string => {
+            if (!this.config.domain) return url;
+            try {
+                const parsed = new URL(url);
+                return url.replace(parsed.host, this.config.domain!);
+            } catch {
+                return url;
+            }
+        };
+
         const ops: ReplacementOp[] = [];
         for (let i = 0; i < localMatches.length; i++) {
             const cloudResult = batchResult.lookup(sources[i]);
             if (!cloudResult || cloudResult.action === "skipped") continue;
             const newText = renderReplacementText(
                 localMatches[i],
-                { cloudUrl: cloudResult.cloudUrl, variables: cloudResult.variables },
+                { cloudUrl: replaceDomain(cloudResult.cloudUrl), variables: cloudResult.variables },
                 this.config.replace as
                     | { fields: Record<string, string>; context?: Record<string, string> }
                     | undefined,

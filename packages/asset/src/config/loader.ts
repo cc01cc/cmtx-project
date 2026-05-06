@@ -158,6 +158,11 @@ export class ConfigLoader {
             >;
         }
 
+        // 解析 ai（可选）
+        if (raw.ai) {
+            config.ai = raw.ai as Record<string, unknown>;
+        }
+
         return config;
     }
 

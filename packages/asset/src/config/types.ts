@@ -90,6 +90,8 @@ export interface CmtxConfig {
     storages?: Record<string, CmtxStorageConfig>;
     /** 预签名 URL 配置 */
     presignedUrls?: CmtxPresignedUrlConfig;
+    /** AI 配置 */
+    ai?: Record<string, unknown>;
     /** 全局 Rules 配置 */
     rules?: Record<string, RuleConfig>;
     /** Presets（Rule 集合） */
@@ -164,6 +166,7 @@ export const DEFAULT_CONFIG: CmtxConfig = {
             conflictStrategy: "skip",
             useStorage: "default",
             prefix: "",
+            domain: "",
             replace: {
                 fields: {
                     src: "{cloudSrc}",
@@ -188,14 +191,18 @@ export const DEFAULT_CONFIG: CmtxConfig = {
         "frontmatter-date": {},
         "frontmatter-updated": {},
         "frontmatter-id": {
-            strategy: "counter",
-            encryptionKey: "",
+            template: "{counter_global}",
+            fieldName: "id",
+            prefix: "",
             counter: {
-                name: "global",
+                global: { length: 6, radix: 36 },
+            },
+            ff1: {
+                useCounter: "global",
+                encryptionKey: "",
+                withChecksum: false,
                 length: 6,
                 radix: 36,
-                prefix: "",
-                withChecksum: false,
             },
         },
         autocorrect: {
@@ -204,6 +211,17 @@ export const DEFAULT_CONFIG: CmtxConfig = {
         },
         "download-images": {
             useStorage: "default",
+        },
+        "transfer-images": {
+            targetStorage: {
+                useStorage: "default",
+                domain: "",
+            },
+            sourceStorages: [],
+            namingTemplate: "{name}.{ext}",
+            prefix: "",
+            deleteSource: false,
+            concurrency: 5,
         },
     },
     presets: {},

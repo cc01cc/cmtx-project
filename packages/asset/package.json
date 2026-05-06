@@ -1,6 +1,6 @@
 {
     "name": "@cmtx/asset",
-    "version": "0.2.0-alpha.2",
+    "version": "0.2.0-alpha.3",
     "description": "Markdown asset management for cmtx - 支持本地图片上传和远程图片转移",
     "keywords": [
         "asset",
@@ -90,17 +90,17 @@
         "@cmtx/template": "workspace:*",
         "js-yaml": "^4.1.0",
         "p-limit": "^7.3.0",
-        "tinyglobby": "catalog:",
-        "trash": "catalog:"
+        "tinyglobby": "^0.2.0",
+        "trash": "^10.1.0"
     },
     "devDependencies": {
-        "@types/node": "catalog:",
+        "@types/node": "^25.2.1",
         "ajv": "8.20.0",
-        "dotenv": "catalog:dev",
+        "dotenv": "^17.2.4",
         "ts-json-schema-generator": "2.9.0",
-        "typedoc": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:"
+        "typedoc": "^0.28.16",
+        "typescript": "^6.0.3",
+        "vitest": "^4.0.18"
     },
     "engines": {
         "node": ">=22.0.0"

@@ -1,5 +1,33 @@
 # @cmtx/asset 更新日志 / Changelog
 
+## [0.2.0-alpha.3] - 2026-05-06
+
+### Added
+
+- **Domain Config**: 统一上传和传输规则的 domain 配置，支持独立配置 sourceDomain / targetDomain
+- **Config Template**: 新增 `config/template.ts` 模块，提供模板工具函数
+- **Upload Target Domain**: Upload service 支持目标 domain 配置
+- **Template Module Loading**: Config loader 新增 template 模块加载
+
+### Changed
+
+- **URL Transformer**: `customDomain` 属性统一为 `domain`
+- **Transfer Types**: `InternalSourceConfig` / `InternalTargetConfig` 接口适配器替换凭证字段
+
+---
+
+### Added
+
+- **Domain Config**: Unified upload and transfer rule domain config, supports independent sourceDomain / targetDomain
+- **Config Template**: New `config/template.ts` module with template utilities
+- **Upload Target Domain**: Upload service supports target domain configuration
+- **Template Module Loading**: Config loader now loads template modules
+
+### Changed
+
+- **URL Transformer**: `customDomain` property consolidated to `domain`
+- **Transfer Types**: `InternalSourceConfig` / `InternalTargetConfig` adapters replace inline credential fields
+
 ## [0.2.0-alpha.2] - 2026-05-05
 
 ### Breaking Changes
@@ -73,30 +101,6 @@
 - **`AssetService.deleteImage()`**: Fixed empty implementation, now correctly deletes local images
 - Removed dead code in `upload-service.ts`
 - Removed `width: 800` from `upload-images` default config (not a rule parameter)
-
-## [Unreleased]
-
-### Breaking Changes
-
-- **`pipeline.ts` / `executeUploadPipeline` 已移除** — 改用 `batchUploadImages()` + `matchesToSources()` + `renderReplacementText()` + `applyReplacementOps()`
-- **`uploader.ts` 已删除** — 该文件仅 re-export pipeline
-- **`ConflictResolutionStrategy` 移除 `download-all` 变体** — 该功能从未实际实现
-- **`UploadConfig.delete` 已移除** — 删除不是 upload 的职责，调用者自行决定是否删除已上传的文件（对应 CLI `--enable-delete` 暂未实现）
-- **`UploadPipelineInput.selection` 已移除** — 改用 `selections[]` 数组
-- **`upload-context.ts` 已删除** — `UploadContext` 已内联到 `UploadProcessingState`，不再对外导出
-- **`buildPipelineResult` 签名变更** — 移除 `deleted` 和 `applied` 参数
-- **`uploadLocalImageInMarkdown()` 已移除** — 改用 `executeUploadPipeline()` 直连
-- **`ConfigBuilder.delete()` / `noDelete()` 已移除**
-
-### Changed
-
-- **`baseDirectory` → `basePath`** — `UploadPipelineInput` 和 `uploadImagesInDocument()` 形参重命名，配合 `stat` 自动检测文件/目录
-- **`DocumentAccessor.applyReplacements` 标记 `@deprecated`** — pipeline 不再调用此方法，写回是调用者职责
-- **`processMatchEntry` 拆分为子函数** — 提高可维护性
-- **`conflictReplaceCount` 替代 `applied` 计算 `replacedCount`**
-- **pipeline 不再处理本地文件删除** — `removeUploadedLocals` 已移除
-- **`batchUploadImages()` 新增 `renderReplacementText()` 和 `applyReplacementOps()` 导出** — 由 pipeline.ts 提取，供 `AssetService` 和 `upload-and-replace` 共用
-- **`AssetService.uploadImagesInDocument()` 改用 `batchUploadImages`** — 移除对 `executeUploadPipeline` 的依赖
 
 ## [0.1.1-alpha.1] - 2026-04-30
 

@@ -56,10 +56,10 @@
  * // 3. 构建传输配置
  * const config = new TransferConfigBuilder()
  *   .source(sourceAdapter, {
- *     customDomain: "https://private.example.com"
+ *     domain: "https://private.example.com"
  *   })
  *   .target(targetAdapter, {
- *     customDomain: "https://cdn.example.com",
+ *     domain: "https://cdn.example.com",
  *     prefix: "images/"
  *   })
  *   .options({

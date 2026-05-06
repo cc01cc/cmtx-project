@@ -31,7 +31,7 @@ import type { UrlMapping } from "./types.js";
  * URL 转换器配置
  */
 interface UrlTransformerConfig {
-    customDomain?: string;
+    domain?: string;
     prefix?: string;
     namingTemplate?: string;
 }
@@ -214,10 +214,10 @@ export class UrlTransformer {
      * 构建完整 URL
      */
     private buildUrl(remotePath: string): string {
-        const customDomain = this.targetConfig.customDomain;
+        const domain = this.targetConfig.domain;
 
-        if (customDomain) {
-            const baseUrl = customDomain.endsWith("/") ? customDomain.slice(0, -1) : customDomain;
+        if (domain) {
+            const baseUrl = domain.endsWith("/") ? domain.slice(0, -1) : domain;
             // 自动添加 https:// 前缀
             const url = baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`;
             return `${url}/${remotePath}`;

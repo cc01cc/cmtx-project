@@ -25,9 +25,9 @@ export interface TransferAssetsServiceConfig {
     /** 目标存储前缀 */
     targetPrefix?: string;
     /** 目标存储自定义域名 */
-    targetCustomDomain?: string;
+    targetDomain?: string;
     /** 源存储自定义域名 */
-    sourceCustomDomain?: string;
+    sourceDomain?: string;
     /** 命名模板 */
     namingTemplate?: string;
     /** 并发数 */
@@ -89,6 +89,7 @@ export class TransferAssetsService implements Service<TransferAssetsServiceConfi
         filePath: string,
         options?: {
             sourceDomain?: string;
+            targetDomain?: string;
             concurrency?: number;
             deleteSource?: boolean;
         },
@@ -112,11 +113,11 @@ export class TransferAssetsService implements Service<TransferAssetsServiceConfi
         const manager = createTransferManager({
             source: {
                 adapter: sourceAdapter,
-                customDomain: options?.sourceDomain ?? this.config.sourceCustomDomain,
+                domain: options?.sourceDomain ?? this.config.sourceDomain,
             },
             target: {
                 adapter: this.config.targetAdapter,
-                customDomain: this.config.targetCustomDomain,
+                domain: options?.targetDomain ?? this.config.targetDomain,
                 prefix: this.config.targetPrefix,
                 namingTemplate: this.config.namingTemplate,
             },
