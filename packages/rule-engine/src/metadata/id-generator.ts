@@ -1,23 +1,33 @@
 import { createHash, randomUUID } from "node:crypto";
 import { renderTemplate } from "@cmtx/template";
+import type { CounterService } from "../rules/service-registry.js";
 import type { EncryptedIdValidationResult, FF1EncryptOptions } from "../types.js";
 import { decryptString, encryptString, FF1CipherWASM, prepareFPEKey } from "./fpe-ff1.js";
 import { LuhnAlgorithm } from "./luhn.js";
 
-/**
- * ID 生成器
- * 提供多种文档 ID 生成策略
- *
- * @public
- */
+export interface ParsedTemplateVar {
+    name: string;
+    args: string[];
+    raw: string;
+}
+
+export interface CounterGenerateOptions {
+    length: number;
+    radix: number;
+}
+
+export interface TemplateRenderContext {
+    counterService?: CounterService;
+    counterConfigs?: Record<string, CounterGenerateOptions>;
+    ff1?: {
+        useCounter: string;
+        encryptionKey: string | Buffer;
+        withChecksum?: boolean;
+    };
+    document?: string;
+}
+
 export class IdGenerator {
-    /**
-     * 生成通用 ID
-     * @param strategy - ID 生成策略 ('slug', 'uuid', 'md5', 'sha1', 'sha256', 'ff1' 或 自定义模板)
-     * @param input - 输入内容
-     * @param options - 可选参数（ff1 时需要 encryptionKey）
-     * @returns 生成的 ID
-     */
     public generate(
         strategy: string = "slug",
         input: string = "",
@@ -57,27 +67,6 @@ export class IdGenerator {
         }
     }
 
-    /**
-     * FF1 格式保留加密（同步，纯函数）
-     *
-     * FF1 特性：输入几位，输出几位（格式保留）
-     *
-     * @param plaintext - 要加密的明文字符串（radix-36: 0-9, A-Z）
-     * @param encryptionKey - 加密密钥
-     * @param options - 可选参数
-     * @returns 加密后的字符串
-     *
-     * @example
-     * ```typescript
-     * const generator = new IdGenerator();
-     *
-     * // 格式保留：输入 6 位，输出 6 位
-     * generator.encryptFF1('ABC123', 'my-key');
-     *
-     * // 带校验码：输入 6 位，输出 7 位
-     * generator.encryptFF1('ABC123', 'my-key', { withChecksum: true });
-     * ```
-     */
     public encryptFF1(
         plaintext: string,
         encryptionKey: string | Buffer,
@@ -96,14 +85,6 @@ export class IdGenerator {
         return result;
     }
 
-    /**
-     * FF1 解密
-     *
-     * @param ciphertext - 加密的字符串
-     * @param encryptionKey - 加密密钥
-     * @param options - 可选参数
-     * @returns 解密后的明文字符串
-     */
     public decryptFF1(
         ciphertext: string,
         encryptionKey: string | Buffer,
@@ -120,13 +101,6 @@ export class IdGenerator {
         return this.decryptWithCipher(cipher, toDecrypt);
     }
 
-    /**
-     * 验证加密 ID
-     *
-     * @param id - 要验证的 ID
-     * @param options - 选项
-     * @returns 验证结果
-     */
     public validateEncryptedId(
         id: string,
         options: {
@@ -185,24 +159,15 @@ export class IdGenerator {
         }
     }
 
-    /**
-     * 生成 UUID 格式的 ID
-     */
     public generateUUID(): string {
         return randomUUID();
     }
 
-    /**
-     * 生成哈希格式的 ID
-     */
     public generateHash(input: string, algorithm = "md5", length?: number): string {
         const hash = createHash(algorithm).update(input).digest("hex");
         return length ? hash.substring(0, length) : hash;
     }
 
-    /**
-     * 生成 slug 格式的 ID
-     */
     generateSlug(input: string, maxLength = 15): string {
         let slug = input
             .trim()
@@ -217,15 +182,12 @@ export class IdGenerator {
         return slug;
     }
 
-    /**
-     * 使用模板生成 ID
-     */
     public generateFromTemplate(input: string, template: string): string {
         const md5 = this.generateHash(input, "md5", 8);
         const sha1 = this.generateHash(input, "sha1", 8);
         const sha256 = this.generateHash(input, "sha256", 8);
 
-        const context = {
+        const context: Record<string, string> = {
             input: input,
             slug: this.generateSlug(input),
             md5: md5,
@@ -241,11 +203,93 @@ export class IdGenerator {
         return renderTemplate(template, context);
     }
 
-    /**
-     * 批量生成 IDs
-     */
+    public generateCounterValue(counterValue: number, options?: CounterGenerateOptions): string {
+        const { length = 6, radix = 36 } = options ?? {};
+        return counterValue.toString(radix).toUpperCase().padStart(length, "0");
+    }
+
+    public generateHashFromBody(document: string, algorithm: string, length: number): string {
+        const body = this.stripFrontmatter(document);
+        return this.generateHash(body, algorithm, length);
+    }
+
+    public stripFrontmatter(document: string): string {
+        const frontmatterRegex = /^---\s*[\r\n]+[\s\S]*?[\r\n]+---\s*(?:[\r\n]|$)/;
+        return document.replace(frontmatterRegex, "");
+    }
+
+    public static parseTemplate(template: string): ParsedTemplateVar[] {
+        const vars: ParsedTemplateVar[] = [];
+        const regex = /\{(\w+)(?:_(\d+))?\}/g;
+        let match: RegExpExecArray | null;
+
+        while ((match = regex.exec(template)) !== null) {
+            const name = match[1];
+            const args: string[] = [];
+            if (match[2] !== undefined) {
+                args.push(match[2]);
+            }
+            // Handle {counter_<id>} where args[0] is the number part
+            // Handle {sha256_<len>} where the full variable is like sha256_8
+            vars.push({
+                name,
+                args,
+                raw: match[0],
+            });
+        }
+
+        return vars;
+    }
+
     public generateBatch(inputs: string[], strategy = "slug"): string[] {
         return inputs.map((input) => this.generate(strategy, input));
+    }
+
+    public renderTemplateWithContext(template: string, context: TemplateRenderContext): string {
+        return template.replace(/\{(\w+(?:_\w+)?)\}/g, (match, varName) => {
+            if (varName === "uuid") {
+                return this.generateUUID();
+            }
+
+            const counterMatch = varName.match(/^counter_(.+)$/);
+            if (counterMatch) {
+                const counterId = counterMatch[1];
+                if (!context.counterService) {
+                    return match;
+                }
+                const counterConfig = context.counterConfigs?.[counterId];
+                const value = context.counterService.next(counterId);
+                return this.generateCounterValue(value, counterConfig);
+            }
+
+            if (varName === "ff1") {
+                if (!context.ff1 || !context.counterService) {
+                    return match;
+                }
+                const counterId = context.ff1.useCounter ?? "default";
+                if (!context.counterConfigs?.[counterId]) {
+                    return match;
+                }
+                const config = context.counterConfigs[counterId];
+                const value = context.counterService.next(counterId);
+                const plaintext = this.generateCounterValue(value, config);
+
+                const padded = plaintext.length < 4 ? plaintext.padEnd(4, "0") : plaintext;
+                return this.encryptFF1(padded, context.ff1.encryptionKey, {
+                    radix: config.radix,
+                    withChecksum: context.ff1.withChecksum,
+                });
+            }
+
+            const hashMatch = varName.match(/^(sha256|sha1|md5)_(\d+)$/);
+            if (hashMatch && context.document) {
+                const algorithm = hashMatch[1];
+                const length = parseInt(hashMatch[2], 10);
+                return this.generateHashFromBody(context.document, algorithm, length);
+            }
+
+            return match;
+        });
     }
 
     private createFF1Cipher(key: string | Buffer, radix: number = 36): FF1CipherWASM {

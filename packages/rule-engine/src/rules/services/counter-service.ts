@@ -1,72 +1,91 @@
-/**
- * 计数器服务实现
- *
- * @module counter-service
- * @description
- * 提供计数器功能，用于 ID 生成等场景。
- */
+import type {
+    CounterService,
+    CounterServiceConfig,
+    CounterConfigMap,
+} from "../service-registry.js";
 
-import type { CounterService, CounterServiceConfig } from "../service-registry.js";
+interface CounterState {
+    currentValue: number;
+    step: number;
+}
 
-/**
- * 计数器服务实现
- */
 export class CounterServiceImpl implements CounterService {
     readonly id = "counter" as const;
 
-    private currentValue: number;
-    private step: number;
+    private counters: Map<string, CounterState> = new Map();
+    private defaultConfig: Required<CounterServiceConfig>;
 
-    constructor(config?: CounterServiceConfig) {
-        this.currentValue = config?.initialValue ?? 0;
-        this.step = config?.step ?? 1;
+    constructor(config?: CounterServiceConfig | CounterConfigMap) {
+        this.defaultConfig = { initialValue: 0, step: 1 };
+
+        if (config && !("initialValue" in config) && !("step" in config)) {
+            const map = config as CounterConfigMap;
+            for (const [id, cfg] of Object.entries(map)) {
+                this.counters.set(id, {
+                    currentValue: cfg?.initialValue ?? 0,
+                    step: cfg?.step ?? 1,
+                });
+            }
+        } else {
+            const single = config as CounterServiceConfig | undefined;
+            this.counters.set("default", {
+                currentValue: single?.initialValue ?? 0,
+                step: single?.step ?? 1,
+            });
+        }
     }
 
-    /**
-     * 初始化服务
-     * @param config - 计数器配置
-     */
-    initialize(config?: CounterServiceConfig): void {
-        if (config?.initialValue !== undefined) {
-            this.currentValue = config.initialValue;
+    private ensureCounter(counterId: string): CounterState {
+        let state = this.counters.get(counterId);
+        if (!state) {
+            state = {
+                currentValue: this.defaultConfig.initialValue,
+                step: this.defaultConfig.step,
+            };
+            this.counters.set(counterId, state);
         }
-        if (config?.step !== undefined) {
-            this.step = config.step;
+        return state;
+    }
+
+    initialize(config?: CounterServiceConfig | CounterConfigMap): void {
+        this.counters.clear();
+        if (config && !("initialValue" in config) && !("step" in config)) {
+            const map = config as CounterConfigMap;
+            for (const [id, cfg] of Object.entries(map)) {
+                this.counters.set(id, {
+                    currentValue: cfg?.initialValue ?? 0,
+                    step: cfg?.step ?? 1,
+                });
+            }
+        } else {
+            const single = config as CounterServiceConfig | undefined;
+            this.counters.set("default", {
+                currentValue: single?.initialValue ?? 0,
+                step: single?.step ?? 1,
+            });
         }
     }
 
-    /**
-     * 获取下一个计数值
-     * @returns 下一个值
-     */
-    next(): number {
-        const value = this.currentValue;
-        this.currentValue += this.step;
+    next(counterId: string = "default"): number {
+        const state = this.ensureCounter(counterId);
+        const value = state.currentValue;
+        state.currentValue += state.step;
         return value;
     }
 
-    /**
-     * 获取当前值
-     * @returns 当前值
-     */
-    current(): number {
-        return this.currentValue;
+    current(counterId: string = "default"): number {
+        const state = this.ensureCounter(counterId);
+        return state.currentValue;
     }
 
-    /**
-     * 重置计数器
-     * @param value - 重置值，默认为 0
-     */
-    reset(value?: number): void {
-        this.currentValue = value ?? 0;
+    reset(counterId: string = "default", value?: number): void {
+        const state = this.ensureCounter(counterId);
+        state.currentValue = value ?? 0;
     }
 }
 
-/**
- * 创建计数器服务
- * @param config - 计数器配置
- * @returns CounterService 实例
- */
-export function createCounterService(config?: CounterServiceConfig): CounterService {
+export function createCounterService(
+    config?: CounterServiceConfig | CounterConfigMap,
+): CounterService {
     return new CounterServiceImpl(config);
 }

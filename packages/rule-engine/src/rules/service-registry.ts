@@ -117,27 +117,39 @@ export interface CounterServiceConfig {
 }
 
 /**
+ * 计数器配置映射
+ * key 为计数器 id，value 为计数器配置
+ */
+export interface CounterConfigMap {
+    [counterId: string]: CounterServiceConfig;
+}
+
+/**
  * 计数器服务接口
- * 提供计数器功能，用于 ID 生成
+ * 提供多计数器功能，用于 ID 生成
+ * 每个计数器有唯一的 id，通过 counterId 区分
  */
 export interface CounterService extends Service<CounterServiceConfig> {
     readonly id: "counter";
 
     /**
-     * 获取下一个计数值
+     * 获取指定计数器的下一个计数值
+     * @param counterId - 计数器 ID
      */
-    next(): number;
+    next(counterId: string): number;
 
     /**
-     * 获取当前值
+     * 获取指定计数器的当前值
+     * @param counterId - 计数器 ID
      */
-    current(): number;
+    current(counterId: string): number;
 
     /**
-     * 重置计数器
+     * 重置指定计数器
+     * @param counterId - 计数器 ID
      * @param value - 重置值
      */
-    reset(value?: number): void;
+    reset(counterId: string, value?: number): void;
 }
 
 /**

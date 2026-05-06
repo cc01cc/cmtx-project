@@ -22,8 +22,9 @@ Preset 是按顺序执行的规则集合。通过 Preset 系统实现内容变�
 | 规则 | 类型 | 说明 |
 |------|------|------|
 | `fm-validate` | 文本 | 校验 front matter 字段格式 |
-| `id-generate` | 文本 | 生成 private_id + FBE public_id |
+| `frontmatter-id` | 文本 | 按 template 生成 ID（{counter_<id>}/{ff1}/{sha256_N}/{uuid}）|
 | `frontmatter-map` | 文本 | 字段映射/重命名/新增 |
+| `frontmatter-slug` | 文本 | Slug 生成（AI/extract/transform 三种策略）|
 | `directory-create` | 文件 | 创建目标目录结构 |
 | `file-copy` | 文件 | 写入文件 + 解析 asset + 更新关联 |
 
@@ -157,27 +158,39 @@ const result = await engine.executePreset(
 ### 6.1. IdGenerator
 
 ```ts
-import { IdGenerator, ensureWasmLoaded } from "@cmtx/rule-engine";
-
-// FF1 加密需要先加载 WASM
-await ensureWasmLoaded();
+import { IdGenerator } from "@cmtx/rule-engine";
 
 const generator = new IdGenerator();
 
-// FF1 格式保留加密（同步）
-const id = generator.encryptFF1("ABC123", "your-32-byte-secret-key!!");
+// 自增计数器 ID（需要 CounterService）
+const counterValue = generator.generateCounterValue(42, { length: 6, radix: 36 });
+// → "000042"
 
-// 带校验码
-const id2 = generator.encryptFF1("ABC123", "your-32-byte-secret-key!!", { withChecksum: true });
+// body-only hash（自动剥离 frontmatter）
+const hash = generator.generateHashFromBody("---\ntitle: Test\n---\n\nBody content", "sha256", 8);
+// → "a1b2c3d4"
+
+// template 渲染（集成 counter/hash/ff1/uuid）
+const rendered = generator.renderTemplateWithContext("{counter_global}-{sha256_8}", {
+    counterService,
+    counterConfigs: { global: { length: 6, radix: 36 } },
+    document: "---\ntitle: Test\n---\n\nBody content",
+});
+// → "000001-a1b2c3d4"
+
+// FF1 格式保留加密（需先 ensureWasmLoaded）
+await ensureWasmLoaded();
+const encrypted = generator.encryptFF1("ABC123", "your-32-byte-secret-key!!");
+// → "X7K9M2"
 
 // 解密
 const decrypted = generator.decryptFF1("X7K9M2", "your-32-byte-secret-key!!");
+// → "ABC123"
 
-// 其他策略
+// 传统策略（保持兼容）
 generator.generate("uuid");
 generator.generate("slug", "Title");
 generator.generate("md5", "content");
-generator.generate("ff1", "ABC123", { encryptionKey: "key" });
 ```
 
 ### 6.2. formatForPublish 集成
@@ -189,8 +202,13 @@ await ensureWasmLoaded();
 
 const result = await formatForPublish("./article.md", {
     autoMetadata: {
-        generateId: true,
-        idOptions: { encryptionKey: "your-32-byte-secret-key!!", plaintext: "ABC123" },
+        idTemplate: "{sha256_8}",   // 或 "{ff1}", "{uuid}", "post-{sha256_8}"
+        idFieldName: "id",
+        idPrefix: "",
+        idFf1: {                    // 仅 idTemplate 含 {ff1} 时需配置
+            useCounter: "global",
+            encryptionKey: "your-32-byte-secret-key!!",
+        },
         autoDate: true,
         autoUpdated: true,
     },

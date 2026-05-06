@@ -697,6 +697,7 @@ export const transferImagesRule: Rule = {
         try {
             const result = await transferService.transferImages(document, filePath, {
                 sourceDomain: config?.sourceDomain,
+                targetDomain: config?.targetDomain,
                 concurrency: config?.concurrency,
                 deleteSource: config?.deleteSource,
             });

@@ -11,10 +11,8 @@ import {
     extractFrontmatterField,
     upsertFrontmatterFields,
 } from "@cmtx/core";
-import { createHash } from "node:crypto";
-import { createFF1Cipher, encrypt_string, prepareFPEKey } from "@cmtx/fpe-wasm";
 import { ensureWasmLoaded } from "../../metadata/fpe-ff1.js";
-import { LuhnAlgorithm } from "../../metadata/luhn.js";
+import { IdGenerator } from "../../metadata/id-generator.js";
 import type { Rule, RuleContext, RuleResult } from "../rule-types.js";
 import type { CounterService } from "../service-registry.js";
 
@@ -135,117 +133,44 @@ export const frontmatterUpdatedRule: Rule = {
 /**
  * 生成 ID Rule 配置
  */
-interface GenerateIdConfig {
-    /** 加密密钥（必需） */
-    encryptionKey?: string;
-
-    /** ID 策略，默认 'counter' */
-    strategy?: "counter" | "filepath" | "content";
+export interface GenerateIdConfig {
+    /** ID 生成模板，如 "{counter_global}", "{ff1}", "{sha256_8}" */
+    template: string;
 
     /** 字段名称，默认为 "id" */
     fieldName?: string;
 
-    /** 计数器配置（仅当 strategy='counter' 时使用） */
-    counter?: {
-        /** 计数器名称 */
-        name?: string;
-        /** ID 长度 */
-        length?: number;
-        /** 进制数 */
-        radix?: number;
-        /** 前缀 */
-        prefix?: string;
-        /** 是否添加校验码 */
+    /** 最终 ID 前缀，追加到渲染结果的头部 */
+    prefix?: string;
+
+    /** FF1 加密配置（仅当 template 含 {ff1} 时生效） */
+    ff1?: {
+        /** 引用 counter 中的 id */
+        useCounter: string;
+        /** 加密密钥 */
+        encryptionKey: string;
+        /** 是否添加 Luhn 校验码 */
         withChecksum?: boolean;
+        /** FF1 输出长度，优先于 counter[useCounter].length（默认继承 counter 配置） */
+        length?: number;
+        /** FF1 进制 2-36，优先于 counter[useCounter].radix（默认继承 counter 配置） */
+        radix?: number;
     };
 
-    /** 获取下一个计数器值的回调（可选，用于在规则内部递增计数器） */
-    getNextCounterValue?: () => Promise<number>;
-}
+    /** 读取计数器当前值（不含递增） */
+    peekCounterValue?: (counterId: string) => Promise<number>;
 
-async function getNextCounter(
-    config: GenerateIdConfig | undefined,
-    services: RuleContext["services"],
-): Promise<number | undefined> {
-    if (config?.getNextCounterValue) {
-        return await config.getNextCounterValue();
-    }
-    const counterService = services.get<CounterService>("counter");
-    if (counterService) {
-        return counterService.next();
-    }
-    return undefined;
-}
+    /** 渲染完成后递增计数器 */
+    commitCounterValue?: (counterId: string) => Promise<void>;
 
-async function generateIdByCounter(
-    config: GenerateIdConfig | undefined,
-    encryptionKey: string,
-    services: RuleContext["services"],
-): Promise<string> {
-    const nextCounterValue = await getNextCounter(config, services);
-    if (nextCounterValue === undefined) {
-        throw new Error("缺少计数器服务或 nextCounterValue，请由应用层提供");
-    }
-
-    const { length = 6, radix = 36, prefix = "", withChecksum = false } = config?.counter ?? {};
-
-    const targetInputLength = withChecksum ? length - 1 : length;
-    const radixString = nextCounterValue
-        .toString(radix)
-        .toUpperCase()
-        .padStart(targetInputLength, "0");
-
-    const key = prepareFPEKey(encryptionKey);
-    const cipher = createFF1Cipher(key, radix);
-
-    let result = encrypt_string(cipher, radixString);
-
-    if (withChecksum) {
-        result += LuhnAlgorithm.calculateChecksum(result, radix);
-    }
-
-    return prefix ? `${prefix}${result}` : result;
-}
-
-function generateIdInput(
-    strategy: string,
-    filePath: string,
-    baseDirectory: string | undefined,
-    document: string,
-): string {
-    switch (strategy) {
-        case "filepath": {
-            const baseDir = baseDirectory ?? "";
-            const relativePath = baseDir
-                ? filePath.replace(baseDir, "").replace(/^[/\\]/, "")
-                : filePath;
-            return relativePath.replace(/[/\\]/g, "-").replace(/\.[^/.]+$/, "");
-        }
-        case "content": {
-            return createHash("sha256").update(document).digest("hex").slice(0, 16);
-        }
-        default:
-            throw new Error(`不支持的 ID 策略: ${String(strategy)}`);
-    }
-}
-
-async function generateIdByStrategy(
-    strategy: string,
-    encryptionKey: string,
-    filePath: string,
-    baseDirectory: string | undefined,
-    document: string,
-): Promise<string> {
-    const key = prepareFPEKey(encryptionKey);
-    const cipher = createFF1Cipher(key, 36);
-    const input = generateIdInput(strategy, filePath, baseDirectory, document);
-    return encrypt_string(cipher, input);
+    /** 计数器格式配置，key 为 counter id（如 global、blog） */
+    counter?: Record<string, { length?: number; radix?: number }>;
 }
 
 /**
- * 从文档中提取现有的 frontmatter ID
+ * 从文档中提取指定字段的值
  */
-function extractFrontmatterId(document: string): string | undefined {
+function extractField(document: string, fieldName: string): string | undefined {
     const frontmatterRegex = /^---\s*[\r\n]+([\s\S]*?)[\r\n]+---\s*(?:[\r\n]|$)/;
     const match = document.match(frontmatterRegex);
     if (!match) {
@@ -253,88 +178,160 @@ function extractFrontmatterId(document: string): string | undefined {
     }
 
     const frontmatter = match[1];
-    const idRegex = /^id:\s*["']?([^"'\r\n]+)["']?\s*$/m;
-    const idMatch = frontmatter.match(idRegex);
-    return idMatch?.[1]?.trim();
+    const fieldRegex = new RegExp(`^${fieldName}:\\s*["']?([^"'\\r\\n]+)["']?\\s*$`, "m");
+    const fieldMatch = frontmatter.match(fieldRegex);
+    return fieldMatch?.[1]?.trim();
 }
 
-/**
- * 生成 ID Rule
- */
+function hasFf1InTemplate(template: string): boolean {
+    return /\{ff1\}/.test(template);
+}
+
+function collectCounterIds(template: string, ff1: GenerateIdConfig["ff1"]): string[] {
+    const ids = new Set<string>();
+    for (const m of template.matchAll(/\{counter_(\w+)\}/g)) ids.add(m[1]);
+    if (ff1?.useCounter) ids.add(ff1.useCounter);
+    return Array.from(ids);
+}
+
+async function peekCounter(
+    counterId: string,
+    config: GenerateIdConfig | undefined,
+    services: RuleContext["services"],
+): Promise<number> {
+    if (config?.peekCounterValue) return await config.peekCounterValue(counterId);
+    const cs = services.get<CounterService>("counter");
+    return cs ? cs.current(counterId) : 0;
+}
+
+async function commitCounter(
+    counterId: string,
+    config: GenerateIdConfig | undefined,
+    services: RuleContext["services"],
+): Promise<void> {
+    if (config?.commitCounterValue) {
+        await config.commitCounterValue(counterId);
+        return;
+    }
+    services.get<CounterService>("counter")?.next(counterId);
+}
+
+function counterConfig(
+    counterId: string,
+    opts: { counter?: Record<string, { length?: number; radix?: number }> },
+): { length: number; radix: number } {
+    const cfg = opts.counter?.[counterId];
+    return { length: cfg?.length ?? 6, radix: cfg?.radix ?? 36 };
+}
+
+function renderTemplateVariables(
+    template: string,
+    opts: {
+        generator: IdGenerator;
+        counterValues: Record<string, number>;
+        counter?: Record<string, { length?: number; radix?: number }>;
+        ff1?: GenerateIdConfig["ff1"];
+        document: string;
+    },
+): string {
+    let result = template.replace(/\{counter_(\w+)\}/g, (_, id) => {
+        const cc = counterConfig(id, opts);
+        return opts.generator.generateCounterValue(opts.counterValues[id] ?? 0, cc);
+    });
+    if (opts.ff1) {
+        const cc = counterConfig(opts.ff1.useCounter, opts);
+        const ff1Length = opts.ff1.length ?? cc.length;
+        const ff1Radix = opts.ff1.radix ?? cc.radix;
+        const v = opts.generator.generateCounterValue(
+            opts.counterValues[opts.ff1.useCounter] ?? 0,
+            { length: ff1Length, radix: ff1Radix },
+        );
+        result = result.replace(
+            /\{ff1\}/g,
+            opts.generator.encryptFF1(v.length < 4 ? v.padEnd(4, "0") : v, opts.ff1.encryptionKey, {
+                radix: ff1Radix,
+                withChecksum: opts.ff1.withChecksum,
+            }),
+        );
+    }
+    result = result.replace(/\{(sha256|sha1|md5)_(\d+)\}/g, (_, a, n) =>
+        opts.generator.generateHashFromBody(opts.document, a, parseInt(n, 10)),
+    );
+    result = result.replace(/\{uuid\}/g, () => opts.generator.generateUUID());
+    return result;
+}
+
 export const frontmatterIdRule: Rule = {
     id: "frontmatter-id",
-    name: "生成加密 ID",
-    description: "在 frontmatter 中生成加密的唯一 ID",
+    name: "生成 ID",
+    description: "在 frontmatter 中生成 ID（支持 template 组合变量）",
 
     async execute(context: RuleContext, config?: GenerateIdConfig): Promise<RuleResult> {
-        const { document, filePath, baseDirectory, services } = context;
-        const { strategy = "counter", encryptionKey, fieldName = "id" } = config ?? {};
+        const { document, services } = context;
+        const { template, fieldName = "id", prefix = "", ff1 } = config ?? {};
 
-        // 确保 WASM 已加载（防御性检查，不依赖应用层预先加载）
+        if (!template)
+            return { content: document, modified: false, messages: ["缺少 template 配置"] };
+
+        if (hasFf1InTemplate(template)) {
+            try {
+                await ensureWasmLoaded();
+            } catch (error) {
+                return {
+                    content: document,
+                    modified: false,
+                    messages: [
+                        `WASM 加载失败：${error instanceof Error ? error.message : String(error)}`,
+                    ],
+                };
+            }
+            if (!ff1?.encryptionKey)
+                return {
+                    content: document,
+                    modified: false,
+                    messages: ["template 包含 {ff1} 但缺少 ff1.encryptionKey 配置"],
+                };
+            if (ff1.useCounter && config?.counter && !(ff1.useCounter in config.counter))
+                return {
+                    content: document,
+                    modified: false,
+                    messages: [`ff1.useCounter "${ff1.useCounter}" 未在 counter 中定义`],
+                };
+        }
+
+        if (extractField(document, fieldName))
+            return { content: document, modified: false, messages: [`${fieldName} 已存在`] };
+
         try {
-            await ensureWasmLoaded();
+            const generator = new IdGenerator();
+            const needed = collectCounterIds(template, ff1);
+            const counterValues: Record<string, number> = {};
+            for (const id of needed) counterValues[id] = await peekCounter(id, config, services);
+
+            let rendered = renderTemplateVariables(template, {
+                generator,
+                counterValues,
+                counter: config?.counter,
+                ff1,
+                document,
+            });
+            if (prefix) rendered = `${prefix}${rendered}`;
+
+            const result = upsertFrontmatterFields(document, { [fieldName]: rendered });
+            for (const id of needed) await commitCounter(id, config, services);
+
+            return {
+                content: result.markdown,
+                modified: result.success,
+                messages: [`生成 ID: ${rendered}`],
+            };
         } catch (error) {
             return {
                 content: document,
                 modified: false,
                 messages: [
-                    `WASM 加载失败：${error instanceof Error ? error.message : String(error)}`,
+                    `ID 生成失败：${error instanceof Error ? error.message : String(error)}`,
                 ],
-            };
-        }
-
-        if (!encryptionKey) {
-            return {
-                content: document,
-                modified: false,
-                messages: ["缺少 encryptionKey 配置"],
-            };
-        }
-
-        // 检查 frontmatter 是否已有 id
-        const existingId = extractFrontmatterId(document);
-        if (existingId) {
-            return {
-                content: document,
-                modified: false,
-                messages: [`ID 已存在：${existingId}`],
-            };
-        }
-
-        try {
-            let encryptedId: string;
-
-            if (strategy === "counter") {
-                encryptedId = await generateIdByCounter(config, encryptionKey, services);
-            } else {
-                const effectiveStrategy = strategy ?? "filepath";
-                encryptedId = await generateIdByStrategy(
-                    effectiveStrategy,
-                    encryptionKey,
-                    filePath,
-                    baseDirectory,
-                    document,
-                );
-            }
-
-            // 添加到 frontmatter
-            const result = upsertFrontmatterFields(document, {
-                [fieldName]: encryptedId,
-            });
-
-            const modified = result.added.length > 0 || result.updated.length > 0;
-
-            return {
-                content: result.markdown,
-                modified,
-                messages: modified ? [`生成 ID: ${encryptedId}`] : ["ID 已存在"],
-            };
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            return {
-                content: document,
-                modified: false,
-                messages: [`ID 生成失败：${message}`],
             };
         }
     },

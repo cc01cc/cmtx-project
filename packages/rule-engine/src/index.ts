@@ -58,6 +58,7 @@ export {
     createServiceRegistry,
     frontmatterDateRule,
     frontmatterIdRule,
+    frontmatterSlugRule,
     frontmatterTitleRule,
     frontmatterUpdatedRule,
     imageRules,

@@ -17,7 +17,7 @@ describe("formatForPublish", () => {
     });
 
     describe("autoMetadata", () => {
-        it("should generate ID when generateId is true with plaintext", async () => {
+        it("should generate ID with ff1 template", async () => {
             const content = "# Test Article\n\nContent here.";
             const filePath = join(testDir, "article.md");
             await writeFile(filePath, content);
@@ -25,16 +25,32 @@ describe("formatForPublish", () => {
             const result = await formatForPublish(filePath, {
                 convertTitle: true,
                 autoMetadata: {
-                    generateId: true,
-                    idOptions: {
+                    idTemplate: "{ff1}",
+                    idFf1: {
+                        useCounter: "global",
                         encryptionKey: "test-secret-key-32-bytes!",
-                        plaintext: "ABC123",
                     },
                 },
             });
 
             expect(result.stats.idGenerated).toBe(true);
             expect(result.content).toMatch(/id: [A-Z0-9]{6}/);
+        });
+
+        it("should generate ID with sha256 template", async () => {
+            const content = "# Test Article\n\nContent here.";
+            const filePath = join(testDir, "article.md");
+            await writeFile(filePath, content);
+
+            const result = await formatForPublish(filePath, {
+                convertTitle: true,
+                autoMetadata: {
+                    idTemplate: "{sha256_8}",
+                },
+            });
+
+            expect(result.stats.idGenerated).toBe(true);
+            expect(result.content).toMatch(/id: [a-f0-9]{8}/);
         });
 
         it("should not generate ID when existing ID exists", async () => {
@@ -44,10 +60,10 @@ describe("formatForPublish", () => {
 
             const result = await formatForPublish(filePath, {
                 autoMetadata: {
-                    generateId: true,
-                    idOptions: {
+                    idTemplate: "{ff1}",
+                    idFf1: {
+                        useCounter: "global",
                         encryptionKey: "test-secret-key-32-bytes!",
-                        plaintext: "ABC123",
                     },
                 },
             });
@@ -56,7 +72,7 @@ describe("formatForPublish", () => {
             expect(result.content).toContain("id: existing-id");
         });
 
-        it("should not generate ID when plaintext is not provided", async () => {
+        it("should generate ID with sha256_16 template (custom length)", async () => {
             const content = "# Test Article\n\nContent here.";
             const filePath = join(testDir, "article.md");
             await writeFile(filePath, content);
@@ -64,40 +80,13 @@ describe("formatForPublish", () => {
             const result = await formatForPublish(filePath, {
                 convertTitle: true,
                 autoMetadata: {
-                    generateId: true,
-                    idOptions: {
-                        encryptionKey: "test-secret-key-32-bytes!",
-                        plaintext: undefined as unknown as string,
-                    },
+                    idTemplate: "{sha256_16}",
                 },
             });
 
-            expect(result.stats.idGenerated).toBe(false);
-        });
-
-        it("should preserve plaintext length (FF1 format-preserving)", async () => {
-            const content = "# Test Article\n\nContent here.";
-            const filePath = join(testDir, "article.md");
-            await writeFile(filePath, content);
-
-            // Test different lengths
-            const testCases = ["ABCD", "ABCDEF", "ABCDEFGH"];
-            for (const plaintext of testCases) {
-                const result = await formatForPublish(filePath, {
-                    convertTitle: true,
-                    autoMetadata: {
-                        generateId: true,
-                        idOptions: {
-                            encryptionKey: "test-secret-key-32-bytes!",
-                            plaintext,
-                        },
-                    },
-                });
-
-                const idMatch = result.content.match(/id: ([A-Z0-9]+)/);
-                expect(idMatch).not.toBeNull();
-                expect(idMatch![1].length).toBe(plaintext.length);
-            }
+            const idMatch = result.content.match(/id: ([a-f0-9]+)/);
+            expect(idMatch).not.toBeNull();
+            expect(idMatch![1].length).toBe(16);
         });
 
         it("should add date when autoDate is true and no existing date", async () => {
@@ -174,11 +163,7 @@ describe("formatForPublish", () => {
             const result = await formatForPublish(filePath, {
                 convertTitle: true,
                 autoMetadata: {
-                    generateId: true,
-                    idOptions: {
-                        encryptionKey: "test-secret-key-32-bytes!",
-                        plaintext: "ABC123",
-                    },
+                    idTemplate: "{sha256_8}",
                     autoDate: true,
                     autoUpdated: true,
                 },
@@ -189,14 +174,14 @@ describe("formatForPublish", () => {
             expect(result.stats.updatedAdded).toBe(true);
             expect(result.stats.frontmatterUpdated).toBe(true);
 
-            expect(result.content).toMatch(/id: [A-Z0-9]{6}/);
+            expect(result.content).toMatch(/id: [a-f0-9]{8}/);
             const today = new Date().toISOString().split("T")[0];
             expect(result.content).toContain(`date: ${today}`);
             expect(result.content).toContain(`updated: ${today}`);
             expect(result.content).toContain("title: Test Article");
         });
 
-        it("should generate ID with checksum when withChecksum is true", async () => {
+        it("should generate ID with ff1 and checksum", async () => {
             const content = "# Test Article\n\nContent here.";
             const filePath = join(testDir, "article.md");
             await writeFile(filePath, content);
@@ -204,10 +189,10 @@ describe("formatForPublish", () => {
             const result = await formatForPublish(filePath, {
                 convertTitle: true,
                 autoMetadata: {
-                    generateId: true,
-                    idOptions: {
+                    idTemplate: "{ff1}",
+                    idFf1: {
+                        useCounter: "global",
                         encryptionKey: "test-secret-key-32-bytes!",
-                        plaintext: "ABC123",
                         withChecksum: true,
                     },
                 },
@@ -227,11 +212,7 @@ describe("formatForPublish", () => {
             const result = await formatForPublish(filePath, {
                 convertTitle: true,
                 autoMetadata: {
-                    generateId: true,
-                    idOptions: {
-                        encryptionKey: "test-secret-key-32-bytes!",
-                        plaintext: "ABCDEF",
-                    },
+                    idTemplate: "{sha256_6}",
                     autoDate: true,
                     autoUpdated: true,
                 },
@@ -240,7 +221,7 @@ describe("formatForPublish", () => {
             expect(result.content).toContain("author: Alice");
             expect(result.content).toContain("tags:");
             expect(result.content).toContain("- test");
-            expect(result.content).toMatch(/id: [A-Z0-9]{6}/);
+            expect(result.content).toMatch(/id: [a-f0-9]{6}/);
         });
     });
 

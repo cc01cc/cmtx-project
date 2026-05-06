@@ -11,7 +11,7 @@ import { directoryCreateRule } from "./directory-create-rule.js";
 import { fileCopyRule } from "./file-copy-rule.js";
 import { fmValidateRule } from "./fm-validate-rule.js";
 import { frontmatterMapRule } from "./frontmatter-map-rule.js";
-import { idGenerateRule } from "./id-generate-rule.js";
+import { frontmatterSlugRule } from "./frontmatter-slug.js";
 import { imageRules } from "./image-rules.js";
 import { metadataRules } from "./metadata-rules.js";
 import { sectionRules } from "./section-rules.js";
@@ -29,8 +29,8 @@ export const builtInRules = [
     directoryCreateRule,
     fileCopyRule,
     fmValidateRule,
-    idGenerateRule,
     frontmatterMapRule,
+    frontmatterSlugRule,
 ];
 
 // 导出分类 Rules
@@ -39,7 +39,7 @@ export { directoryCreateRule } from "./directory-create-rule.js";
 export { fileCopyRule } from "./file-copy-rule.js";
 export { fmValidateRule } from "./fm-validate-rule.js";
 export { frontmatterMapRule } from "./frontmatter-map-rule.js";
-export { idGenerateRule } from "./id-generate-rule.js";
+export { frontmatterSlugRule } from "./frontmatter-slug.js";
 export {
     convertImagesRule,
     deleteImageRule,

@@ -347,18 +347,34 @@ export interface ProcessImagesResult {
  */
 export interface AutoMetadataOptions {
     /**
-     * 是否自动生成 ID
-     * 仅当 frontmatter 中无 id 时生成
-     * @default false
+     * ID 生成模板
+     * 例: "{counter_global}", "{ff1}", "{sha256_8}", "post-{counter_global}"
+     * 设置此项即启用 ID 自动生成
      */
-    generateId?: boolean;
+    idTemplate?: string;
 
     /**
-     * FF1 ID 生成配置
-     * encryptionKey 和 value 必填
-     * 默认: 无前缀, length=6, withChecksum=true
+     * ID 写入的 frontmatter 字段名
+     * @default "id"
      */
-    idOptions?: FF1IdOptions;
+    idFieldName?: string;
+
+    /**
+     * 最终 ID 前缀
+     */
+    idPrefix?: string;
+
+    /**
+     * FF1 加密配置（仅当 idTemplate 含 {ff1} 时生效）
+     */
+    idFf1?: {
+        /** 使用的计数器 ID */
+        useCounter: string;
+        /** 加密密钥 */
+        encryptionKey: string | Buffer;
+        /** 是否添加 Luhn 校验码 */
+        withChecksum?: boolean;
+    };
 
     /**
      * 是否自动添加 date 字段

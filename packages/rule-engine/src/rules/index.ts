@@ -7,6 +7,7 @@
  */
 
 export { autocorrectRule } from "./built-in/autocorrect-rule.js";
+export { frontmatterSlugRule } from "./built-in/frontmatter-slug.js";
 export { convertImagesRule, transferImagesRule, uploadImagesRule } from "./built-in/image-rules.js";
 
 // 导出内置 Rules

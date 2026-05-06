@@ -6,10 +6,11 @@
  * 测试内置 Rules 的功能。
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
     convertImagesRule,
     frontmatterDateRule,
+    frontmatterIdRule,
     frontmatterTitleRule,
     frontmatterUpdatedRule,
     promoteHeadingsRule,
@@ -17,6 +18,7 @@ import {
     textReplaceRule,
 } from "../src/rules/built-in/index.js";
 import type { RuleContext } from "../src/rules/rule-types.js";
+import type { CounterService } from "../src/rules/service-registry.js";
 
 const createContext = (document: string): RuleContext => ({
     document,
@@ -375,5 +377,115 @@ describe("frontmatter-updated rule", () => {
         // updated already has today's value
         expect(result.modified).toBe(false);
         expect(result.messages?.[0]).toContain("字段已存在且值相同");
+    });
+});
+
+describe("frontmatter-id rule", () => {
+    function makeContext(document: string): RuleContext {
+        let counter = 0;
+        const counterService: CounterService = {
+            id: "counter",
+            next: () => counter++,
+            current: () => counter,
+            reset: (v) => {
+                counter = v ?? 0;
+            },
+            initialize: () => {},
+        };
+        const services = {
+            get: vi.fn((id: string) => (id === "counter" ? counterService : undefined)),
+            register: vi.fn(),
+            has: vi.fn(() => true),
+            getAllIds: vi.fn(() => ["counter"]),
+        };
+        return { document, filePath: "/test.md", services: services as never };
+    }
+
+    it("should render counter with radix from counter", async () => {
+        const doc = "# Hello\n\nContent";
+        const result = await frontmatterIdRule.execute(makeContext(doc), {
+            template: "{counter_global}",
+            counter: { global: { length: 4, radix: 10 } },
+        });
+        expect(result.modified).toBe(true);
+        expect(result.content).toContain('id: "0000"');
+    });
+
+    it("should render ff1 with radix from counter", async () => {
+        const doc = "# Hello\n\nContent";
+        const result = await frontmatterIdRule.execute(makeContext(doc), {
+            template: "{ff1}",
+            ff1: { useCounter: "global", encryptionKey: "test-secret-key-32-bytes!" },
+            counter: { global: { length: 4, radix: 36 } },
+        });
+        expect(result.modified).toBe(true);
+        const idMatch = result.content.match(/id: (.+)/);
+        expect(idMatch).not.toBeNull();
+        expect(idMatch![1].length).toBe(4);
+    });
+
+    it("should use ff1.length/radix when explicitly set", async () => {
+        const doc = "# Hello\n\nContent";
+        const result = await frontmatterIdRule.execute(makeContext(doc), {
+            template: "{ff1}",
+            ff1: {
+                useCounter: "global",
+                encryptionKey: "test-secret-key-32-bytes!",
+                length: 8,
+                radix: 10,
+            },
+            counter: { global: { length: 4, radix: 36 } },
+        });
+        expect(result.modified).toBe(true);
+        const idMatch = result.content.match(/id: "?([^"\s]+)"?/);
+        expect(idMatch).not.toBeNull();
+        // length 8 should override counter's length 4
+        expect(idMatch![1].length).toBe(8);
+    });
+
+    it("should fall back to counter config when ff1.length/radix not set", async () => {
+        const doc = "# Hello\n\nContent";
+        const result = await frontmatterIdRule.execute(makeContext(doc), {
+            template: "{ff1}",
+            ff1: { useCounter: "global", encryptionKey: "test-secret-key-32-bytes!" },
+            counter: { global: { length: 6, radix: 36 } },
+        });
+        expect(result.modified).toBe(true);
+        const idMatch = result.content.match(/id: (.+)/);
+        expect(idMatch).not.toBeNull();
+        // falls back to counter's length 6
+        expect(idMatch![1].length).toBe(6);
+    });
+
+    it("should return error when ff1.useCounter references non-existent counter", async () => {
+        const doc = "# Hello\n\nContent";
+        const result = await frontmatterIdRule.execute(makeContext(doc), {
+            template: "{ff1}",
+            ff1: { useCounter: "nonexistent", encryptionKey: "test-secret-key-32-bytes!" },
+            counter: { global: { length: 6, radix: 36 } },
+        });
+        expect(result.modified).toBe(false);
+        expect(result.messages?.[0]).toContain("未在 counter 中定义");
+    });
+
+    it("should render combined template with mixed counter configs", async () => {
+        const doc = "# Hello\n\nContent";
+        const result = await frontmatterIdRule.execute(makeContext(doc), {
+            template: "{counter_global}-{ff1}",
+            fieldName: "id",
+            ff1: { useCounter: "blog", encryptionKey: "test-secret-key-32-bytes!" },
+            counter: {
+                global: { length: 6, radix: 10 },
+                blog: { length: 4, radix: 36 },
+            },
+        });
+        expect(result.modified).toBe(true);
+        const parts = result.content.match(/id: (\d+)-([A-Z0-9]+)/);
+        expect(parts).not.toBeNull();
+        // global: radix-10 → only digits
+        expect(parts![1]).toMatch(/^\d+$/);
+        // blog: radix-36 → may contain letters
+        expect(parts![2]).toMatch(/^[A-Z0-9]+$/);
+        expect(parts![2].length).toBe(4);
     });
 });

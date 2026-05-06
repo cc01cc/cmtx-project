@@ -1,5 +1,49 @@
 # @cmtx/rule-engine 更新日志 / Changelog
 
+## [0.2.0-alpha.3] - 2026-05-06
+
+### Added
+
+- **frontmatter-slug Rule**: 新增规则，支持 transform/extract/ai 三种 slug 生成策略
+  - 集成 `@cmtx/ai` 包，支持 AI 驱动的 slug 生成
+- **transfer-images Rule**: 新增规则，支持跨存储图片转移
+- **FF1 Config Decoupling**: `ff1` 新增可选 `length`/`radix` 字段，可独立覆盖 counter 格式配置
+  - `ff1.useCounter` 引用的 counter ID 不存在时返回可读错误，而非静默降级
+- **Config Type Extensions**: 新增 counter、FF1、slug、transfer 等配置类型
+
+### Changed
+
+- **ID Generator**: 重构为多 counter 模板化 ID 生成
+- **Counter Service**: 新增 `peek()`/`commit()` 模式，支持多 counter 状态管理
+- **formatForPublish**: 更新适配新的 template 化 ID 生成
+- **Counter Config**: 格式配置从顶层移至规则级别，简化配置结构
+
+### Removed
+
+- **id-generate-rule**: 移除废弃的 ID 生成规则
+
+---
+
+### Added
+
+- **frontmatter-slug Rule**: New rule supporting three slug strategies: transform, extract, and AI
+  - Integrated with `@cmtx/ai` for AI-powered slug generation
+- **transfer-images Rule**: New rule for cross-storage image transfer
+- **FF1 Config Decoupling**: Added optional `length`/`radix` fields to `ff1` for independent counter format config
+  - `ff1.useCounter` now returns a readable error for invalid counter IDs instead of silent fallback
+- **Config Type Extensions**: New counter, FF1, slug, and transfer config types
+
+### Changed
+
+- **ID Generator**: Refactored to multi-counter template-based ID generation
+- **Counter Service**: New `peek()`/`commit()` pattern for multi-counter state management
+- **formatForPublish**: Updated to support template-based ID generation
+- **Counter Config**: Moved from top-level to rule-level, simplifying configuration structure
+
+### Removed
+
+- **id-generate-rule**: Removed deprecated ID generation rule
+
 ## [0.2.0-alpha.2] - 2026-05-05
 
 ### Breaking Changes
@@ -49,16 +93,6 @@
 
 - Removed `asset-service-wrapper.ts` and `core-service-wrapper.ts` (duplicated implementations, now imported from `@cmtx/asset`)
 - `Service<TConfig>`, `AssetService`, `CoreService` types now imported from `@cmtx/asset`
-
-## [Unreleased]
-
-### Added
-
-- **`publishAndReplaceFile` / `publishAndReplaceDirectory`** — 文件级 rule engine 上传入口，内建 AssetService + RuleEngine，支持 FileAccessor 注入
-
-### Changed
-
-- **`process-images.ts` 改用 `batchUploadImages`** — 移除对 `executeUploadPipeline` 的依赖
 
 ## [0.1.1-alpha.1] - 2026-04-30
 

@@ -88,15 +88,38 @@ function applyAutoMetadata(
     let dateAdded = false;
     let updatedAdded = false;
     let frontmatterUpdated = false;
-    const { generateId, idOptions, autoDate, autoUpdated } = options;
+    const { idTemplate, idFieldName = "id", idPrefix = "", idFf1, autoDate, autoUpdated } = options;
 
-    if (generateId && idOptions?.encryptionKey && idOptions?.plaintext) {
-        if (!hasFrontmatterField(content, "id")) {
+    if (idTemplate) {
+        if (!hasFrontmatterField(content, idFieldName)) {
             const generator = new IdGenerator();
-            autoFields.id = generator.encryptFF1(idOptions.plaintext, idOptions.encryptionKey, {
-                radix: idOptions.radix,
-                withChecksum: idOptions.withChecksum,
-            });
+            let rendered = idTemplate;
+
+            if (idFf1 && /\{ff1\}/.test(idTemplate)) {
+                const plaintext = generator.generateCounterValue(0, { length: 6, radix: 36 });
+                const padded = plaintext.length < 4 ? plaintext.padEnd(4, "0") : plaintext;
+                const encrypted = generator.encryptFF1(padded, idFf1.encryptionKey, {
+                    radix: 36,
+                    withChecksum: idFf1.withChecksum,
+                });
+                rendered = rendered.replace(/\{ff1\}/g, encrypted);
+            }
+
+            rendered = rendered.replace(
+                /\{(sha256|sha1|md5)_(\d+)\}/g,
+                (_match, algorithm, lengthStr) => {
+                    const len = parseInt(lengthStr, 10);
+                    return generator.generateHashFromBody(content, algorithm, len);
+                },
+            );
+
+            rendered = rendered.replace(/\{uuid\}/g, () => generator.generateUUID());
+
+            if (idPrefix) {
+                rendered = `${idPrefix}${rendered}`;
+            }
+
+            autoFields[idFieldName] = rendered;
             idGenerated = true;
         }
     }
