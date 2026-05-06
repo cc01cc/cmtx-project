@@ -1,0 +1,13 @@
+{
+    "comment": "Copy this file to test-config.json and fill in your API credentials.",
+    "deepseek": {
+        "enabled": false,
+        "apiKey": "",
+        "model": "deepseek-v4-flash"
+    },
+    "alibaba": {
+        "enabled": false,
+        "apiKey": "",
+        "model": "qwen3.5-flash-2026-02-23"
+    }
+}

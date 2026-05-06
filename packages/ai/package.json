@@ -1,0 +1,84 @@
+{
+    "name": "@cmtx/ai",
+    "version": "0.1.0-alpha.1",
+    "description": "AI capabilities for CMTX — slug generation, content validation, and agent orchestration",
+    "keywords": [
+        "ai",
+        "cmtx",
+        "deepseek",
+        "qwen",
+        "slug",
+        "vercel-ai-sdk"
+    ],
+    "homepage": "https://github.com/cc01cc/cmtx-project/tree/main/packages/ai",
+    "bugs": {
+        "url": "https://github.com/cc01cc/cmtx-project/issues"
+    },
+    "license": "Apache-2.0",
+    "author": "cc01cc",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cc01cc/cmtx-project.git",
+        "directory": "packages/ai"
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "CHANGELOG.md"
+    ],
+    "type": "module",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.mts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.mts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.cjs"
+        }
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "scripts": {
+        "build": "tsdown",
+        "build:watch": "tsdown --watch",
+        "clean": "rm -rf dist",
+        "typecheck": "tsc --noEmit -p tsconfig.json",
+        "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
+        "test": "vitest run",
+        "docs": "typedoc"
+    },
+    "dependencies": {
+        "@cmtx/core": "workspace:*",
+        "ai": "^6.0.0"
+    },
+    "devDependencies": {
+        "@ai-sdk/alibaba": "^1.0.22",
+        "@ai-sdk/deepseek": "^2.0.32",
+        "@ai-sdk/openai-compatible": "^2.0.46",
+        "@types/node": "^25.2.1",
+        "typedoc": "^0.28.16",
+        "typescript": "^6.0.3",
+        "vitest": "^4.0.18"
+    },
+    "peerDependencies": {
+        "@ai-sdk/alibaba": "*",
+        "@ai-sdk/deepseek": "*",
+        "@ai-sdk/openai-compatible": "*"
+    },
+    "peerDependenciesMeta": {
+        "@ai-sdk/deepseek": {
+            "optional": true
+        },
+        "@ai-sdk/alibaba": {
+            "optional": true
+        },
+        "@ai-sdk/openai-compatible": {
+            "optional": true
+        }
+    },
+    "engines": {
+        "node": ">=22.0.0"
+    }
+}

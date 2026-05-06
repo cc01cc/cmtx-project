@@ -1,0 +1,19 @@
+{
+    // Copy this file to test-config.json and fill in your API credentials.
+    // Docs: DeepSeek <https://platform.deepseek.com/api-docs>
+    //       Alibaba <https://www.alibabacloud.com/help/en/model-studio/getting-started/models>
+    "deepseek": {
+        "enabled": false, // set true to enable DeepSeek tests
+        "apiKey": "sk-your-deepseek-api-key", // your DeepSeek API key
+        "model": "deepseek-chat", // e.g. deepseek-chat, deepseek-reasoner
+        // "baseURL": "https://api.deepseek.com"  // optional, defaults to api.deepseek.com
+    },
+    "alibaba": {
+        "enabled": false, // set true to enable Alibaba tests
+        "apiKey": "sk-your-alibaba-api-key", // your Alibaba DashScope API key
+        "model": "qwen3.5-flash", // e.g. qwen3.5-flash, qwen-max, qwen-turbo
+        // "baseURL": "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        // optional, defaults to dashscope-intl.aliyuncs.com (international).
+        // For Chinese mainland accounts, use dashscope.aliyuncs.com instead.
+    },
+}
