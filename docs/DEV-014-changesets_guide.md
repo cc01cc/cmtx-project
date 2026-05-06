@@ -847,7 +847,7 @@ CMTX 采用双轨工作流：
 | 用途 | 面向用户阅读 |
 | 发布时 | 手动替换 `[Unreleased]` 为版本号+日期 |
 
-详见 [CHANGELOG 标准化指南](./DOC-012-changelog_guide.md)。
+详见 [CHANGELOG 标准化指南](./DEV-013-changelog_guide.md)。
 
 ## 11. 源码参考
 
@@ -868,7 +868,7 @@ Changesets 源码已克隆到 `ignore-git/references/changesets/changesets/`：
 | `packages/assemble-release-plan/src/` | 版本编排核心逻辑，bump 类型合并 |
 | `packages/pre/src/index.ts` | Pre-release 模式管理 |
 
-详见 [Changesets 调研文档](./DOC-011-changesets-research.md)。
+详见 [Changesets 调研文档](../../docs/RSR-005-changesets-research.md)。
 
 ## 12. 参考资料
 
@@ -881,6 +881,6 @@ Changesets 源码已克隆到 `ignore-git/references/changesets/changesets/`：
 - [官方文档 - Fixed 包](https://github.com/changesets/changesets/blob/main/docs/fixed-packages.md)
 - [官方文档 - Linked 包](https://github.com/changesets/changesets/blob/main/docs/linked-packages.md)
 - [官方文档 - 自动化](https://github.com/changesets/changesets/blob/main/docs/automating-changesets.md)
-- [Changesets 调研文档](./DOC-011-changesets-research.md)
-- [CHANGELOG 标准化指南](./DOC-012-changelog_guide.md)
+- [Changesets 调研文档](../../docs/RSR-005-changesets-research.md)
+- [CHANGELOG 标准化指南](./DEV-013-changelog_guide.md)
 - [Semantic Versioning](https://semver.org/spec/v2.0.0.html)

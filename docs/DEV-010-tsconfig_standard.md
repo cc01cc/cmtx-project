@@ -67,4 +67,4 @@ export default defineConfig({
 - WASM 包的 tsdown 配置增加 `copy` 字段处理 `.wasm` 文件
 - VS Code 扩展使用 CJS 单输出格式 + `alwaysBundle`
 
-详见 [DOC-007: CMTX WASM 处理方案](./DOC-007-rolldown-plugin-wasm-reference.md)。
+详见 [DEV-012: CMTX WASM 处理方案](./DEV-012-rolldown-plugin-wasm-reference.md)。

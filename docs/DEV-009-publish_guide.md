@@ -357,4 +357,4 @@ npm unpublish @cmtx/core@<version>
 - [npm dist-tag](https://docs.npmjs.com/cli/commands/npm-dist-tag)
 - [npm publish](https://docs.npmjs.com/cli/commands/npm-publish)
 - [pnpm publish](https://pnpm.io/cli/publish)
-- [发布前校验与质量门禁指南](./DOC-003-publish-validation.md)
+- [发布前校验与质量门禁指南](./DEV-008-publish-validation.md)

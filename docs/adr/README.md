@@ -16,6 +16,7 @@
 | [ADR-011: Service 层设计](./ADR-011-service-layer-design.md)      | 底层包 Service 接口设计           | Proposed              | 参考     |
 | [ADR-012: Preset 与回调设计](./ADR-012-preset-callback-design.md) | Preset 机制和回调设计分析         | Proposed              | 当前     |
 | [ADR-013: Rule 回调复杂度](./ADR-013-rule-callback-complexity.md) | Rule 级别回调的复杂度影响分析     | Proposed              | 当前     |
+| [ADR-014: 移除 pnpm catalog](./ADR-014-remove-pnpm-catalogs.md)   | 用直接版本号替代 catalog 机制      | Accepted              | 当前     |
 
 ## 2. 如何使用本文档
 

@@ -130,7 +130,7 @@ export default defineConfig({
 
 ## 4. WASM 处理方式
 
-> CMTX 项目的完整 WASM 方案参见 `docs/DOC-007-rolldown-plugin-wasm-reference.md`。本节仅提供通用参考。
+> CMTX 项目的完整 WASM 方案参见 `docs/DEV-012-rolldown-plugin-wasm-reference.md`。本节仅提供通用参考。
 
 ### 4.1 tsdown 中的 WASM 支持
 
@@ -532,7 +532,7 @@ export async function applyPreset(): Promise<void> {
 
 ## 7. WASM 体积与 VSIX 打包影响
 
-> CMTX 项目完整的 WASM 架构、加载路径和打包方案参见 `docs/DOC-007-rolldown-plugin-wasm-reference.md`。
+> CMTX 项目完整的 WASM 架构、加载路径和打包方案参见 `docs/DEV-012-rolldown-plugin-wasm-reference.md`。
 
 | 考虑因素 | 说明 |
 | --- | --- |
@@ -563,7 +563,7 @@ export async function applyPreset(): Promise<void> {
 ```
 你的项目类型？
 ├── VS Code 扩展（CJS 单输出）
-│   └── copy + 手动加载（详见 DOC-007）
+│   └── copy + 手动加载（详见 DEV-012）
 ├── 双格式库（CJS + ESM）
 │   └── copy + 运行时加载（__dirname + shims: true）
 └── 浏览器应用
@@ -594,7 +594,7 @@ export async function applyPreset(): Promise<void> {
 
 ### 8.2 WASM 处理
 
-1. **扩展项目**：使用 `copy + 手动加载`，参见 `docs/DOC-007-rolldown-plugin-wasm-reference.md`
+1. **扩展项目**：使用 `copy + 手动加载`，参见 `docs/DEV-012-rolldown-plugin-wasm-reference.md`
 2. **库项目**：使用 `copy + 运行时加载`
 
 ### 8.3 动态导入
@@ -616,6 +616,6 @@ export async function applyPreset(): Promise<void> {
 - [tsdown 官方文档](https://tsdown.dev/)
 - [tsdown Shims 文档](https://tsdown.dev/options/shims)
 - [tsdown WASM 支持](https://tsdown.dev/recipes/wasm-support)
-- [DOC-007: CMTX WASM 处理方案](./DOC-007-rolldown-plugin-wasm-reference.md) - CMTX 项目的完整 WASM 架构与打包方案
+- [DEV-012: CMTX WASM 处理方案](./DEV-012-rolldown-plugin-wasm-reference.md) - CMTX 项目的完整 WASM 架构与打包方案
 - [Node.js ESM 文档](https://nodejs.org/api/esm.html)
 - [Node.js module 文档](https://nodejs.org/api/module.html)

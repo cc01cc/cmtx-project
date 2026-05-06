@@ -267,5 +267,5 @@ export default defineConfig({
 
 - [贡献指南](../CONTRIBUTING.md) - 详细的贡献流程和代码规范
 - [架构决策记录](./adr/README.md) - 项目架构决策文档
-- [Catalogs 配置说明](./DOC-001-catalogs_configuration.md) - pnpm 依赖版本管理
-- [发布前校验与质量门禁指南](./DOC-003-publish-validation.md) - 包发布校验标准
+- [Catalogs 配置说明](./DEV-006-catalogs_configuration.md) - pnpm 依赖版本管理
+- [发布前校验与质量门禁指南](./DEV-008-publish-validation.md) - 包发布校验标准

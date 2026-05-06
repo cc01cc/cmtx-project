@@ -28,13 +28,13 @@ CMTX 使用 Changesets 管理版本号和发布流程。发布前需按以下顺
 - `@cmtx/cli`
 - `@cmtx/mcp-server`
 
-**不适用**: `cmtx-vscode`（VS Code 扩展使用独立发布机制，参见 [`PUBLISH-001-publish-guide.md`](../packages/vscode-extension/docs/PUBLISH-001-publish-guide.md)）
+**不适用**: `cmtx-vscode`（VS Code 扩展使用独立发布机制，参见 [`DEV-008-vscode-publish-guide.md`](../packages/vscode-extension/docs/DEV-008-vscode-publish-guide.md)）
 
 ---
 
 ## 2. package.json 校验（npm 发布字段）
 
-发布前重点校验 npm 包元数据字段，完整的 package.json 配置模板参见 [Package & Scripts 标准化指南](./DOC-002-package_scripts_guide.md)。
+发布前重点校验 npm 包元数据字段，完整的 package.json 配置模板参见 [Package & Scripts 标准化指南](./DEV-007-package_scripts_guide.md)。
 
 ### 2.1. 校验清单
 
@@ -234,13 +234,13 @@ git diff "$LAST_TAG"...HEAD -- packages/core/src/ packages/core/package.json | h
 - [ ] 构建产物完整（参考 [第 6 节](#6-构建产物校验)）
 - [ ] 远程仓库已更新，工作区干净（无未提交更改）
 - [ ] 已登录 npm（`npm whoami`）
-- [ ] 不是 VS Code 扩展（使用 `packages/vscode-extension/docs/PUBLISH-001-publish-guide.md`）
+- [ ] 不是 VS Code 扩展（使用 `packages/vscode-extension/docs/DEV-008-vscode-publish-guide.md`）
 
 ---
 
 ## 8. 参见
 
-- [NPM 包发布指南](./DOC-004-publish_guide.md) — 完整的发布流程
+- [NPM 包发布指南](./DEV-009-publish_guide.md) — 完整的发布流程
 - [DEV-001: 开发指南](./DEV-001-development_guide.md) — 开发环境与 workflow
 - [DEV-002: ESM/CJS/WASM 打包指南](./DEV-002-esm-cjs-wasm-bundling-guide.md) — 构建配置
-- [Package Scripts 标准化指南](./DOC-002-package_scripts_guide.md) — scripts 配置
+- [Package Scripts 标准化指南](./DEV-007-package_scripts_guide.md) — scripts 配置

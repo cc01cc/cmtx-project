@@ -367,9 +367,14 @@ const advancedPreset: PresetConfig = {
             id: "frontmatter-id",
             enabled: true,
             config: {
-                encryptionKey: "my-32-byte-secret-key!",
-                strategy: "counter",
-                counter: { length: 8, radix: 36, prefix: "zh-", withChecksum: true },
+                template: "{ff1}",
+                fieldName: "id",
+                prefix: "zh-",
+                ff1: {
+                    useCounter: "global",
+                    encryptionKey: "my-32-byte-secret-key!",
+                    withChecksum: true,
+                },
             },
         },
     ],

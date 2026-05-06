@@ -90,6 +90,7 @@ last_updated: 2026-05-02T20:53:00+08:00
 |---------|------|------|
 | `cmtx.rule.upload-images` | Upload images | Rule 模式上传图片 |
 | `cmtx.rule.frontmatter-id` | Generate frontmatter ID | Rule 模式生成 ID |
+| `cmtx.rule.frontmatter-slug` | Generate frontmatter slug | Rule 模式生成 slug（支持 transform/extract/ai） |
 | `cmtx.rule.frontmatter-title` | Convert title to frontmatter | Rule 模式标题转 frontmatter |
 | `cmtx.rule.strip-frontmatter` | Strip frontmatter | Rule 模式移除 frontmatter |
 | `cmtx.rule.promote-headings` | Promote headings | Rule 模式标题提升 |
@@ -101,6 +102,7 @@ last_updated: 2026-05-02T20:53:00+08:00
 | `cmtx.rule.download-images` | Download images | Rule 模式下载图片 |
 | `cmtx.rule.delete-image` | Delete image | Rule 模式删除图片 |
 | `cmtx.rule.resize-image` | Resize image | Rule 模式调整尺寸 |
+| `cmtx.rule.transfer-images` | Transfer images | Rule 模式跨存储转移图片（复制/移动） |
 | `cmtx.rule.execute-rule` | Execute rule | 执行单个 Rule |
 | `cmtx.rule.execute-preset` | Execute preset | 执行预设组合 |
 
@@ -154,7 +156,7 @@ last_updated: 2026-05-02T20:53:00+08:00
 |------|-----|---------|------------|
 | 操作方式 | 命令行批量操作 | 命令面板/快捷键/右键/状态栏/Code Action | AI Agent 调用工具 |
 | 适用场景 | CI/CD、脚本自动化、批量处理 | 实时编辑、交互式操作、即时预览 | AI Agent 驱动的工作流 |
-| 规则模式 | 无 | 14 个 Rule 命令 + Preset 执行 | 无 |
+| 规则模式 | 无 | 15 个 Rule 命令 + Preset 执行 | 无 |
 | Markdown 预览 | 无 | 集成预览 + 预签名 URL + Toggle 开关 | 无 |
 | 凭证传递 | 配置文件/环境变量 | 配置文件 + Settings | 工具参数/环境变量 |
 

@@ -74,6 +74,12 @@ pnpm run docs       # 生成 TypeDoc API 文档
 - 遵循现有项目中的命名和组织方式
 - 非必要不使用 `import()` 动态导入。如使用，必须在代码注释中说明必要性。对 `node:*` 内置模块禁止动态导入（无实际收益，增加异步复杂度）。TypeScript 类型引用语法（`import("./types").SomeType`）不受此限制
 
+## 构建配置
+
+- 库包（`@cmtx/*`，不含 `cmtx-vscode`）的 `tsdown.config.ts` 必须指定 `format: ["esm", "cjs"]`，确保同时输出 ESM 和 CJS 两种产物
+- `package.json` 中的 `main`、`module`、`types`、`exports` 字段必须与 tsdown 的实际输出一致，否则 `validate-dist.mjs` 会验证失败
+- 应用层包（CLI、MCP Server）可根据使用场景仅输出 ESM
+
 ## 设计原则
 
 遵循 SOLID 和 DRY 原则：
@@ -105,6 +111,73 @@ pnpm run docs       # 生成 TypeDoc API 文档
 - 新增公开 API 需在 README 或 API 文档中说明
 - 大功能特性应在 CHANGELOG.md 中记录
 - TypeDoc 注释应完整，至少包含功能说明和参数描述
+
+## 文档结构总览
+
+CMTX 文档分布在 4 个层级，修改代码时需明确文档归属：
+
+### 1. 根目录 `docs/`（项目级文档）
+
+适用于跨包公共事项。使用以下前缀体系：
+
+| 前缀   | 用途                         | 示例                                         |
+| ------ | ---------------------------- | -------------------------------------------- |
+| `DEV-` | 开发指南、架构设计、流程规范 | `DEV-001-development_guide.md`               |
+| `CFG-` | 配置参考                     | `CFG-001-configuration-reference.md`         |
+| `adr/` | 架构决策记录                 | `adr/ADR-009-dual-module-format-strategy.md` |
+| `api/` | TypeDoc 生成的 API 文档      | —                                            |
+
+> 新增文档：按 `DEV-NNN` 递增编号。
+
+### 2. 子包 `packages/<name>/docs/`（包级文档）
+
+适用于特定包的开发者或用户。按包查阅：
+
+| 包                 | docs 目录                         | 主要文档                                                                                                      |
+| ------------------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `asset`            | `packages/asset/docs/`            | `DEV-001-upload-refactor-overview.md` — 上传流水线重构方案；`DEV-002-image-uploader.md` — 上传模块文档        |
+| `cli`              | `packages/cli/docs/`              | `USR-*-getting-started.md` — 5 篇用户指南；`DEV-001-development.md` — 开发说明；`INDEX.md`                    |
+| `mcp-server`       | `packages/mcp-server/docs/`       | `USR-*-installation-setup.md` 等 5 篇用户指南；`INDEX.md`                                                     |
+| `vscode-extension` | `packages/vscode-extension/docs/` | `USR-*-getting-started.md` — 用户指南；`DEV-*-*` — 9 篇开发/架构/构建/发布指南；`CFG-*`, `TODO-*`；`INDEX.md` |
+
+> 子包 `docs/` 路径前缀说明：`USR-`（用户使用指南）、`DEV-`（开发/架构/发布）、`CFG-`（配置）、`TODO-`（遗留事项）。
+
+### 3. 包内 `README.md`（公开 API 说明）
+
+每个 npm 包有自己的 `README.md`，描述安装、功能、API 接口和使用示例：
+
+- `@cmtx/core`、`@cmtx/asset`、`@cmtx/storage`、`@cmtx/template`、`@cmtx/fpe-wasm`、`@cmtx/autocorrect-wasm`、`@cmtx/rule-engine`
+- `@cmtx/cli`、`@cmtx/mcp-server`（应用层）
+- `cmtx-vscode`（VS Code 扩展，含英文版 `README.en.md`）
+
+### 4. 包内 `CHANGELOG.md`（版本变更记录）
+
+所有 npm 发布包均维护 `CHANGELOG.md`，遵循 Keep a Changelog 格式，仅记录用户可见变更。
+
+### 修改文档时的快速定位
+
+```
+需要修改的内容类型           → 查找位置
+──────────────────────────────────────────────
+用户使用指南（如何安装/使用） → packages/<pkg>/docs/USR-*
+开发指南、架构说明            → packages/<pkg>/docs/DEV-*  或 根 docs/DEV-*
+
+配置参考                      → 根 docs/CFG-* 或 packages/<pkg>/docs/CFG-*
+发布相关                      → packages/<pkg>/docs/PUBLISH-*
+公开 API 文档                → 对应包的 README.md
+版本变更                     → 对应包的 CHANGELOG.md
+架构决策记录                  → 根 docs/adr/
+```
+
+### 文档前缀索引（完整）
+
+| 前缀   | 位置                      | 用途                         |
+| ------ | ------------------------- | ---------------------------- |
+| `DEV`  | 根 `docs/` + 子包 `docs/` | 开发指南、架构设计、流程规范 |
+| `CFG`  | 根 `docs/` + 子包 `docs/` | 配置参考                     |
+| `USR`  | 子包 `docs/`              | 用户使用指南                 |
+| `TODO` | 子包 `docs/`              | 遗留事项与待办               |
+| `ADR`  | 根 `docs/adr/`            | 架构决策记录                 |
 
 ## 问题反馈
 

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/logo-white-background.png" alt="CMTX Logo" width="120">
+  <img src="./assets/logo-white-background.png" alt="CMTX Logo - 「文」字篆书" width="120">
 </p>
 
 <p align="center">
@@ -24,6 +24,8 @@
 | @cmtx/core                                     | [![npm version](https://img.shields.io/npm/v/@cmtx/core.svg)](https://www.npmjs.com/package/@cmtx/core)                                                                         |
 | @cmtx/asset                                    | [![npm version](https://img.shields.io/npm/v/@cmtx/asset.svg)](https://www.npmjs.com/package/@cmtx/asset)                                                                       |
 | @cmtx/rule-engine                              | [![npm version](https://img.shields.io/npm/v/@cmtx/rule-engine.svg)](https://www.npmjs.com/package/@cmtx/rule-engine)                                                           |
+| @cmtx/ai                                       | [![npm version](https://img.shields.io/npm/v/@cmtx/ai.svg)](https://www.npmjs.com/package/@cmtx/ai)                                                                             |
+| @cmtx/autocorrect-wasm                         | [![npm version](https://img.shields.io/npm/v/@cmtx/autocorrect-wasm.svg)](https://www.npmjs.com/package/@cmtx/autocorrect-wasm)                                                 |
 | @cmtx/storage                                  | [![npm version](https://img.shields.io/npm/v/@cmtx/storage.svg)](https://www.npmjs.com/package/@cmtx/storage)                                                                   |
 | @cmtx/template                                 | [![npm version](https://img.shields.io/npm/v/@cmtx/template.svg)](https://www.npmjs.com/package/@cmtx/template)                                                                 |
 | @cmtx/fpe-wasm                                 | [![npm version](https://img.shields.io/npm/v/@cmtx/fpe-wasm.svg)](https://www.npmjs.com/package/@cmtx/fpe-wasm)                                                                 |
@@ -117,6 +119,8 @@ import { ConfigBuilder } from "@cmtx/asset/upload";
 | @cmtx/core                                     | Markdown 纯文本处理核心：图片解析/替换、frontmatter、章节编号 | [README](./packages/core/README.md)                                     |
 | @cmtx/asset                                    | 资产管理：上传、转移、下载、删除、配置加载                    | [README](./packages/asset/README.md)                                    |
 | @cmtx/rule-engine                              | 规则引擎、内容变换、元数据、ID 生成、跨平台适配               | [README](./packages/rule-engine/README.md)                              |
+| @cmtx/ai                                       | AI 能力包：Slug 生成、内容校验、Agent 编排                    | [README](./packages/ai/README.md)                                       |
+| @cmtx/autocorrect-wasm                         | 文本自动纠正 WebAssembly 实现                                 | [README](./packages/autocorrect-wasm/README.md)                         |
 | @cmtx/storage                                  | 云存储适配器（阿里云 OSS、腾讯云 COS）                        | [README](./packages/storage/README.md)                                  |
 | @cmtx/template                                 | 模板渲染引擎                                                  | [README](./packages/template/README.md)                                 |
 | @cmtx/fpe-wasm                                 | NIST SP 800-38G FF1 格式保留加密（WASM）                      | [README](./packages/fpe-wasm/README.md)                                 |
@@ -131,11 +135,14 @@ import { ConfigBuilder } from "@cmtx/asset/upload";
 ## 4. 架构设计
 
 ```
-第五层：应用层（面向用户）
+第六层：应用层（面向用户）
   @cmtx/cli  @cmtx/mcp-server  cmtx-vscode
 
-第四层：处理层（文档处理）
+第五层：处理层（文档处理）
   @cmtx/rule-engine        — 规则引擎、内容变换、元数据、ID 生成
+
+第四层：AI 能力层
+  @cmtx/ai                 — Slug 生成、内容校验、Agent 编排
 
 第三层：业务编排层（文件操作 + 业务流程）
   @cmtx/asset          — 上传/转移/下载/删除管道、配置管理
@@ -144,7 +151,7 @@ import { ConfigBuilder } from "@cmtx/asset/upload";
   @cmtx/markdown-it-presigned-url*  — 预签名 URL 插件
 
 第一层：基础层（无内部依赖）
-  @cmtx/core  @cmtx/template  @cmtx/storage  @cmtx/fpe-wasm
+  @cmtx/core  @cmtx/template  @cmtx/storage  @cmtx/fpe-wasm  @cmtx/autocorrect-wasm
 ```
 
 依赖关系严格单向，无循环依赖。
@@ -167,6 +174,9 @@ import { ConfigBuilder } from "@cmtx/asset/upload";
 | 云存储       | 统一适配器（阿里云 OSS、腾讯云 COS）           | `@cmtx/storage`                   |
 | 模板引擎     | `{variable}` 模板渲染、Builder 模式            | `@cmtx/template`                  |
 | 规则引擎     | 可扩展的 Preset 内容变换系统                   | `@cmtx/rule-engine`               |
+| Slug 生成    | 基于 AI 的语义 Slug 生成                       | `@cmtx/ai`                        |
+| 内容校验     | AI 驱动的 Markdown 内容质量校验                | `@cmtx/ai`                        |
+| 文本纠正     | CJK 文案自动纠正（WASM）                       | `@cmtx/autocorrect-wasm`          |
 | 跨平台适配   | 通过可配置 Preset 将 Markdown 适配不同格式     | `@cmtx/rule-engine`               |
 | ID 生成      | UUID / slug / MD5 / NIST FF1 格式保留加密      | `@cmtx/rule-engine`               |
 | 预签名 URL   | markdown-it 异步预签名 URL 生成                | `@cmtx/markdown-it-presigned-url` |
@@ -183,10 +193,12 @@ cmtx-project/
 ├── packages/
 │   ├── core/              # Markdown 纯文本处理
 │   ├── asset/             # 资产管道（上传/转移/下载/删除）
-│   ├── publish/           # 规则引擎 + 跨平台适配
+│   ├── rule-engine/       # 规则引擎 + 跨平台适配
+│   ├── ai/                # AI 能力：Slug 生成、内容校验、Agent 编排
 │   ├── storage/           # 云存储适配器
 │   ├── template/          # 模板渲染
 │   ├── fpe-wasm/          # 格式保留加密（WASM）
+│   ├── autocorrect-wasm/  # 文本自动纠正（WASM）
 │   ├── cli/               # 命令行工具
 │   ├── mcp-server/        # MCP 服务器
 │   ├── vscode-extension/  # VS Code 扩展
@@ -222,6 +234,21 @@ pnpm typecheck
 
 ---
 
-## 8. 许可证
+## 8. 致谢
+
+本项目在设计和实现过程中参考了以下优秀的开源项目：
+
+| 项目名称                        | 仓库                                           | 版本    | License     | 备注                                                            |
+| ------------------------------- | ---------------------------------------------- | ------- | ----------- | --------------------------------------------------------------- |
+| Markdown All in One             | <https://github.com/yzhang-gh/vscode-markdown> | v3.6.3  | MIT License | 参考章节编号功能（Add/Update/Remove Section Numbers）的算法设计 |
+| 微信 Markdown 编辑器 (doocs/md) | <https://github.com/doocs/md>                  | v2.1.0  | WTFPL       | 参考微信 Markdown 渲染策略                                      |
+| gray-matter                     | <https://github.com/jonschlinkert/gray-matter> | latest  | MIT License | 参考 frontmatter 解析约定（文件首行、空 frontmatter 处理）      |
+| AutoCorrect                     | <https://github.com/huacnlee/autocorrect>      | v2.16.2 | MIT License | 引用实现 CJK 文案自动纠正                                       |
+
+感谢以上项目的作者和贡献者！
+
+项目 Logo 采用「文」字篆书，取自崇羲篆體（CC-BY-ND-3.0-TW-or-later），官方页面参考 <https://xiaoxue.iis.sinica.edu.tw/chongxi/copyright.htm>
+
+## 9. 许可证
 
 Apache-2.0

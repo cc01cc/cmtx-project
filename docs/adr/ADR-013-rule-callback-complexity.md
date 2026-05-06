@@ -205,10 +205,14 @@ rules: {
 // Preset 层：简单回调
 await engine.executePreset(preset, context, onProgress);
 
-// Rule 层：极少回调（仅 frontmatter-id 有）
+// Rule 层：极少回调（仅 frontmatter-id 有，支持多 counter）
 {
     id: 'frontmatter-id',
-    config: { getNextCounterValue: async () => { ... } }
+    config: {
+        template: '{ff1}',
+        ff1: { useCounter: 'global', encryptionKey: '...' },
+        getNextCounterValue: async (counterId: string) => { ... }
+    }
 }
 
 // Service 层：Strategy 模式
@@ -279,10 +283,16 @@ const preset: PresetConfig = {
         {
             id: "frontmatter-id",
             config: {
-                encryptionKey: "my-key",
-                getNextCounterValue: async () => {
-                    // 应用层控制计数器递增时机
-                    return await db.incrementCounter();
+                template: "{ff1}",
+                fieldName: "id",
+                prefix: "zh-",
+                ff1: {
+                    useCounter: "global",
+                    encryptionKey: "my-key",
+                },
+                getNextCounterValue: async (counterId: string) => {
+                    // 应用层控制多计数器递增
+                    return await db.incrementCounter(counterId);
                 },
             },
         },
