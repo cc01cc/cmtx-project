@@ -109,7 +109,7 @@ function getDefaultPublishSteps(): Array<{ id: string; config?: Record<string, u
     return [
         { id: "fm-validate", config: { key: "id", pattern: "^FB-[0-9]{6}$" } },
         { id: "fm-validate", config: { key: "slug", pattern: "^[a-z0-9-]+$", required: false } },
-        { id: "id-generate" },
+        { id: "frontmatter-id" },
         { id: "frontmatter-map" },
         { id: "directory-create" },
         { id: "file-copy" },

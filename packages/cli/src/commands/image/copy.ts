@@ -210,11 +210,11 @@ function convertCmtxConfigToTransferConfig(
 
     return {
         source: {
-            customDomain: process.env.SOURCE_DOMAIN,
+            domain: process.env.SOURCE_DOMAIN,
             credentials,
         },
         target: {
-            customDomain: argv.targetDomain ?? process.env.TARGET_DOMAIN,
+            domain: argv.targetDomain ?? process.env.TARGET_DOMAIN,
             credentials,
             prefix: argv.prefix,
             overwrite: argv.overwrite,
@@ -341,11 +341,11 @@ function buildConfigFromEnv(argv: CopyCommandOptions): TransferConfig {
 
     return {
         source: {
-            customDomain: process.env.SOURCE_DOMAIN,
+            domain: process.env.SOURCE_DOMAIN,
             credentials: sourceCredentials,
         },
         target: {
-            customDomain: argv.targetDomain ?? process.env.TARGET_DOMAIN,
+            domain: argv.targetDomain ?? process.env.TARGET_DOMAIN,
             credentials: targetCredentials,
             prefix: argv.prefix,
             overwrite: argv.overwrite,
@@ -406,7 +406,7 @@ async function previewCopy(
 ): Promise<void> {
     const content = await fs.promises.readFile(filePath, "utf-8");
     const urlParser = createUrlParser({
-        sourceDomains: config.source.customDomain ? [config.source.customDomain] : [],
+        sourceDomains: config.source.domain ? [config.source.domain] : [],
     });
 
     const parsedUrls = urlParser.parseSourceUrls(content);
@@ -457,13 +457,13 @@ async function executeCopy(
     const transferService = createTransferAssetsService({
         sourceAdapters: [
             {
-                domain: config.source.customDomain ?? "",
+                domain: config.source.domain ?? "",
                 adapter: sourceAdapter,
             },
         ],
         targetAdapter,
         targetPrefix: config.target.prefix,
-        targetCustomDomain: config.target.customDomain,
+        targetDomain: config.target.domain,
         namingTemplate: config.target.namingTemplate,
         concurrency: config.options?.concurrency,
         deleteSource: false,
@@ -471,7 +471,7 @@ async function executeCopy(
 
     const content = await fs.promises.readFile(filePath, "utf-8");
     const result = await transferService.transferImages(content, filePath, {
-        sourceDomain: config.source.customDomain,
+        sourceDomain: config.source.domain,
         concurrency: config.options?.concurrency,
     });
 

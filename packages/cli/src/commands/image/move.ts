@@ -96,13 +96,13 @@ async function executeMove(argv: MoveCommandOptions, logger: Logger): Promise<vo
     const transferService = createTransferAssetsService({
         sourceAdapters: [
             {
-                domain: config.source.customDomain ?? "",
+                domain: config.source.domain ?? "",
                 adapter: sourceAdapter,
             },
         ],
         targetAdapter,
         targetPrefix: config.target.prefix,
-        targetCustomDomain: config.target.customDomain,
+        targetDomain: config.target.domain,
         namingTemplate: config.target.namingTemplate,
         concurrency: config.options?.concurrency,
         deleteSource: true,
@@ -110,7 +110,7 @@ async function executeMove(argv: MoveCommandOptions, logger: Logger): Promise<vo
 
     const content = await fs.promises.readFile(argv.filePath, "utf-8");
     const result = await transferService.transferImages(content, argv.filePath, {
-        sourceDomain: config.source.customDomain,
+        sourceDomain: config.source.domain,
         concurrency: config.options?.concurrency,
         deleteSource: true,
     });
@@ -149,9 +149,9 @@ function convertCmtxConfigToTransferConfig(
         (selectedStorage.provider as CloudCredentials["provider"]) || argv.provider || "aliyun-oss";
     const credentials = createCredentials(provider, selectedStorage.config || {});
     return {
-        source: { customDomain: process.env.SOURCE_DOMAIN, credentials },
+        source: { domain: process.env.SOURCE_DOMAIN, credentials },
         target: {
-            customDomain: argv.targetDomain ?? process.env.TARGET_DOMAIN,
+            domain: argv.targetDomain ?? process.env.TARGET_DOMAIN,
             credentials,
             prefix: argv.prefix,
             overwrite: argv.overwrite,
@@ -202,9 +202,9 @@ function buildTransferConfigFromEnv(argv: MoveCommandOptions): TransferConfig {
         };
     }
     return {
-        source: { customDomain: process.env.SOURCE_DOMAIN, credentials: sourceCredentials },
+        source: { domain: process.env.SOURCE_DOMAIN, credentials: sourceCredentials },
         target: {
-            customDomain: argv.targetDomain ?? process.env.TARGET_DOMAIN,
+            domain: argv.targetDomain ?? process.env.TARGET_DOMAIN,
             credentials: targetCredentials,
             prefix: argv.prefix,
             overwrite: argv.overwrite,

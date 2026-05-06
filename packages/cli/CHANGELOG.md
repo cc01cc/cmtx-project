@@ -1,5 +1,17 @@
 # @cmtx/cli 更新日志 / Changelog
 
+## [0.2.0-alpha.1] - 2026-05-06
+
+### Added
+
+- **Domain Config**: `cmtx image copy` 和 `cmtx image move` 命令支持独立的 source/target domain 配置
+
+---
+
+### Added
+
+- **Domain Config**: `cmtx image copy` and `cmtx image move` commands support independent source/target domain configuration
+
 ## [0.2.0-alpha.0] - 2026-05-05
 
 ### Breaking Changes

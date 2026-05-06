@@ -1,7 +1,7 @@
 {
     "name": "@cmtx/mcp-server",
-    "version": "0.1.1-alpha.0",
-    "private": true,
+    "version": "0.2.0-alpha.1",
+    "private": false,
     "description": "MCP-style stdio server for CMTX tools",
     "keywords": [
         "cmtx",
@@ -55,13 +55,13 @@
         "@cmtx/asset": "workspace:*",
         "@cmtx/core": "workspace:*",
         "@cmtx/rule-engine": "workspace:*",
-        "ali-oss": "catalog:"
+        "ali-oss": "^6.23.0"
     },
     "devDependencies": {
-        "@types/ali-oss": "catalog:",
-        "@types/node": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:"
+        "@types/ali-oss": "^6.23.2",
+        "@types/node": "^25.2.1",
+        "typescript": "^6.0.3",
+        "vitest": "^4.0.18"
     },
     "engines": {
         "node": ">=22.0.0"

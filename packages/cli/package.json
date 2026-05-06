@@ -1,7 +1,7 @@
 {
     "name": "@cmtx/cli",
-    "version": "0.2.0-alpha.0",
-    "private": true,
+    "version": "0.2.0-alpha.1",
+    "private": false,
     "description": "Command line interface for Markdown image management",
     "keywords": [
         "cli",
@@ -56,20 +56,20 @@
         "@cmtx/core": "workspace:*",
         "@cmtx/rule-engine": "workspace:*",
         "@cmtx/storage": "workspace:*",
-        "ali-oss": "catalog:",
-        "chalk": "catalog:cli",
-        "ora": "catalog:cli",
+        "ali-oss": "^6.23.0",
+        "chalk": "^5.6.2",
+        "ora": "^9.2.0",
         "winston": "^3.18.3",
         "winston-daily-rotate-file": "^5.0.0",
-        "yargs": "catalog:cli"
+        "yargs": "^18.0.0"
     },
     "devDependencies": {
-        "@types/ali-oss": "catalog:",
-        "@types/node": "catalog:",
-        "@types/yargs": "catalog:cli",
-        "rimraf": "catalog:dev",
-        "typescript": "catalog:",
-        "vitest": "catalog:"
+        "@types/ali-oss": "^6.23.2",
+        "@types/node": "^25.2.1",
+        "@types/yargs": "^17.0.35",
+        "rimraf": "^6.1.2",
+        "typescript": "^6.0.3",
+        "vitest": "^4.0.18"
     },
     "engines": {
         "node": ">=22.0.0"

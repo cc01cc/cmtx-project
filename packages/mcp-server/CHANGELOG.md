@@ -1,5 +1,27 @@
 # @cmtx/mcp-server 更新日志 / Changelog
 
+## [0.2.0-alpha.1] - 2026-05-06
+
+### Added
+
+- **Transfer Tools**: 新增 `transfer.execute` 工具，支持跨存储图片转移
+- **Domain Config**: `transfer.analyze` 和 `transfer.preview` 工具支持 source/target 独立 domain 配置
+
+### Fixed
+
+- **CustomDomain Field**: 修复 `customDomain` 字段名与 `@cmtx/asset/transfer` 接口不匹配的 typecheck 错误
+
+---
+
+### Added
+
+- **Transfer Tools**: New `transfer.execute` tool for cross-storage image transfer
+- **Domain Config**: `transfer.analyze` and `transfer.preview` tools support independent source/target domain configuration
+
+### Fixed
+
+- **CustomDomain Field**: Fixed typecheck error where `customDomain` field name mismatched `@cmtx/asset/transfer` interface
+
 ## [0.1.1-alpha.0] - 2026-05-05
 
 ### Changed

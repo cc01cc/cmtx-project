@@ -538,103 +538,83 @@ async function handleTransferPreview(
     }
 }
 
+interface CredentialFieldMap {
+    keyField: string;
+    secretField: string;
+    defaultRegion: string;
+}
+
+const PROVIDER_CONFIGS: Record<
+    string,
+    CredentialFieldMap & { provider: CloudCredentials["provider"] }
+> = {
+    "aliyun-oss": {
+        provider: "aliyun-oss",
+        keyField: "AccessKeyId",
+        secretField: "AccessKeySecret",
+        defaultRegion: "oss-cn-hangzhou",
+    },
+    "tencent-cos": {
+        provider: "tencent-cos",
+        keyField: "SecretId",
+        secretField: "SecretKey",
+        defaultRegion: "ap-guangzhou",
+    },
+};
+
+function buildCredentials(
+    args: Record<string, unknown>,
+    prefix: "source" | "target",
+    provider: string,
+): { cred: CloudCredentials | null; errorMsg: string | null } {
+    const cfg = PROVIDER_CONFIGS[provider];
+    if (!cfg) return { cred: null, errorMsg: `Unsupported provider: ${provider}` };
+
+    const region =
+        getStringArg(args, `${prefix}Region`) ??
+        process.env[`${prefix.toUpperCase()}_REGION`] ??
+        cfg.defaultRegion;
+    const key =
+        getStringArg(args, `${prefix}${cfg.keyField}`) ??
+        process.env[`${prefix.toUpperCase()}_${cfg.keyField.toUpperCase()}`];
+    const secret =
+        getStringArg(args, `${prefix}${cfg.secretField}`) ??
+        process.env[`${prefix.toUpperCase()}_${cfg.secretField.toUpperCase()}`];
+    const bucket =
+        getStringArg(args, `${prefix}Bucket`) ?? process.env[`${prefix.toUpperCase()}_BUCKET`];
+
+    if (!key || !secret || !bucket) {
+        return { cred: null, errorMsg: `Missing ${prefix} ${provider} credentials or bucket` };
+    }
+
+    const base = { provider: cfg.provider, region, bucket };
+    const cred =
+        cfg.keyField === "AccessKeyId"
+            ? ({ ...base, accessKeyId: key, accessKeySecret: secret } as CloudCredentials)
+            : ({ ...base, secretId: key, secretKey: secret } as CloudCredentials);
+    return { cred, errorMsg: null };
+}
+
 async function handleTransferExecute(
     id: JsonRpcRequest["id"],
     args: Record<string, unknown>,
     _projectRoot: string,
 ): Promise<void> {
     const filePath = getStringArg(args, "filePath");
-    const provider =
-        (getStringArg(args, "provider") as CloudCredentials["provider"]) || "aliyun-oss";
-
     if (!filePath) {
         error(id, 4400, "Missing required parameter: filePath");
         return;
     }
 
-    let sourceCredentials: CloudCredentials;
-    let targetCredentials: CloudCredentials;
-
-    if (provider === "aliyun-oss") {
-        const sourceRegion =
-            getStringArg(args, "sourceRegion") ?? process.env.SOURCE_REGION ?? "oss-cn-hangzhou";
-        const sourceAccessKeyId =
-            getStringArg(args, "sourceAccessKeyId") ?? process.env.SOURCE_ACCESS_KEY_ID;
-        const sourceAccessKeySecret =
-            getStringArg(args, "sourceAccessKeySecret") ?? process.env.SOURCE_ACCESS_KEY_SECRET;
-        const sourceBucket = getStringArg(args, "sourceBucket") ?? process.env.SOURCE_BUCKET;
-
-        const targetRegion =
-            getStringArg(args, "targetRegion") ?? process.env.TARGET_REGION ?? "oss-cn-hangzhou";
-        const targetAccessKeyId =
-            getStringArg(args, "targetAccessKeyId") ?? process.env.TARGET_ACCESS_KEY_ID;
-        const targetAccessKeySecret =
-            getStringArg(args, "targetAccessKeySecret") ?? process.env.TARGET_ACCESS_KEY_SECRET;
-        const targetBucket = getStringArg(args, "targetBucket") ?? process.env.TARGET_BUCKET;
-
-        if (!sourceAccessKeyId || !sourceAccessKeySecret || !sourceBucket) {
-            error(id, 4101, "Missing source OSS credentials or bucket");
-            return;
-        }
-        if (!targetAccessKeyId || !targetAccessKeySecret || !targetBucket) {
-            error(id, 4101, "Missing target OSS credentials or bucket");
-            return;
-        }
-
-        sourceCredentials = {
-            provider: "aliyun-oss",
-            accessKeyId: sourceAccessKeyId,
-            accessKeySecret: sourceAccessKeySecret,
-            region: sourceRegion,
-            bucket: sourceBucket,
-        };
-        targetCredentials = {
-            provider: "aliyun-oss",
-            accessKeyId: targetAccessKeyId,
-            accessKeySecret: targetAccessKeySecret,
-            region: targetRegion,
-            bucket: targetBucket,
-        };
-    } else if (provider === "tencent-cos") {
-        const sourceRegion =
-            getStringArg(args, "sourceRegion") ?? process.env.SOURCE_REGION ?? "ap-guangzhou";
-        const sourceSecretId = getStringArg(args, "sourceSecretId") ?? process.env.SOURCE_SECRET_ID;
-        const sourceSecretKey =
-            getStringArg(args, "sourceSecretKey") ?? process.env.SOURCE_SECRET_KEY;
-        const sourceBucket = getStringArg(args, "sourceBucket") ?? process.env.SOURCE_BUCKET;
-
-        const targetRegion =
-            getStringArg(args, "targetRegion") ?? process.env.TARGET_REGION ?? "ap-guangzhou";
-        const targetSecretId = getStringArg(args, "targetSecretId") ?? process.env.TARGET_SECRET_ID;
-        const targetSecretKey =
-            getStringArg(args, "targetSecretKey") ?? process.env.TARGET_SECRET_KEY;
-        const targetBucket = getStringArg(args, "targetBucket") ?? process.env.TARGET_BUCKET;
-
-        if (!sourceSecretId || !sourceSecretKey || !sourceBucket) {
-            error(id, 4101, "Missing source COS credentials or bucket");
-            return;
-        }
-        if (!targetSecretId || !targetSecretKey || !targetBucket) {
-            error(id, 4101, "Missing target COS credentials or bucket");
-            return;
-        }
-
-        sourceCredentials = {
-            provider: "tencent-cos",
-            secretId: sourceSecretId,
-            secretKey: sourceSecretKey,
-            region: sourceRegion,
-            bucket: sourceBucket,
-        };
-        targetCredentials = {
-            provider: "tencent-cos",
-            secretId: targetSecretId,
-            secretKey: targetSecretKey,
-            region: targetRegion,
-            bucket: targetBucket,
-        };
-    } else {
-        error(id, 4102, `Unsupported provider: ${String(provider)}`);
+    const provider = getStringArg(args, "provider") || "aliyun-oss";
+    const sourceResult = buildCredentials(args, "source", provider);
+    if (!sourceResult.cred) {
+        error(id, 4101, sourceResult.errorMsg!);
+        return;
+    }
+    const targetResult = buildCredentials(args, "target", provider);
+    if (!targetResult.cred) {
+        error(id, 4101, targetResult.errorMsg!);
         return;
     }
 
@@ -645,31 +625,18 @@ async function handleTransferExecute(
     const concurrency = getNumberArg(args, "concurrency") ?? 5;
 
     try {
-        const sourceAdapter = await createAdapter(sourceCredentials);
-        const targetAdapter = await createAdapter(targetCredentials);
+        const sourceAdapter = await createAdapter(sourceResult.cred);
+        const targetAdapter = await createAdapter(targetResult.cred);
 
         const transferConfig: InternalTransferConfig = {
-            source: {
-                adapter: sourceAdapter,
-                customDomain: sourceDomain,
-            },
-            target: {
-                adapter: targetAdapter,
-                customDomain: targetDomain,
-                prefix,
-                overwrite,
-            },
+            source: { adapter: sourceAdapter, domain: sourceDomain },
+            target: { adapter: targetAdapter, domain: targetDomain, prefix, overwrite },
             options: {
                 concurrency,
                 onProgress: (progress) => {
                     write({
                         jsonrpc: "2.0",
-                        result: {
-                            event: {
-                                type: "transfer:progress",
-                                progress,
-                            },
-                        },
+                        result: { event: { type: "transfer:progress", progress } },
                     });
                 },
             },
