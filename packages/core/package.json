@@ -1,6 +1,6 @@
 {
     "name": "@cmtx/core",
-    "version": "0.4.0-alpha.2",
+    "version": "0.4.0-alpha.3",
     "description": "Core markdown document processing library - image extraction/manipulation and metadata handling",
     "keywords": [
         "cmtx",
@@ -51,15 +51,15 @@
         "docs": "typedoc"
     },
     "dependencies": {
-        "js-yaml": "catalog:cli"
+        "js-yaml": "4.1.1"
     },
     "devDependencies": {
-        "@types/js-yaml": "catalog:cli",
-        "@types/node": "catalog:",
-        "@vitest/coverage-v8": "catalog:",
-        "typedoc": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:"
+        "@types/js-yaml": "4.0.9",
+        "@types/node": "^25.2.1",
+        "@vitest/coverage-v8": "^4.0.18",
+        "typedoc": "^0.28.16",
+        "typescript": "^6.0.3",
+        "vitest": "^4.0.18"
     },
     "engines": {
         "node": ">=22.0.0"

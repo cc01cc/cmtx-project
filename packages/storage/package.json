@@ -1,6 +1,6 @@
 {
     "name": "@cmtx/storage",
-    "version": "0.1.1-alpha.1",
+    "version": "0.1.1-alpha.2",
     "description": "Object storage adapters for cmtx",
     "keywords": [
         "cloud-storage",
@@ -68,17 +68,17 @@
         "docs": "typedoc"
     },
     "devDependencies": {
-        "@types/ali-oss": "catalog:",
-        "@types/node": "catalog:",
-        "ali-oss": "catalog:",
-        "cos-nodejs-sdk-v5": "catalog:",
-        "typedoc": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:"
+        "@types/ali-oss": "^6.23.2",
+        "@types/node": "^25.2.1",
+        "ali-oss": "^6.23.0",
+        "cos-nodejs-sdk-v5": "^2.14.0",
+        "typedoc": "^0.28.16",
+        "typescript": "^6.0.3",
+        "vitest": "^4.0.18"
     },
     "peerDependencies": {
-        "ali-oss": "catalog:",
-        "cos-nodejs-sdk-v5": "catalog:"
+        "ali-oss": "^6.23.0",
+        "cos-nodejs-sdk-v5": "^2.14.0"
     },
     "peerDependenciesMeta": {
         "ali-oss": {

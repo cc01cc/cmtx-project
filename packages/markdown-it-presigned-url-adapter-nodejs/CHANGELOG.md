@@ -1,5 +1,15 @@
 # @cmtx/markdown-it-presigned-url-adapter-nodejs 更新日志 / Changelog
 
+## [0.2.0-alpha.3] - 2026-05-06
+
+- 移除 pnpm catalog 依赖声明，改用直接版本号
+- Updated dependencies [862fc95]
+- Updated dependencies [862fc95]
+- Updated dependencies [862fc95]
+  - @cmtx/core@0.4.0-alpha.3
+  - @cmtx/markdown-it-presigned-url@0.1.1-alpha.3
+  - @cmtx/storage@0.1.1-alpha.2
+
 ## [0.2.0-alpha.2] - 2026-05-05
 
 ### Changed

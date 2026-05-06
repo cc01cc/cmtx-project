@@ -1,6 +1,6 @@
 {
     "name": "@cmtx/markdown-it-presigned-url",
-    "version": "0.1.1-alpha.2",
+    "version": "0.1.1-alpha.3",
     "description": "Markdown-it plugin for presigned URL image rendering",
     "keywords": [
         "cmtx",
@@ -55,12 +55,12 @@
     "dependencies": {},
     "devDependencies": {
         "@types/markdown-it": "^14.1.2",
-        "@types/node": "catalog:",
-        "@vitest/coverage-v8": "catalog:",
+        "@types/node": "^25.2.1",
+        "@vitest/coverage-v8": "^4.0.18",
         "markdown-it": "^14.1.0",
-        "typedoc": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:"
+        "typedoc": "^0.28.16",
+        "typescript": "^6.0.3",
+        "vitest": "^4.0.18"
     },
     "peerDependencies": {
         "markdown-it": "^14.0.0"

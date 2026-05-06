@@ -1,6 +1,11 @@
 # @cmtx/storage 更新日志 / Changelog
 
+## [0.1.1-alpha.2] - 2026-05-06
+
+- 移除 pnpm catalog 依赖声明，改用直接版本号
+
 ## [0.1.1-alpha.1] - 2026-04-30
+
 ### Added
 
 - `CloudStorageConfig` 新增可选 `storageId` 字段，用于标识存储实例
@@ -34,6 +39,7 @@
 - Clean up compatibility exports, remove redundant re-exports
 
 ## [0.1.1-alpha.0] - 2026-05-05
+
 ### Patch Changes
 
 - 7d85dec: changeset test
@@ -45,28 +51,30 @@
 #### 核心功能
 
 - **阿里云 OSS 适配器** (`AliOSSAdapter`)
-    - 文件上传 (`upload`)
-    - 缓冲区上传 (`uploadBuffer`)
-    - 文件下载 (`downloadToFile`)
-    - 获取对象元数据 (`getObjectMeta`)
-    - 检查对象是否存在 (`exists`)
-    - 删除对象 (`delete`)
-    - 生成预签名 URL (`getSignedUrl`)
-    - 构建对象 URL (`buildUrl`)
+
+  - 文件上传 (`upload`)
+  - 缓冲区上传 (`uploadBuffer`)
+  - 文件下载 (`downloadToFile`)
+  - 获取对象元数据 (`getObjectMeta`)
+  - 检查对象是否存在 (`exists`)
+  - 删除对象 (`delete`)
+  - 生成预签名 URL (`getSignedUrl`)
+  - 构建对象 URL (`buildUrl`)
 
 - **腾讯云 COS 适配器** (`TencentCOSAdapter`)
-    - 文件上传 (`upload`)
-    - 缓冲区上传 (`uploadBuffer`)
-    - 文件下载 (`downloadToFile`)
-    - 获取对象元数据 (`getObjectMeta`)
-    - 检查对象是否存在 (`exists`)
-    - 删除对象 (`delete`)
-    - 生成预签名 URL (`getSignedUrl`)
-    - 构建对象 URL (`buildUrl`)
+
+  - 文件上传 (`upload`)
+  - 缓冲区上传 (`uploadBuffer`)
+  - 文件下载 (`downloadToFile`)
+  - 获取对象元数据 (`getObjectMeta`)
+  - 检查对象是否存在 (`exists`)
+  - 删除对象 (`delete`)
+  - 生成预签名 URL (`getSignedUrl`)
+  - 构建对象 URL (`buildUrl`)
 
 - **工厂函数** (`createAdapter`)
-    - 支持根据凭证类型自动创建对应适配器
-    - 支持阿里云 OSS 和腾讯云 COS
+  - 支持根据凭证类型自动创建对应适配器
+  - 支持阿里云 OSS 和腾讯云 COS
 
 #### 类型定义
 
@@ -99,28 +107,30 @@
 #### Core Features
 
 - **Aliyun OSS Adapter** (`AliOSSAdapter`)
-    - File upload (`upload`)
-    - Buffer upload (`uploadBuffer`)
-    - File download (`downloadToFile`)
-    - Get object metadata (`getObjectMeta`)
-    - Check object existence (`exists`)
-    - Delete object (`delete`)
-    - Generate signed URL (`getSignedUrl`)
-    - Build object URL (`buildUrl`)
+
+  - File upload (`upload`)
+  - Buffer upload (`uploadBuffer`)
+  - File download (`downloadToFile`)
+  - Get object metadata (`getObjectMeta`)
+  - Check object existence (`exists`)
+  - Delete object (`delete`)
+  - Generate signed URL (`getSignedUrl`)
+  - Build object URL (`buildUrl`)
 
 - **Tencent Cloud COS Adapter** (`TencentCOSAdapter`)
-    - File upload (`upload`)
-    - Buffer upload (`uploadBuffer`)
-    - File download (`downloadToFile`)
-    - Get object metadata (`getObjectMeta`)
-    - Check object existence (`exists`)
-    - Delete object (`delete`)
-    - Generate signed URL (`getSignedUrl`)
-    - Build object URL (`buildUrl`)
+
+  - File upload (`upload`)
+  - Buffer upload (`uploadBuffer`)
+  - File download (`downloadToFile`)
+  - Get object metadata (`getObjectMeta`)
+  - Check object existence (`exists`)
+  - Delete object (`delete`)
+  - Generate signed URL (`getSignedUrl`)
+  - Build object URL (`buildUrl`)
 
 - **Factory Function** (`createAdapter`)
-    - Auto-create adapter based on credential type
-    - Supports Aliyun OSS and Tencent Cloud COS
+  - Auto-create adapter based on credential type
+  - Supports Aliyun OSS and Tencent Cloud COS
 
 #### Type Definitions
 

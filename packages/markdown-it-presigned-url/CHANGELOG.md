@@ -1,5 +1,9 @@
 # @cmtx/markdown-it-presigned-url 更新日志 / Changelog
 
+## [0.1.1-alpha.3] - 2026-05-06
+
+- 移除 pnpm catalog 依赖声明，改用直接版本号
+
 ## [0.1.1-alpha.2] - 2026-05-05
 
 ### Added

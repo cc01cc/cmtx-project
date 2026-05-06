@@ -1,6 +1,6 @@
 {
     "name": "@cmtx/autocorrect-wasm",
-    "version": "0.1.1-alpha.0",
+    "version": "0.1.1-alpha.1",
     "description": "AutoCorrect WASM bindings for CMTX",
     "keywords": [
         "autocorrect",
@@ -48,9 +48,9 @@
         "typecheck:tests": "tsc --noEmit -p tsconfig.test.json"
     },
     "devDependencies": {
-        "@types/node": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:"
+        "@types/node": "^25.2.1",
+        "typescript": "^6.0.3",
+        "vitest": "^4.0.18"
     },
     "engines": {
         "node": ">=22.0.0"
