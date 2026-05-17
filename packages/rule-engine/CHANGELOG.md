@@ -1,5 +1,168 @@
 # @cmtx/rule-engine 更新日志 / Changelog
 
+## [0.2.0-alpha.4] - 2026-05-17
+
+### Added
+
+- **cleanup-images Rule**: 扫描 baseDirectory 下所有未被 Markdown 引用的 orphan 图片并批量清理
+- **delete-image Rule**: 重写为安全检查后删除，通过 `DeleteService.safeDelete` 实现引用保护
+
+### Changed
+
+- **动态导入修复**: 移除 `await import`，改用顶层静态导入
+- **AI 配置类型迁移**: `AIConfig` / `AIModelConfig` / `AIProvider` 移至 `@cmtx/asset`
+- **Service Import 更新**: 更新 Service 重命名后的 import 路径
+- **配置类型扩展**: `UploadImagesRuleConfig`、`DownloadImagesConfig`、`TransferImagesConfig` 等新增多个配置字段
+- **Rule 配置传递**: 修复 upload/download/transfer/delete/cleanup rules 配置参数传递
+
+### Removed
+
+- **全局预设注册表 API**: `registerPreset`、`unregisterPreset`、`getRegisteredPresets`
+- **薄包装函数**: `adaptMarkdown`、`renderMarkdown`、`validateMarkdown`
+- **预设系统类型**: `AdaptResult`、`RenderResult`、`ValidationIssue` 等
+- **内置 Rule 常量**: 14 个内置 Rule 常量改为通过字符串 ID 调用
+- **内部类型标记**: `ServiceRegistryImpl`、`CoreContext`、`FileSystemServiceImpl` 标记 `@internal`
+- **跨包 re-export**: `IStorageAdapter`、`DownloadService` 等 11 个类型停止 re-export
+- **元数据模块**: `MarkdownFileQuery`、`MetadataRegistry`、`isUniqueId`、`AssetRef` 标记 `@internal`
+- **便捷函数**: `formatForPublish`、`processImagesForPublish` 及关联类型
+
+---
+
+### Added
+
+- **cleanup-images Rule**: Scan and clean orphan images not referenced in Markdown under baseDirectory
+- **delete-image Rule**: Rewritten with safe deletion via `DeleteService.safeDelete` with reference protection
+
+### Changed
+
+- **Dynamic Import Fix**: Removed `await import`, use top-level static imports
+- **AI Config Migration**: `AIConfig`, `AIModelConfig`, `AIProvider` moved to `@cmtx/asset`
+- **Service Import Update**: Updated import paths after Service renaming
+- **Config Type Extensions**: Added multiple config fields to `UploadImagesRuleConfig`, `DownloadImagesConfig`, `TransferImagesConfig`
+- **Rule Config Pass**: Fixed config parameter passing for upload/download/transfer/delete/cleanup rules
+
+### Removed
+
+- **Global Preset Registry**: `registerPreset`, `unregisterPreset`, `getRegisteredPresets`
+- **Wrapper Functions**: `adaptMarkdown`, `renderMarkdown`, `validateMarkdown`
+- **Preset System Types**: `AdaptResult`, `RenderResult`, `ValidationIssue`, etc.
+- **Built-in Rule Constants**: 14 built-in Rule constants now use string ID via `engine.executeRule("rule-id")`
+- **Internal Types**: `ServiceRegistryImpl`, `CoreContext`, `FileSystemServiceImpl` marked `@internal`
+- **Cross-package Re-exports**: Stopped re-exporting `IStorageAdapter`, `DownloadService`, etc. (11 types)
+- **Metadata Modules**: `MarkdownFileQuery`, `MetadataRegistry`, `isUniqueId`, `AssetRef` marked `@internal`
+- **Convenience Functions**: `formatForPublish`, `processImagesForPublish` and related types
+  createRuleEngineContext({ assetAdapter: adapter, assetPrefix: "images/" });
+
+  // After
+  createRuleEngineContext({ upload: { adapter, prefix: "images/" } });
+  ```
+
+- ## SPRINT-010 Phase 5: 过时 API 残余清理
+
+  ### Breaking Changes
+
+  - **移除 `CallbackService` / `CallbackServiceConfig`**: 零消费者，原始回调场景已被配置驱动策略替代
+  - **移除 `PresignedUrlService` / `PresignedUrlServiceConfig`**: 仅有接口无实现，属于死代码路径
+  - **移除 `StorageService` / `StorageServiceConfig` (rule-engine 版)**: 与 @cmtx/storage 重复设计，零消费者
+  - **移除 `RuleExecutionError` 公开导出**: 零外部消费者，保留类定义供内部使用
+  - **移除 `SLUG_PROMPT_TEMPLATE` 公开导出**: 内部实现细节
+
+  ### Migration Guide
+
+  - `CallbackService` 移除：冲突处理改为 `conflictStrategy` 配置
+  - `PresignedUrlService` 移除：无影响（从未有实现）
+  - `StorageService` 移除：使用 @cmtx/storage 的 StorageAdapter 接口
+  - `RuleExecutionError` 移除：catch 通用 `Error` 即可
+  - `SLUG_PROMPT_TEMPLATE` 移除：直接调用 `generateSlug()`
+
+- ## SPRINT-016: Service Locator 私有化
+
+  ### Breaking Changes
+
+  - **Service Locator 退出公共 API**: `ServiceRegistry`, `createServiceRegistry`, `FileSystemService`, `FileSystemServiceConfig`, `createFileSystemService`, `CounterService`, `CounterServiceConfig`, `createCounterService`, `BuiltInServiceId`, `ServiceTypeMap`, `ServiceRegistryImpl`, `CounterServiceImpl`, `FileSystemServiceImpl` 不再从 `@cmtx/rule-engine` 的公共入口导出
+
+  ### Migration Guide
+
+  Service Locator 相关类型和工厂函数已移至 `@cmtx/rule-engine/internal` 子路径：
+
+  ```typescript
+  // Before
+  import {
+    createServiceRegistry,
+    type ServiceRegistry,
+  } from "@cmtx/rule-engine";
+
+  // After
+  import {
+    createServiceRegistry,
+    type ServiceRegistry,
+  } from "@cmtx/rule-engine/internal";
+  ```
+
+  此子路径仅供 CMTX monorepo 内部使用，外部 npm 消费者不应依赖。
+
+  ### Internal Changes
+
+  - 新增 `src/internal.ts` 作为内部 API 入口
+  - 新增 `@cmtx/rule-engine/internal` 导出路径（tsdown entry + package.json exports）
+  - `CoreContext` 从 `@internal` 恢复为常规导出（因 DTS 生成需要通过 `RuleContext extends CoreContext` 类型链），通过 `./internal` 子路径访问
+
+- ## SPRINT-016: Counter/ID 生成重构
+
+  ### Breaking Changes
+
+  - **移除 `CounterService`**: `CounterService`, `CounterServiceConfig`, `CounterServiceImpl`, `createCounterService` 已删除。frontmatter-id Rule 现在要求通过 `peekCounterValue`/`commitCounterValue` 回调提供计数器值
+  - **`BuiltInServiceId` 和 `ServiceTypeMap` 清理**: 移除 `"counter"` 条目，仅剩 `"filesystem"`
+
+  ### Migration Guide
+
+  frontmatter-id Rule 的计数器必须通过配置回调注入：
+
+  ```typescript
+  const counterValues: Record<string, number> = {};
+  await engine.executeRule("frontmatter-id", context, {
+    template: "{counter_global}",
+    counter: { global: { length: 6, radix: 36 } },
+    peekCounterValue: async (id: string) => counterValues[id] ?? 0,
+    commitCounterValue: async (id: string) => {
+      counterValues[id] = (counterValues[id] ?? 0) + 1;
+    },
+  });
+  ```
+
+  ### New API: `@cmtx/core`
+
+  - `generateCounterValue(value, config?)` — 纯函数，格式化数字为指定长度和进制的字符串
+
+  ### Internal
+
+  - `IdGenerator.generateCounterValue()` 底层改用 `@cmtx/core` 的纯函数
+  - VS Code `container.ts` 移除 `registerCounterService`（从未被调用）
+  - CLI `publish.ts` 改用内联 in-memory 计数器替代 `CounterService`
+
+### Fixed
+
+- ## SPRINT-017: API 质量流程建设
+
+  ### 变更
+
+  - **DEV-013 重构为三层结构**：Part 1 通用函数规范（§1-4）、Part 2 API 规范（§5-9）、Part 3 Review Checklist（§10）
+  - **吸收 SPRINT-009/015/010 + ADR-011 规范内容**: P5/P8 补充、5 个 DECISION、导出策略、一主多辅策略
+  - **新增 §9 JSDoc 注释规范**：@param/@returns/@example/@internal/@deprecated 统一规则
+  - **新增 §10 Review Checklist**：覆盖函数 + API + JSDoc 三个维度共 16 条检查项
+  - **新增 api-surface 脚本**：自动检测零消费者导出
+  - **新增 api-review skill**：日常开发中随时触发的 review 工具
+  - **SPRINT 模板更新**：Definition of Done 新增 DEV-013 合规检查和文档同步检查
+
+  ### WORKSPACE 清理
+
+  - CONTRIBUTING.md §设计原则 → 引用 DEV-013（删除 4 条 SOLID/DRY 重复）
+  - DEV-001.md §8 设计原则 → 删除（与 CONTRIBUTING.md 重复）
+  - DEV-001.md §7 代码风格 → 引用 DEV-013 §1
+  - DEV-001.md §12 文档要求 → 归入 DEV-013 §9
+  - .kilo/rules/rule_develop.md → 删除（已 skillize）
+
+
 ## [0.2.0-alpha.3] - 2026-05-06
 
 ### Added
@@ -154,7 +317,7 @@
 - **Type cleanup**: Removed `AdaptRule`, `AdaptConfig`, `AdaptFileOptions`, `AdaptDirectoryOptions`, `AdaptPlatform`, `PlatformAdapter` types
 - **Directory rename**: Renamed `platform/` directory to `preset/`, affecting consumers using deep import paths
 
-## 0.1.2-alpha.0
+## [0.1.2-alpha.0] - 2026-05-17
 
 ### Breaking Changes
 
@@ -176,16 +339,11 @@
   }
   ```
 
-## 0.1.1-alpha.0
+## [0.1.1-alpha.0] - 2026-05-17
 
-### Patch Changes
+### Fixed
 
-- 7d85dec: changeset test
-- Updated dependencies [7d85dec]
-  - @cmtx/asset@0.1.1-alpha.0
-  - @cmtx/core@0.3.1-alpha.0
-  - @cmtx/fpe-wasm@0.1.1-alpha.0
-  - @cmtx/template@0.1.1-alpha.0
+- changeset test
 
 ## 0.1.0 - 2026-04-11
 

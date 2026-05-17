@@ -1,5 +1,19 @@
 # @cmtx/template 更新日志 / Changelog
 
+## [0.2.0-alpha.4] - 2026-05-17
+
+### Changed
+
+- **Template**: 私有化零消费者导出（`BaseTemplateBuilder`、`BuiltinVariables`、`ContextManager`、`validateTemplate`、`TemplateEngine`）
+- **ValidationResult**: 移除 `ValidationResult`，保留 `renderTemplate`
+
+---
+
+### Changed
+
+- **Template**: Privatized zero-consumer exports (`BaseTemplateBuilder`, `BuiltinVariables`, `ContextManager`, `validateTemplate`, `TemplateEngine`)
+- **ValidationResult**: Removed `ValidationResult`, kept `renderTemplate`
+
 ## [0.2.0-alpha.3] - 2026-05-06
 
 - 移除 pnpm catalog 依赖声明，改用直接版本号
@@ -40,11 +54,11 @@
 
 - **ValidationResult**: Removed re-export from `@cmtx/template`; import from `@cmtx/core` instead. Update import paths if using this type
 
-## 0.1.1-alpha.0
+## [0.1.1-alpha.0] - 2026-05-17
 
-### Patch Changes
+### Fixed
 
-- 7d85dec: changeset test
+- changeset test
 
 ## 0.1.0 - 2026-04-11
 

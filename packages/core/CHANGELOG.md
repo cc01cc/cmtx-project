@@ -1,5 +1,59 @@
 # @cmtx/core 更新日志 / Changelog
 
+## [0.4.0-alpha.4] - 2026-05-17
+
+### Changed
+
+- **FrontmatterValue 类型扩展**: 支持 `string | number | boolean | null | FrontmatterValue[]`，对齐 js-yaml safe schema 实际输出
+- **Frontmatter 处理改进**: `normalizeFrontmatterValues` 不再静默丢弃 number/boolean 类型
+- **序列化器替换**: `generateFrontmatterYaml` 替换为 `js-yaml.dump`，删除约 40 行自定义序列化器代码
+- **API 签名更新**: `upsertFrontmatterFields` 签名更新为 `Record<string, FrontmatterValue>`
+- **新增排序函数**: `sortByOrder()` 支持按 `sidebar_order` + title 对文档条目排序
+
+### Removed
+
+- **图片相关类型**: 移除 `ImageElement`、`WidthDirection`、`DocumentMetadata`、`MetadataExtractOptions` 类型，统一使用 `ParsedImage`
+- **函数重命名**: `filterImagesInText` → `filterImages`、`replaceImagesInText` → `replaceImages`、`parseFrontmatter` → `splitFrontmatter`
+- **移除的函数**: `parseImageElements`、`parseImagesMdSingleline`、`parseImagesHtmlSingleline`、`detectImageWidth`、`resizeImageWidth`、`detectCurrentWidth`、`calculateTargetWidth`、`extractMetadata`、`extractTitleFromMarkdown`、`replaceAltVariables`、`convertMarkdownImageToHtmlWithWidth`
+- **监控模块**: 整个 `monitoring.ts` 模块（`PerformanceMonitor`、`MetricsCollector` 等）
+- **内部函数内部化**: `normalizePath`、`isValidUrl`、`isWebSource`、`updateImageAttribute`
+
+### Added
+
+- **图片尺寸设置**: `setImageDimensions(html, attrs?)` 设置 HTML img 标签的 width/height 属性（从 rule-engine 下沉）
+- **Frontmatter 提取**: `extractFrontmatter(md)` 纯文本提取 frontmatter 内容
+- **Luhn 算法**: `LuhnAlgorithm` 类实现 Luhn 校验码算法
+- **计数器值生成**: `generateCounterValue(value, config?)` 格式化数字为指定长度和进制的字符串
+- **图片引用更新**: `updateImageRefs` 替代 `replaceImages`，更准确表达语义
+- **HTML 图片转换**: `toHtmlImage` 替代 `convertMarkdownImageToHtml`
+
+---
+
+### Changed
+
+- **FrontmatterValue Type Expansion**: Now supports `string | number | boolean | null | FrontmatterValue[]`, aligning with js-yaml safe schema output
+- **Frontmatter Processing**: `normalizeFrontmatterValues` no longer silently drops number/boolean types
+- **Serializer Replacement**: `generateFrontmatterYaml` replaced with `js-yaml.dump`, removing ~40 lines of custom serializer code
+- **API Signature Update**: `upsertFrontmatterFields` signature updated to `Record<string, FrontmatterValue>`
+- **New Sorting Function**: `sortByOrder()` supports sorting document entries by `sidebar_order` + title
+
+### Removed
+
+- **Image Types**: Removed `ImageElement`, `WidthDirection`, `DocumentMetadata`, `MetadataExtractOptions` types, unified to use `ParsedImage`
+- **Function Renames**: `filterImagesInText` → `filterImages`, `replaceImagesInText` → `replaceImages`, `parseFrontmatter` → `splitFrontmatter`
+- **Removed Functions**: `parseImageElements`, `parseImagesMdSingleline`, `parseImagesHtmlSingleline`, `detectImageWidth`, `resizeImageWidth`, `detectCurrentWidth`, `calculateTargetWidth`, `extractMetadata`, `extractTitleFromMarkdown`, `replaceAltVariables`, `convertMarkdownImageToHtmlWithWidth`
+- **Monitoring Module**: Entire `monitoring.ts` module (`PerformanceMonitor`, `MetricsCollector`, etc.)
+- **Internal Functions**: `normalizePath`, `isValidUrl`, `isWebSource`, `updateImageAttribute` made internal
+
+### Added
+
+- **Image Dimensions**: `setImageDimensions(html, attrs?)` for setting HTML img width/height attributes (moved from rule-engine)
+- **Frontmatter Extraction**: `extractFrontmatter(md)` for pure text frontmatter extraction
+- **Luhn Algorithm**: `LuhnAlgorithm` class implementing Luhn checksum algorithm
+- **Counter Value Generation**: `generateCounterValue(value, config?)` for formatting numbers to specified length and radix
+- **Image Reference Update**: `updateImageRefs` replaces `replaceImages` with more accurate semantics
+- **HTML Image Conversion**: `toHtmlImage` replaces `convertMarkdownImageToHtml`
+
 ## [0.4.0-alpha.3] - 2026-05-06
 
 - 移除 pnpm catalog 依赖声明，改用直接版本号
@@ -78,11 +132,11 @@
 - **Legacy logging types**: Removed `LoggerCallback` type, `initLogger`, `getLogger`, `CmtxLogger` — replaced by `Logger` interface with `dummyLogger` / `consoleLogger`
 - Removed deprecated example scripts
 
-## 0.3.1-alpha.0
+## [0.3.1-alpha.0] - 2026-05-17
 
-### Patch Changes
+### Fixed
 
-- 7d85dec: changeset test
+- changeset test
 
 ## 0.3.0 - 2026-04-03
 

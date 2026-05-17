@@ -1,5 +1,25 @@
 # @cmtx/mcp-server 更新日志 / Changelog
 
+## [0.2.0-alpha.2] - 2026-05-17
+
+### Added
+
+- **cleanup.images**: 新增 MCP 工具，按 baseDir 清理未被引用的图片
+
+### Changed
+
+- **delete.image**: MCP 工具合并 `delete.safe` + `delete.force`，通过 `force` 参数区分
+
+---
+
+### Added
+
+- **cleanup.images**: New MCP tool to clean unreferenced images by baseDir
+
+### Changed
+
+- **delete.image**: MCP tool merged `delete.safe` + `delete.force`, distinguished by `force` parameter
+
 ## [0.2.0-alpha.1] - 2026-05-06
 
 ### Added

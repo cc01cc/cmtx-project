@@ -1,14 +1,22 @@
 # @cmtx/markdown-it-presigned-url-adapter-nodejs 更新日志 / Changelog
 
+## [1.0.0-alpha.4] - 2026-05-17
+
+### Changed
+
+- **内部类型私有化**: 私有化 4 个内部类型，保留 `UrlSigner`、`UrlCacheManager`、`PresignedUrlAdapterOptions` 公开导出
+- **CloudStorageConfig**: 移除 `CloudStorageConfig` 再导出（从 `@cmtx/storage` 直接导入）
+
+---
+
+### Changed
+
+- **Internal Types Privatized**: Privatized 4 internal types, kept `UrlSigner`, `UrlCacheManager`, `PresignedUrlAdapterOptions` as public exports
+- **CloudStorageConfig**: Removed re-export (import directly from `@cmtx/storage`)
+
 ## [0.2.0-alpha.3] - 2026-05-06
 
 - 移除 pnpm catalog 依赖声明，改用直接版本号
-- Updated dependencies [862fc95]
-- Updated dependencies [862fc95]
-- Updated dependencies [862fc95]
-  - @cmtx/core@0.4.0-alpha.3
-  - @cmtx/markdown-it-presigned-url@0.1.1-alpha.3
-  - @cmtx/storage@0.1.1-alpha.2
 
 ## [0.2.0-alpha.2] - 2026-05-05
 
@@ -69,15 +77,11 @@ new UrlSigner(client, {
   - Added `domains: PresignedUrlDomainConfig[]` parameter
 - **Migration guide**: Convert the original array-format `providerConfigs` to an object keyed by storage ID, and add a new `domains` configuration item
 
-## 0.1.1-alpha.0
+## [0.1.1-alpha.0] - 2026-05-17
 
-### Patch Changes
+### Fixed
 
-- 7d85dec: changeset test
-- Updated dependencies [7d85dec]
-  - @cmtx/core@0.3.1-alpha.0
-  - @cmtx/markdown-it-presigned-url@0.1.1-alpha.0
-  - @cmtx/storage@0.1.1-alpha.0
+- changeset test
 
 ## 0.1.0 - 2026-04-13
 

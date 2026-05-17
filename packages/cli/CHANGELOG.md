@@ -1,5 +1,31 @@
 # @cmtx/cli 更新日志 / Changelog
 
+## [0.2.0-alpha.2] - 2026-05-17
+
+### Added
+
+- **cmtx cleanup**: 新增命令，委托 `DeleteService.pruneDirectory` 清理未被引用的图片
+- **cmtx section-numbers**: 新增 `add/remove` 子命令，支持自动添加/移除 Markdown 标题层级编号
+
+### Changed
+
+- **cmtx delete**: 命令重写，改为委托 `DeleteService.safeDelete`，支持批量路径
+- **cmtx prune**: 移除（由 `cmtx cleanup` 替代）
+- **配置加载**: `section-numbers` 命令改用 `ConfigLoader`，支持 `--config` / `-c` 选项
+
+---
+
+### Added
+
+- **cmtx cleanup**: New command delegating to `DeleteService.pruneDirectory` to clean unreferenced images
+- **cmtx section-numbers**: Added `add/remove` subcommands for automatic section numbering
+
+### Changed
+
+- **cmtx delete**: Rewritten to delegate to `DeleteService.safeDelete`, supports batch paths
+- **cmtx prune**: Removed (replaced by `cmtx cleanup`)
+- **Config Loading**: `section-numbers` commands now use `ConfigLoader` with `--config` / `-c` support
+
 ## [0.2.0-alpha.1] - 2026-05-06
 
 ### Added

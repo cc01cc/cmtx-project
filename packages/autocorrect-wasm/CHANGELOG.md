@@ -1,8 +1,24 @@
-# @cmtx/autocorrect-wasm Changelog
+# @cmtx/autocorrect-wasm 更新日志 / Changelog
+
+## [0.2.0-alpha.2] - 2026-05-17
+
+### Changed
+
+- **`ILoadWASMOptions` → `LoadWasmOptions`**: 移除 `I` 前缀，符合 DEV-013 命名规范
+
+---
+
+### Changed
+
+- **`ILoadWASMOptions` → `LoadWasmOptions`**: Removed `I` prefix to comply with DEV-013 naming convention
 
 ## [0.1.1-alpha.1] - 2026-05-06
 
 - 移除 pnpm catalog 依赖声明，改用直接版本号
+
+---
+
+- Removed pnpm catalog dependency declarations, use direct version numbers
 
 ## [0.1.1-alpha.0] - 2026-04-30
 
@@ -10,45 +26,17 @@
 
 #### 核心功能
 
-- **文本格式化** (`formatText`)
-
-  - 自动在中英文之间添加空格
-  - 纯文本格式化支持
-  - 基于 Rust `autocorrect` crate
-
-- **按文件类型格式化** (`formatForType`)
-
-  - 支持 Markdown、TypeScript 等多种文件格式
-  - 根据文件扩展名或文件名选择格式化规则
-  - 返回格式化后的文本内容
-
-- **按文件类型检查** (`lintForType`)
-
-  - 检查文本中的格式问题
-  - 返回详细的检查结果（行号、列号、修改建议）
-  - 支持 `LintResult` 结构化的结果对象
-
-- **配置加载** (`loadAutoCorrectConfig`)
-
-  - 从 JSON 字符串加载 AutoCorrect 配置
-  - 支持自定义格式化规则
-
-- **路径忽略** (`createIgnorer`)
-
-  - 创建 `.gitignore` 风格的路径匹配器
-  - 支持工作目录设置
-  - 提供 `isIgnored` 方法检查路径是否被忽略
-
-- **WASM 加载管理** (`loadWASM`, `isWasmLoaded`)
-  - 单例模式加载 WASM 模块
-  - 支持并发调用安全
-  - 支持手动传入 WASM 二进制数据
-  - 支持 Buffer、Uint8Array、ArrayBuffer 多种输入格式
+- **文本格式化** (`formatText`): 自动在中英文之间添加空格，纯文本格式化支持
+- **按文件类型格式化** (`formatForType`): 支持 Markdown、TypeScript 等多种文件格式
+- **按文件类型检查** (`lintForType`): 检查文本中的格式问题，返回详细检查结果
+- **配置加载** (`loadAutoCorrectConfig`): 从 JSON 字符串加载 AutoCorrect 配置
+- **路径忽略** (`createIgnorer`): 创建 `.gitignore` 风格的路径匹配器
+- **WASM 加载管理** (`loadWASM`, `isWasmLoaded`): 单例模式加载 WASM 模块，支持并发调用安全
 
 #### 类型定义
 
 - `ILoadWASMOptions` - WASM 加载选项
-- `LintResult` - 检查结果类型（包含 filepath、lines、error）
+- `LintResult` - 检查结果类型
 
 #### 技术特性
 
@@ -56,14 +44,28 @@
 - **WASM 编译** - 使用 wasm-pack 编译为 WebAssembly
 - **零运行时依赖** - 仅依赖 WASM 模块本身
 - **完整的类型定义** - TypeScript 支持
-- **ESM 模块** - 使用 ES 模块格式
 
-#### 测试覆盖
+---
 
-- 15 个 TypeScript vitest 测试
-- 1 个 Rust wasm-bindgen 测试
-- 测试覆盖：
-  - WASM 加载功能（自动加载、手动加载、并发安全）
-  - 文本格式化功能（纯文本、多语言混合）
-  - 按文件类型格式化和检查
-  - 边界情况处理（空字符串、纯中文、纯英文）
+### Added
+
+#### Core Features
+
+- **Text Formatting** (`formatText`): Auto-add spaces between Chinese and English, plain text formatting support
+- **Format by File Type** (`formatForType`): Support Markdown, TypeScript, and other file formats
+- **Lint by File Type** (`lintForType`): Check text formatting issues with detailed results
+- **Config Loading** (`loadAutoCorrectConfig`): Load AutoCorrect config from JSON string
+- **Path Ignore** (`createIgnorer`): Create `.gitignore`-style path matcher
+- **WASM Loading** (`loadWASM`, `isWasmLoaded`): Singleton WASM module loading with concurrent call safety
+
+#### Type Definitions
+
+- `ILoadWASMOptions` - WASM loading options
+- `LintResult` - Lint result type
+
+#### Technical Features
+
+- **Rust Implementation** - Text auto-correction using `autocorrect` crate
+- **WASM Compilation** - Compiled to WebAssembly using wasm-pack
+- **Zero Runtime Dependencies** - Only depends on WASM module itself
+- **Complete Type Definitions** - TypeScript support

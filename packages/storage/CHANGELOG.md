@@ -1,8 +1,18 @@
 # @cmtx/storage 更新日志 / Changelog
 
-## [0.1.1-alpha.2] - 2026-05-06
+## [0.2.0-alpha.3] - 2026-05-17
 
-- 移除 pnpm catalog 依赖声明，改用直接版本号
+### Changed
+
+- **URL 检测工具**: 新增 `detectStorageUrl`、`isStorageUrl`、`isSignedUrl` 等 URL 检测函数
+- **导出清理**: 私有化零消费者导出（`StorageServiceConfig`、`TencentCredentials`、`CredentialConfig`）
+
+---
+
+### Changed
+
+- **URL Detection Tools**: Added `detectStorageUrl`, `isStorageUrl`, `isSignedUrl` and other URL detection functions
+- **Export Cleanup**: Privatized zero-consumer exports (`StorageServiceConfig`, `TencentCredentials`, `CredentialConfig`)
 
 ## [0.1.1-alpha.1] - 2026-04-30
 
@@ -40,9 +50,9 @@
 
 ## [0.1.1-alpha.0] - 2026-05-05
 
-### Patch Changes
+### Fixed
 
-- 7d85dec: changeset test
+- changeset test
 
 ## 0.1.0 - 2026-04-11
 

@@ -1,5 +1,17 @@
 # @cmtx/markdown-it-presigned-url 更新日志 / Changelog
 
+## [0.2.0-alpha.4] - 2026-05-17
+
+### Changed
+
+- **内部类型私有化**: 私有化 11 个内部类型/类，保留 `presignedUrlPlugin` 和 `Logger` 公开导出
+
+---
+
+### Changed
+
+- **Internal Types Privatized**: Privatized 11 internal types/classes, kept `presignedUrlPlugin` and `Logger` as public exports
+
 ## [0.1.1-alpha.3] - 2026-05-06
 
 - 移除 pnpm catalog 依赖声明，改用直接版本号
@@ -44,11 +56,11 @@
 
 - **package.json**: Added metadata fields (`keywords`, `homepage`, `bugs`, `repository`, `author`, `publishConfig`)
 
-## 0.1.1-alpha.0
+## [0.1.1-alpha.0] - 2026-05-17
 
-### Patch Changes
+### Fixed
 
-- 7d85dec: changeset test
+- changeset test
 
 ## 0.1.0 - 2026-04-11
 

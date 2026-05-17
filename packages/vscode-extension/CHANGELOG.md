@@ -1,5 +1,19 @@
 # @cmtx/vscode-extension 更新日志 / Changelog
 
+## [0.1.4] - 2026-05-17
+
+### Changed
+
+- **Import 路径更新**: `ConflictResolutionStrategy` import 路径从旧位置更新为 `@cmtx/asset/upload`
+- **清理废弃文件**: 删除旧的 `image-processor.ts` re-export 文件
+
+---
+
+### Changed
+
+- **Import path update**: `ConflictResolutionStrategy` import path updated from legacy location to `@cmtx/asset/upload`
+- **Cleanup deprecated files**: Removed old `image-processor.ts` re-export file
+
 ## [0.1.3] - 2026-05-06
 
 ### Added
@@ -23,6 +37,8 @@
 ### Changed
 
 - **Config Parsing**: `cmtx-config.ts` added `getTransferConfigFromCmtx()` function for parsing `rules.transfer-images` config
+- **Import path update**: `ConflictResolutionStrategy` import path updated from legacy location to `@cmtx/asset/upload`
+- **Cleanup deprecated files**: Removed old `image-processor.ts` re-export file
 
 ## [0.1.2] - 2026-05-05
 

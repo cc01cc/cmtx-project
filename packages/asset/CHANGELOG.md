@@ -1,5 +1,51 @@
 # @cmtx/asset 更新日志 / Changelog
 
+## [0.2.0-alpha.4] - 2026-05-17
+
+### Changed
+
+- **DeleteServiceConfig**: `workspaceRoot` 字段重命名为 `baseDirectory`
+- **resolveBaseDirectory**: 新增工具函数，统一各入口的 baseDirectory 解析逻辑
+- **DeleteService**: 内部全部使用 `baseDirectory` 作为根目录
+- **Service 命名统一**: `DownloadAssetsService` → `DownloadService`，`TransferAssetsService` → `TransferService`
+- **ValidationResult**: 新增 `ValidationResult` 类，`validateConfig()` 返回格式化验证结果
+- **Config 模块清理**: 私有化零消费者导出（`ConfigValidator`、`ensureConfig` 等）
+- **URL 检测函数迁移**: `detectStorageUrl`、`isStorageUrl` 迁移至 `@cmtx/storage`
+- **IdGenerator**: 新增多策略 ID 生成类（slug/uuid/hash/FF1）
+- **DEFAULT_CONFIG 补全**: 新增 `frontmatter-slug`、`cleanup-images`、`delete-image` 规则配置
+- **UploadService**: `uploadImagesInDocument()` 新增 `options` 参数
+- **DownloadService**: `downloadImages()` 新增 `options` 参数
+- **TransferService**: `transferImages()` 新增 `options` 参数
+
+### Removed
+
+- **AssetService**: 移除废弃的 `AssetService`、`createAssetService`、`AssetServiceConfig`
+- **IFileService**: 移除内部接口，仅保留 `FileService` 类
+- **CoreService**: 移除 `CoreService`、`createCoreService` 薄包装
+
+---
+
+### Changed
+
+- **DeleteServiceConfig**: Renamed `workspaceRoot` to `baseDirectory`
+- **resolveBaseDirectory**: New utility function for unified baseDirectory resolution
+- **DeleteService**: Internal usage migrated to `baseDirectory`
+- **Service Naming**: `DownloadAssetsService` → `DownloadService`, `TransferAssetsService` → `TransferService`
+- **ValidationResult**: Added `ValidationResult` class for formatted validation output
+- **Config Module Cleanup**: Privatized zero-consumer exports (`ConfigValidator`, `ensureConfig`, etc.)
+- **URL Detection Migration**: `detectStorageUrl`, `isStorageUrl` moved to `@cmtx/storage`
+- **IdGenerator**: New multi-strategy ID generator (slug/uuid/hash/FF1)
+- **DEFAULT_CONFIG**: Added `frontmatter-slug`, `cleanup-images`, `delete-image` rule configs
+- **UploadService**: Added `options` parameter to `uploadImagesInDocument()`
+- **DownloadService**: Added `options` parameter to `downloadImages()`
+- **TransferService**: Added `options` parameter to `transferImages()`
+
+### Removed
+
+- **AssetService**: Removed deprecated `AssetService`, `createAssetService`, `AssetServiceConfig`
+- **IFileService**: Removed internal interface, kept `FileService` class only
+- **CoreService**: Removed `CoreService`, `createCoreService` thin wrappers
+
 ## [0.2.0-alpha.3] - 2026-05-06
 
 ### Added
@@ -164,7 +210,7 @@
 
 - Fixed position offset bug during multi-image replacement
 
-## 0.1.2-alpha.0
+## [0.1.2-alpha.0] - 2026-05-17
 
 ### Breaking Changes
 
@@ -188,15 +234,11 @@
   }
   ```
 
-## 0.1.1-alpha.0
+## [0.1.1-alpha.0] - 2026-05-17
 
-### Patch Changes
+### Fixed
 
-- 7d85dec: changeset test
-- Updated dependencies [7d85dec]
-  - @cmtx/core@0.3.1-alpha.0
-  - @cmtx/storage@0.1.1-alpha.0
-  - @cmtx/template@0.1.1-alpha.0
+- changeset test
 
 All notable changes to this project will be documented in this file.
 

@@ -1,5 +1,27 @@
 # @cmtx/ai 更新日志 / Changelog
 
+## [0.1.0-alpha.2] - 2026-05-17
+
+### Changed
+
+- **AI 配置类型迁移**: `AIConfig` / `AIModelConfig` / `AIProvider` 移至 `@cmtx/asset`
+- **Service Import 更新**: 更新 Service 重命名后的 import 路径
+
+### Fixed
+
+- **SLUG_PROMPT_TEMPLATE**: 标记 `@internal`，停止公开导出
+
+---
+
+### Changed
+
+- **AI Config Migration**: `AIConfig`, `AIModelConfig`, `AIProvider` moved to `@cmtx/asset`
+- **Service Import Update**: Updated import paths after Service renaming
+
+### Fixed
+
+- **SLUG_PROMPT_TEMPLATE**: Marked `@internal`, stopped public export
+
 ## [0.1.0-alpha.1] - 2026-05-06
 
 ### Added
