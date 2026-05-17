@@ -1,6 +1,6 @@
 {
     "name": "@cmtx/rule-engine",
-    "version": "0.2.0-alpha.3",
+    "version": "0.2.0-alpha.4",
     "description": "Markdown document processing — rule engine, content transformation, metadata management, and cross-platform adaptation",
     "keywords": [
         "cmtx",
@@ -41,6 +41,11 @@
             "types": "./dist/node.d.mts",
             "import": "./dist/node.mjs",
             "require": "./dist/node.cjs"
+        },
+        "./internal": {
+            "types": "./dist/internal.d.mts",
+            "import": "./dist/internal.mjs",
+            "require": "./dist/internal.cjs"
         }
     },
     "publishConfig": {
@@ -60,7 +65,7 @@
         "@cmtx/autocorrect-wasm": "workspace:*",
         "@cmtx/core": "workspace:*",
         "@cmtx/fpe-wasm": "workspace:*",
-        "@cmtx/storage": "0.1.1-alpha.2",
+        "@cmtx/storage": "workspace:*",
         "@cmtx/template": "workspace:*",
         "js-yaml": "4.1.1",
         "rehype-raw": "^7.0.0",

@@ -1,6 +1,6 @@
 {
     "name": "@cmtx/template",
-    "version": "0.2.0-alpha.3",
+    "version": "0.2.0-alpha.4",
     "description": "轻量级模板渲染引擎，提供灵活的模板变量管理和 Builder 模式 API",
     "keywords": [
         "builder",

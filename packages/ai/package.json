@@ -1,6 +1,6 @@
 {
     "name": "@cmtx/ai",
-    "version": "0.1.0-alpha.1",
+    "version": "0.1.0-alpha.2",
     "description": "AI capabilities for CMTX — slug generation, content validation, and agent orchestration",
     "keywords": [
         "ai",
@@ -50,6 +50,7 @@
         "docs": "typedoc"
     },
     "dependencies": {
+        "@cmtx/asset": "workspace:*",
         "@cmtx/core": "workspace:*",
         "ai": "^6.0.0"
     },

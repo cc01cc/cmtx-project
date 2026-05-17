@@ -1,6 +1,6 @@
 {
     "name": "@cmtx/asset",
-    "version": "0.2.0-alpha.3",
+    "version": "0.2.0-alpha.4",
     "description": "Markdown asset management for cmtx - 支持本地图片上传和远程图片转移",
     "keywords": [
         "asset",
@@ -86,6 +86,7 @@
     },
     "dependencies": {
         "@cmtx/core": "workspace:*",
+        "@cmtx/fpe-wasm": "workspace:*",
         "@cmtx/storage": "workspace:*",
         "@cmtx/template": "workspace:*",
         "js-yaml": "^4.1.0",

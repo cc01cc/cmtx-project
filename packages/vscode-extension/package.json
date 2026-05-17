@@ -1,7 +1,7 @@
 {
     "name": "cmtx-vscode",
     "displayName": "CMTX for VS Code",
-    "version": "0.1.3",
+    "version": "0.1.4",
     "private": false,
     "description": "Markdown Toolkit",
     "categories": [
@@ -26,6 +26,8 @@
         "package:prod": "pnpm run build && node scripts/package.mjs prod",
         "package:stable": "pnpm run build && node scripts/package.mjs stable",
         "package:pre-release": "pnpm run build && node scripts/package.mjs prerelease",
+        "install-extension": "code --install-extension cmtx-vscode-*.vsix --force",
+        "dev:install": "pnpm run package:dev && pnpm run install-extension",
         "publish:pre-release": "vsce publish --no-dependencies --pre-release",
         "publish:stable": "vsce publish --no-dependencies",
         "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -50,12 +52,14 @@
     },
     "devDependencies": {
         "@types/ali-oss": "^6.23.2",
+        "@types/markdown-it": "^14.1.2",
         "@types/mocha": "10.0.10",
         "@types/node": "^25.2.1",
         "@types/sinon": "21.0.1",
         "@types/vscode": "1.103.0",
         "@vscode/test-electron": "2.5.2",
         "@vscode/vsce": "^3.9.1",
+        "markdown-it": "^14.1.0",
         "mocha": "11.7.5",
         "patch-package": "8.0.1",
         "rolldown-plugin-wasm": "0.2.1",
@@ -230,7 +234,7 @@
                 "category": "CMTX"
             },
             {
-                "command": "cmtx.explorer.pruneDirectory",
+                "command": "cmtx.explorer.cleanupDirectory",
                 "title": "Delete unused images in directory",
                 "category": "CMTX"
             },
@@ -311,7 +315,7 @@
                     "group": "9_cmtx@2"
                 },
                 {
-                    "command": "cmtx.explorer.pruneDirectory",
+                    "command": "cmtx.explorer.cleanupDirectory",
                     "when": "explorerResourceIsFolder == true",
                     "group": "9_cmtx@3"
                 },
@@ -331,7 +335,7 @@
                     "when": false
                 },
                 {
-                    "command": "cmtx.explorer.pruneDirectory",
+                    "command": "cmtx.explorer.cleanupDirectory",
                     "when": false
                 },
                 {

@@ -1,6 +1,6 @@
 {
     "name": "@cmtx/markdown-it-presigned-url-adapter-nodejs",
-    "version": "0.2.0-alpha.3",
+    "version": "1.0.0-alpha.4",
     "description": "Node.js adapter for markdown-it presigned URL plugin",
     "keywords": [
         "adapter",
