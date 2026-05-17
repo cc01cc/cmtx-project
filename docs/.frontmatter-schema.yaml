@@ -1,0 +1,14 @@
+# CMTX Frontmatter Schema v2
+#
+# 所有公开文档必须使用统一的 YAML frontmatter。
+# 详情参见 docs/i18n/zh-Hans/DEV-010-documentation-layout-and-frontmatter.md
+
+# 字段定义
+title: ~ # text, 必填. 文档显示标题
+category: ~ # text, 必填. 枚举值: guide|api|dev|adr|config
+sidebar_order: ~ # number, 可选. 同 category 内排序（小在前）
+tags: ~ # list, 可选. 标签列表
+status: ~ # text, 可选. active|deprecated|draft
+updated: ~ # date, 可选. ISO 8601, 最后内容更新时间
+lang: ~ # text, 必填. BCP 47 语言标签: zh-Hans|en
+skip_doc_render: ~ # boolean, 可选. 默认 false（渲染）。true 时跳过 VitePress 页面生成（如 INDEX.md）

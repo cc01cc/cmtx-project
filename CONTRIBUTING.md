@@ -1,6 +1,6 @@
 # Contributing
 
-感谢你的贡献意向！本仓库采用 pnpm workspace 的 Monorepo 结构，当前包含 @cmtx/core、@cmtx/asset、@cmtx/cli 与 @cmtx/mcp-server。
+感谢你的贡献意向！本仓库采用 pnpm workspace 的 Monorepo 结构，当前包含 13 个包：@cmtx/core、@cmtx/template、@cmtx/storage、@cmtx/fpe-wasm、@cmtx/autocorrect-wasm、@cmtx/ai、@cmtx/markdown-it-presigned-url、@cmtx/markdown-it-presigned-url-adapter-nodejs、@cmtx/asset、@cmtx/rule-engine、@cmtx/cli、@cmtx/mcp-server、cmtx-vscode。
 
 ## 开发环境
 
@@ -20,7 +20,7 @@ pnpm run docs       # 生成 TypeDoc API 文档
 
 ## 代码变更工作流程
 
-### 三个固定阶段
+### 四个固定阶段
 
 #### 阶段 1: 代码设计与实现
 
@@ -28,7 +28,12 @@ pnpm run docs       # 生成 TypeDoc API 文档
 - 同步编写/更新相关测试
 - 更新受影响的注释（代码内注释）
 
-#### 阶段 2: 验收检查（缺一不可）
+#### 阶段 2: Changelog 检查
+
+- 判断是否需要 changelog 条目：用户可见的功能变更、API 签名变更、bug 修复、破坏性变更需要记录；仅文档/CI/重构则跳过
+- 按包模式（`changeset` 或 `manual`）创建对应条目
+
+#### 阶段 3: 验收检查（缺一不可）
 
 所有代码变更必须通过以下四项检查：
 
@@ -39,7 +44,7 @@ pnpm run docs       # 生成 TypeDoc API 文档
 
 **验收通过条件：四项全部 PASS，缺一不可**
 
-#### 阶段 3: 文档更新（验收后立即执行）
+#### 阶段 4: 文档更新（验收后立即执行）
 
 验收通过后，需要更新所有涉及的文档：
 
@@ -52,6 +57,7 @@ pnpm run docs       # 生成 TypeDoc API 文档
 
 设计代码变更的 PLAN 时，应包含以下固定段落：
 
+- [OK] Changelog 更新策略（changeset 模式或 manual 模式）
 - [OK] 测试更新策略（新增、修改或删除的测试）
 - [OK] 四项检查验收标准（build/test/lint/typecheck）
 - [OK] 文档更新清单（受影响的文件）
@@ -71,7 +77,7 @@ pnpm run docs       # 生成 TypeDoc API 文档
 - TypeScript strict 模式，NodeNext 模块解析
 - 导入路径在源码中使用 .js 后缀（满足 NodeNext 构建）
 - Markdown 表格使用空格分隔管道，标题与列表上下保持空行
-- 遵循现有项目中的命名和组织方式
+- 命名规范详见 [DEV-013 §1](docs/i18n/zh-Hans/DEV-013-api-conventions.md)
 - 非必要不使用 `import()` 动态导入。如使用，必须在代码注释中说明必要性。对 `node:*` 内置模块禁止动态导入（无实际收益，增加异步复杂度）。TypeScript 类型引用语法（`import("./types").SomeType`）不受此限制
 
 ## 构建配置
@@ -82,12 +88,11 @@ pnpm run docs       # 生成 TypeDoc API 文档
 
 ## 设计原则
 
-遵循 SOLID 和 DRY 原则：
+详见 [DEV-013 函数及 API 设计规范](docs/i18n/zh-Hans/DEV-013-api-conventions.md)：
 
-- **单一职责**：每个函数/模块专注于单一功能（如 parser.ts 只负责解析）
-- **开闭原则**：通过配置选项和接口支持扩展（如删除策略 `trash | move | hard-delete`）
-- **依赖倒置**：通过回调注入依赖（如 logger 参数），降低模块耦合
-- **DRY**：提取公共逻辑（如 `withRetry`），使用 TypeDoc 生成 API 文档，避免在 README 中重复 API 说明
+- **Part 1 通用函数规范**：命名约定、参数设计、返回类型、错误处理
+- **Part 2 API 规范**：导出策略、跨包原则 P1-P10、Service 设计、CLI 命令、JSDoc
+- **Part 3 Review Checklist**
 
 ## 日志规范
 
@@ -114,70 +119,28 @@ pnpm run docs       # 生成 TypeDoc API 文档
 
 ## 文档结构总览
 
-CMTX 文档分布在 4 个层级，修改代码时需明确文档归属：
+CMTX 文档分布在 `docs/i18n/{lang}/` 下，详见 [DEV-010](./docs/i18n/zh-Hans/DEV-010-documentation-layout-and-frontmatter.md)。
 
-### 1. 根目录 `docs/`（项目级文档）
-
-适用于跨包公共事项。使用以下前缀体系：
-
-| 前缀   | 用途                         | 示例                                         |
-| ------ | ---------------------------- | -------------------------------------------- |
-| `DEV-` | 开发指南、架构设计、流程规范 | `DEV-001-development_guide.md`               |
-| `CFG-` | 配置参考                     | `CFG-001-configuration-reference.md`         |
-| `adr/` | 架构决策记录                 | `adr/ADR-009-dual-module-format-strategy.md` |
-| `api/` | TypeDoc 生成的 API 文档      | —                                            |
-
-> 新增文档：按 `DEV-NNN` 递增编号。
-
-### 2. 子包 `packages/<name>/docs/`（包级文档）
-
-适用于特定包的开发者或用户。按包查阅：
-
-| 包                 | docs 目录                         | 主要文档                                                                                                      |
-| ------------------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `asset`            | `packages/asset/docs/`            | `DEV-001-upload-refactor-overview.md` — 上传流水线重构方案；`DEV-002-image-uploader.md` — 上传模块文档        |
-| `cli`              | `packages/cli/docs/`              | `USR-*-getting-started.md` — 5 篇用户指南；`DEV-001-development.md` — 开发说明；`INDEX.md`                    |
-| `mcp-server`       | `packages/mcp-server/docs/`       | `USR-*-installation-setup.md` 等 5 篇用户指南；`INDEX.md`                                                     |
-| `vscode-extension` | `packages/vscode-extension/docs/` | `USR-*-getting-started.md` — 用户指南；`DEV-*-*` — 9 篇开发/架构/构建/发布指南；`CFG-*`, `TODO-*`；`INDEX.md` |
-
-> 子包 `docs/` 路径前缀说明：`USR-`（用户使用指南）、`DEV-`（开发/架构/发布）、`CFG-`（配置）、`TODO-`（遗留事项）。
-
-### 3. 包内 `README.md`（公开 API 说明）
-
-每个 npm 包有自己的 `README.md`，描述安装、功能、API 接口和使用示例：
-
-- `@cmtx/core`、`@cmtx/asset`、`@cmtx/storage`、`@cmtx/template`、`@cmtx/fpe-wasm`、`@cmtx/autocorrect-wasm`、`@cmtx/rule-engine`
-- `@cmtx/cli`、`@cmtx/mcp-server`（应用层）
-- `cmtx-vscode`（VS Code 扩展，含英文版 `README.en.md`）
-
-### 4. 包内 `CHANGELOG.md`（版本变更记录）
-
-所有 npm 发布包均维护 `CHANGELOG.md`，遵循 Keep a Changelog 格式，仅记录用户可见变更。
-
-### 修改文档时的快速定位
+### 快速定位
 
 ```
-需要修改的内容类型           → 查找位置
-──────────────────────────────────────────────
-用户使用指南（如何安装/使用） → packages/<pkg>/docs/USR-*
-开发指南、架构说明            → packages/<pkg>/docs/DEV-*  或 根 docs/DEV-*
-
-配置参考                      → 根 docs/CFG-* 或 packages/<pkg>/docs/CFG-*
-发布相关                      → packages/<pkg>/docs/PUBLISH-*
-公开 API 文档                → 对应包的 README.md
-版本变更                     → 对应包的 CHANGELOG.md
-架构决策记录                  → 根 docs/adr/
+需要修改的内容类型               → 查找位置
+─────────────────────────────────────────────────
+用户使用指南（如何安装/使用）     → docs/i18n/{lang}/packages/<pkg>/USR-*
+开发指南、架构说明                → docs/i18n/{lang}/DEV-*  或 docs/i18n/{lang}/packages/<pkg>/DEV-*
+配置参考                          → docs/i18n/{lang}/CFG-*
+公开 API 文档                    → docs/i18n/{lang}/api/*.md
+版本变更                          → packages/<pkg>/CHANGELOG.md
 ```
 
-### 文档前缀索引（完整）
+### 文档前缀索引
 
-| 前缀   | 位置                      | 用途                         |
-| ------ | ------------------------- | ---------------------------- |
-| `DEV`  | 根 `docs/` + 子包 `docs/` | 开发指南、架构设计、流程规范 |
-| `CFG`  | 根 `docs/` + 子包 `docs/` | 配置参考                     |
-| `USR`  | 子包 `docs/`              | 用户使用指南                 |
-| `TODO` | 子包 `docs/`              | 遗留事项与待办               |
-| `ADR`  | 根 `docs/adr/`            | 架构决策记录                 |
+| 前缀     | 位置                        | 用途                         |
+| -------- | --------------------------- | ---------------------------- |
+| `DEV`    | `docs/i18n/{lang}/`         | 开发指南、架构设计、流程规范 |
+| `CFG`    | `docs/i18n/{lang}/`         | 配置参考                     |
+| `USR`    | `docs/i18n/{lang}/packages/<pkg>/` | 用户使用指南          |
+| `PLAN`   | `plans/`                    | 计划文档                     |
 
 ## 问题反馈
 
@@ -186,7 +149,7 @@ CMTX 文档分布在 4 个层级，修改代码时需明确文档归属：
 
 ## 核验清单
 
-- [ ] 代码必须通过 eslint 等 lint 检测
+- [ ] 代码必须通过 oxlint 等 lint 检测
 - [ ] API 签名设计合理、一致，仅暴露必要的接口与类型（含子类型）
 - [ ] TypeDoc 注释完整（含功能说明和参数描述）
 - [ ] 相关文档同步更新（包内文档、根目录文档）
