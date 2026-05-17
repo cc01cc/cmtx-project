@@ -113,6 +113,7 @@ dist-cjs/
 
 # TypeDoc generated documentation
 **/docs/api/
+**/docs/typedoc/
 
 # Serverless directories
 .serverless/

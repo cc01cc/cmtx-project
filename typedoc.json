@@ -12,7 +12,7 @@
         "packages/markdown-it-presigned-url-adapter-nodejs",
         "packages/fpe-wasm"
     ],
-    "out": "docs/api",
+    "out": "docs/typedoc",
     "exclude": ["**/*.test.ts", "**/*.spec.ts", "**/node_modules/**"],
     "excludeReferences": true,
     "excludeInternal": true,
