@@ -17,7 +17,6 @@ import {
     isWebSource,
     normalizePath,
     parseUrlSafe,
-    replaceAltVariables,
 } from "../src/utils.js";
 
 describe("normalizePath", () => {
@@ -487,59 +486,5 @@ describe("formatHtmlImage", () => {
         expect(result).toBe(
             '<img src="https://example.com/image.png" alt="描述" class="responsive-img" data-src="high-res.png">',
         );
-    });
-});
-
-describe("replaceAltVariables", () => {
-    it("应该替换 {filename} 变量", () => {
-        const result = replaceAltVariables("{filename}", "my-image.png");
-        expect(result).toBe("my-image.png");
-    });
-
-    it("应该替换 {timestamp} 变量", () => {
-        const result = replaceAltVariables("{timestamp}", "test.png");
-        expect(result).toMatch(/^\d+$/);
-        const timestamp = Number.parseInt(result, 10);
-        expect(timestamp).toBeGreaterThan(0);
-    });
-
-    it("应该替换 {date} 变量", () => {
-        const result = replaceAltVariables("{date}", "test.png");
-        expect(result).toMatch(/^\d{8}$/);
-    });
-
-    it("应该替换 {time} 变量", () => {
-        const result = replaceAltVariables("{time}", "test.png");
-        expect(result).toMatch(/^\d{6}$/);
-    });
-
-    it("应该替换 {datetime} 变量", () => {
-        const result = replaceAltVariables("{datetime}", "test.png");
-        expect(result).toMatch(/^\d{14}$/);
-    });
-
-    it("应该替换时间组件变量", () => {
-        const template = "{year}-{month}-{day} {hour}:{minute}:{second}";
-        const result = replaceAltVariables(template, "test.png");
-        expect(result).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
-    });
-
-    it("应该处理多个变量", () => {
-        const template = "{filename} - {date}";
-        const result = replaceAltVariables(template, "my-image.png");
-        expect(result).toMatch(/^my-image\.png - \d{8}$/);
-    });
-
-    it("应该使用默认文件名当未提供", () => {
-        const result = replaceAltVariables("{filename}");
-        expect(result).toBe("image");
-    });
-
-    it("应该保留非变量文本", () => {
-        const template = "Image: {filename} captured on {date}";
-        const result = replaceAltVariables(template, "photo.jpg");
-        expect(result).toContain("Image: ");
-        expect(result).toContain(" captured on ");
-        expect(result).toContain("photo.jpg");
     });
 });

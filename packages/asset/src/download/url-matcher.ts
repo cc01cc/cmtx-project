@@ -6,7 +6,7 @@
  * 从 Markdown 中提取图片 URL，并根据域名进行过滤。
  */
 
-import { filterImagesInText } from "@cmtx/core";
+import { filterImages } from "@cmtx/core";
 import type { ParsedUrlInfo } from "./types.js";
 
 /**
@@ -41,7 +41,7 @@ export class UrlMatcher {
      */
     extractUrls(markdown: string): ParsedUrlInfo[] {
         // 提取所有 web 图片
-        const images = filterImagesInText(markdown, {
+        const images = filterImages(markdown, {
             mode: "sourceType",
             value: "web",
         });

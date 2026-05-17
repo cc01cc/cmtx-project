@@ -77,6 +77,41 @@ export interface CmtxPresignedUrlConfig {
     domains?: CmtxPresignedUrlDomain[];
 }
 
+// ==================== AI 配置 ====================
+
+/**
+ * AI 提供商
+ */
+export type AIProvider = "deepseek" | "alibaba" | "openai-compatible";
+
+/**
+ * AI 模型配置
+ */
+export interface AIModelConfig {
+    /** 提供商 */
+    provider: AIProvider;
+    /** 模型名称 */
+    model: string;
+    /** API 密钥 */
+    apiKey: string;
+    /** 自定义 API 地址 */
+    baseURL?: string;
+    /** 超时时间（毫秒） */
+    timeout?: number;
+    /** 最大重试次数 */
+    maxRetries?: number;
+}
+
+/**
+ * AI 配置
+ */
+export interface AIConfig {
+    /** 模型字典（key 为模型 ID） */
+    models: Record<string, AIModelConfig>;
+    /** 默认模型 ID */
+    defaultModel?: string;
+}
+
 // ==================== 主配置接口 ====================
 
 /**
@@ -91,7 +126,7 @@ export interface CmtxConfig {
     /** 预签名 URL 配置 */
     presignedUrls?: CmtxPresignedUrlConfig;
     /** AI 配置 */
-    ai?: Record<string, unknown>;
+    ai?: AIConfig;
     /** 全局 Rules 配置 */
     rules?: Record<string, RuleConfig>;
     /** Presets（Rule 集合） */
@@ -159,8 +194,7 @@ export const DEFAULT_CONFIG: CmtxConfig = {
         },
         "upload-images": {
             imageFormat: "markdown",
-            batchLimit: 5,
-            imageAltTemplate: "",
+            concurrency: 5,
             namingTemplate: DEFAULT_NAMING_TEMPLATE,
             auto: false,
             conflictStrategy: "skip",
@@ -188,8 +222,12 @@ export const DEFAULT_CONFIG: CmtxConfig = {
         "frontmatter-title": {
             headingLevel: 1,
         },
-        "frontmatter-date": {},
-        "frontmatter-updated": {},
+        "frontmatter-date": {
+            fieldName: "date",
+        },
+        "frontmatter-updated": {
+            fieldName: "updated",
+        },
         "frontmatter-id": {
             template: "{counter_global}",
             fieldName: "id",
@@ -222,6 +260,24 @@ export const DEFAULT_CONFIG: CmtxConfig = {
             prefix: "",
             deleteSource: false,
             concurrency: 5,
+        },
+        "frontmatter-slug": {
+            strategy: "transform",
+            transform: {
+                fromField: "title",
+                separator: "-",
+                lowercase: true,
+                maxLength: 80,
+            },
+        },
+        "cleanup-images": {
+            strategy: "trash",
+            force: false,
+        },
+        "delete-image": {
+            strategy: "trash",
+            removeFromMarkdown: true,
+            force: false,
         },
     },
     presets: {},

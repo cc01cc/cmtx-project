@@ -17,7 +17,7 @@ import type { DocumentState } from "../types.js";
  * const state = registry.get('my-post-id');
  * ```
  *
- * @public
+ * @internal
  */
 export class MetadataRegistry {
     private states = new Map<string, DocumentState>();

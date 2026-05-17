@@ -1,8 +1,4 @@
-import {
-    type ConfigValidationError,
-    formatValidationErrors as formatValidationErrorsFromAsset,
-    validateConfig as validateConfigFromAsset,
-} from "@cmtx/asset/config";
+import { ValidationResult, validateConfig as validateConfigFromAsset } from "@cmtx/asset/config";
 import * as vscode from "vscode";
 import type { CmtxConfig } from "@cmtx/asset/config";
 import { showWarning } from "./notification.js";
@@ -10,16 +6,17 @@ import { showWarning } from "./notification.js";
 /**
  * Validate CMTX configuration using @cmtx/asset validator
  */
-export function validateConfig(config: CmtxConfig): ConfigValidationError[] {
+export function validateConfig(config: CmtxConfig): ValidationResult {
     return validateConfigFromAsset(config);
 }
 
 /**
  * Show configuration validation errors in VSCode UI
  */
-export async function showConfigValidationErrors(errors: ConfigValidationError[]): Promise<void> {
-    if (errors.length === 0) return;
+export async function showConfigValidationErrors(result: ValidationResult): Promise<void> {
+    if (!result.hasErrors()) return;
 
+    const errors = result.errors;
     const errorCount = errors.filter((e) => e.severity === "error").length;
     const warningCount = errors.filter((e) => e.severity === "warning").length;
 
@@ -29,7 +26,6 @@ export async function showConfigValidationErrors(errors: ConfigValidationError[]
         error: e,
     }));
 
-    // Use showWarning with items for validation errors
     const selectedLabel = await showWarning(
         `Configuration has ${errorCount} errors and ${warningCount} warnings`,
         items.map((item) => item.label),
@@ -48,11 +44,4 @@ export async function showConfigValidationErrors(errors: ConfigValidationError[]
             }
         }
     }
-}
-
-/**
- * Format validation errors as a string
- */
-export function formatValidationErrors(errors: ConfigValidationError[]): string {
-    return formatValidationErrorsFromAsset(errors);
 }

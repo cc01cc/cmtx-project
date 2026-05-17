@@ -30,7 +30,7 @@ describe("DownloadService", () => {
             const result = await service.downloadFromContent("No images here");
 
             expect(result.total).toBe(0);
-            expect(result.success).toBe(0);
+            expect(result.succeeded).toBe(0);
             expect(result.failed).toBe(0);
             expect(result.skipped).toBe(0);
         });
@@ -69,9 +69,9 @@ describe("DownloadService", () => {
     });
 
     describe("downloadFromMarkdown", () => {
-        it("should read file and parse images", { timeout: 10000 }, async () => {
+        it("should read file and parse images", { timeout: 30000 }, async () => {
             const markdownPath = join(tempDir, "test.md");
-            await writeFile(markdownPath, "# Test\n\n![img](https://example.com/img.png)");
+            await writeFile(markdownPath, "# Test\n\n![img](https://httpbin.org/image/png)");
 
             const service = createDownloadService({
                 options: { outputDir: tempDir },

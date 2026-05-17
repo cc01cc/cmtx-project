@@ -1,5 +1,5 @@
-import { ensureWasmLoaded } from "../src/metadata/fpe-ff1.js";
+import { loadWASM } from "@cmtx/fpe-wasm";
 
 beforeAll(async () => {
-    await ensureWasmLoaded();
+    await loadWASM();
 });

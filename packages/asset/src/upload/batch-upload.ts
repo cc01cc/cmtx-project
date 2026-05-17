@@ -1,16 +1,17 @@
 import { createHash } from "node:crypto";
-import type { ImageMatch, Logger } from "@cmtx/core";
-import type { IStorageAdapter } from "@cmtx/storage";
+import type { ImageMatch, Logger, ReplacementOp } from "@cmtx/core";
+import { applyReplacementOps } from "@cmtx/core";
+import type { StorageAdapter } from "@cmtx/storage";
 import { renderTemplate } from "@cmtx/template";
 import { createContext } from "./template-renderer.js";
 import { generateNameAndRemotePath } from "./naming-handler.js";
-import { type ReplacementOp, type UploadSource, StorageUploadStrategy } from "./strategies.js";
+import { type UploadSource, StorageUploadStrategy } from "./strategies.js";
 import type { ReplaceConfig } from "./types.js";
 
 export type BatchConflictStrategy = { type: "skip-all" } | { type: "replace-all" };
 
 export interface BatchUploadConfig {
-    adapter: IStorageAdapter;
+    adapter: StorageAdapter;
     namingTemplate?: string;
     prefix?: string;
     conflictStrategy?: BatchConflictStrategy;
@@ -75,21 +76,6 @@ export function renderReplacementText(
     return newTitle ? `![${newAlt}](${newSrc} "${newTitle}")` : `![${newAlt}](${newSrc})`;
 }
 
-/**
- * 按偏移量从后向前应用替换操作。
- * 纯函数，不修改传入的数组。
- */
-export function applyReplacementOps(documentText: string, ops: ReplacementOp[]): string {
-    const sortedOps = [...ops].sort((a, b) => b.offset - a.offset);
-    let content = documentText;
-    for (const op of sortedOps) {
-        const before = content.slice(0, op.offset);
-        const after = content.slice(op.offset + op.length);
-        content = `${before}${op.newText}${after}`;
-    }
-    return content;
-}
-
 function getDedupKey(source: UploadSource): string {
     if (source.kind === "file") {
         return source.absPath;
@@ -97,7 +83,7 @@ function getDedupKey(source: UploadSource): string {
     return createHash("md5").update(source.buffer).digest("hex");
 }
 
-async function checkFileExists(adapter: IStorageAdapter, remotePath: string): Promise<boolean> {
+async function checkFileExists(adapter: StorageAdapter, remotePath: string): Promise<boolean> {
     if (adapter.exists) {
         return await adapter.exists(remotePath);
     }
@@ -112,7 +98,7 @@ async function checkFileExists(adapter: IStorageAdapter, remotePath: string): Pr
 export async function uploadSingleImage(
     source: UploadSource,
     src: string,
-    namingConfig: { adapter: IStorageAdapter; namingTemplate?: string },
+    namingConfig: { adapter: StorageAdapter; namingTemplate?: string },
     prefix: string,
     conflictStrategy?: BatchConflictStrategy,
     logger?: Logger,

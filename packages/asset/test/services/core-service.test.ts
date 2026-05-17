@@ -63,14 +63,14 @@ describe("CoreService", () => {
         });
     });
 
-    describe("replaceImages", () => {
+    describe("updateImageRefs", () => {
         it("should replace image references", () => {
             const service = new CoreService();
             const doc = "![old](./old.png)";
             const replacements = [
                 { field: "src" as const, pattern: "./old.png", newSrc: "./new.png" },
             ];
-            const result = service.replaceImages(doc, replacements);
+            const result = service.updateImageRefs(doc, replacements);
             expect(result).toContain("./new.png");
             expect(result).not.toContain("./old.png");
         });
@@ -78,7 +78,7 @@ describe("CoreService", () => {
         it("should handle empty replacements", () => {
             const service = new CoreService();
             const doc = "![alt](./img.png)";
-            const result = service.replaceImages(doc, []);
+            const result = service.updateImageRefs(doc, []);
             expect(result).toBe(doc);
         });
 
@@ -86,7 +86,7 @@ describe("CoreService", () => {
             const logger = vi.fn();
             const service = new CoreService({ logger });
             const doc = "![alt](./img.png)";
-            service.replaceImages(doc, [
+            service.updateImageRefs(doc, [
                 { field: "src" as const, pattern: "./img.png", newSrc: "./new.png" },
             ]);
             expect(logger).toHaveBeenCalledWith("debug", "[CoreService] Replacing 1 images");

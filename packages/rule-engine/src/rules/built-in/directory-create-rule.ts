@@ -1,5 +1,5 @@
 import { basename, dirname, extname } from "node:path";
-import { parseFrontmatter, parseYamlFrontmatter } from "@cmtx/core";
+import { splitFrontmatter, parseYamlFrontmatter, type FrontmatterValue } from "@cmtx/core";
 import type { Rule, RuleContext, RuleResult } from "../rule-types.js";
 import type { FileSystemService } from "../service-registry.js";
 import { readSourceFile } from "../utils/read-source-file.js";
@@ -29,14 +29,14 @@ export const directoryCreateRule: Rule = {
             throw new Error("directory-create: FileSystemService not found in context.services");
         }
 
-        const parsedDoc = parseFrontmatter(context.document);
+        const parsedDoc = splitFrontmatter(context.document);
         const fm = parsedDoc.hasFrontmatter
-            ? (parseYamlFrontmatter(parsedDoc.data) as unknown as Record<string, string>)
+            ? (parseYamlFrontmatter(parsedDoc.data) as Record<string, FrontmatterValue>)
             : {};
         const sourceRaw = await readSourceFile(context.filePath);
-        const parsedSource = parseFrontmatter(sourceRaw);
+        const parsedSource = splitFrontmatter(sourceRaw);
         const sourceId = parsedSource.hasFrontmatter
-            ? (parseYamlFrontmatter(parsedSource.data) as unknown as Record<string, string>)
+            ? (parseYamlFrontmatter(parsedSource.data) as Record<string, FrontmatterValue>)
             : {};
 
         const targetCtx = {

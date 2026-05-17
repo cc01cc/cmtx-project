@@ -5,7 +5,7 @@ import { MarkdownMetadataExtractor } from "./markdown-metadata-extractor.js";
  * 文档查询器
  * 提供文档的查询和检索功能
  *
- * @public
+ * @internal
  */
 export class MarkdownFileQuery {
     private documentManager: MarkdownMetadataExtractor;

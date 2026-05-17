@@ -1,5 +1,5 @@
 import { basename, dirname, extname, join, relative, resolve } from "node:path";
-import { parseFrontmatter, parseYamlFrontmatter } from "@cmtx/core";
+import { splitFrontmatter, parseYamlFrontmatter, type FrontmatterValue } from "@cmtx/core";
 import type { Rule, RuleContext, RuleResult } from "../rule-types.js";
 import type { FileSystemService } from "../service-registry.js";
 import { readSourceFile } from "../utils/read-source-file.js";
@@ -54,25 +54,25 @@ export const fileCopyRule: Rule = {
         const filePath = context.filePath;
         const targetName = config?.targetName ?? "prototype.md";
 
-        const parsedDoc = parseFrontmatter(document);
+        const parsedDoc = splitFrontmatter(document);
         const fm = parsedDoc.hasFrontmatter
-            ? (parseYamlFrontmatter(parsedDoc.data) as unknown as Record<string, string>)
+            ? (parseYamlFrontmatter(parsedDoc.data) as Record<string, FrontmatterValue>)
             : {};
         const slug = fm?.slug || slugFromFilename(filePath);
 
         const sourceRaw = await readSourceFile(filePath);
-        const parsedSource = parseFrontmatter(sourceRaw);
+        const parsedSource = splitFrontmatter(sourceRaw);
         const sourceFm = parsedSource.hasFrontmatter
-            ? (parseYamlFrontmatter(parsedSource.data) as unknown as Record<string, string>)
+            ? (parseYamlFrontmatter(parsedSource.data) as Record<string, FrontmatterValue>)
             : {};
 
         const dirBase = resolve(dirname(filePath));
         const privateId = fm?.private_id;
         const pattern = privateId
-            ? `${privateId}-${slug}`
-            : `${slugFromFilename(filePath)}-${slug}`;
+            ? `${String(privateId)}-${String(slug)}`
+            : `${slugFromFilename(filePath)}-${String(slug)}`;
 
-        const targetDir = resolve(context.input?.["to-dir"] ?? ".");
+        const targetDir = resolve(String(context.input?.["to-dir"] ?? "."));
         const targetDocDir = join(targetDir, pattern);
         const targetFilePath = join(targetDocDir, targetName);
 

@@ -1,5 +1,5 @@
 /**
- * AliOSSAdapter 集成测试
+ * AliyunOSSAdapter 集成测试
  *
  * @module @cmtx/storage/tests/integration/ali-oss.integration
  *
@@ -13,7 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 // 配置：测试完成后等待时间（毫秒），方便手动检查 OSS 控制台
 const MANUAL_CHECK_DELAY = 10000; // 10 秒，设为 0 可禁用
 
-import type { AliOSSAdapter } from "../../src/adapters/ali-oss.js";
+import type { AliyunOSSAdapter } from "../../src/adapters/ali-oss.js";
 import type { AliyunTestConfig } from "./shared-test-utils.js";
 import {
     cleanupTestFiles,
@@ -39,8 +39,8 @@ try {
     shouldRun = false;
 }
 
-describe.skipIf(!shouldRun)("AliOSSAdapter Integration Tests", () => {
-    let adapter: AliOSSAdapter;
+describe.skipIf(!shouldRun)("AliyunOSSAdapter Integration Tests", () => {
+    let adapter: AliyunOSSAdapter;
     let testPath: string;
 
     beforeAll(async () => {

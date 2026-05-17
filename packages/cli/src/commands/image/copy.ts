@@ -11,8 +11,8 @@
 
 import type { CmtxConfig } from "@cmtx/asset/config";
 import { ConfigLoader } from "@cmtx/asset/config";
-import { createTransferAssetsService } from "@cmtx/asset";
-import type { CloudCredentials } from "@cmtx/asset/transfer";
+import { createTransferService } from "@cmtx/asset";
+import type { CloudCredentials } from "@cmtx/storage";
 import type { TransferConfig } from "@cmtx/asset/transfer";
 import { createUrlParser } from "@cmtx/asset/transfer";
 import fs from "node:fs";
@@ -152,33 +152,33 @@ export function builder(yargs: Argv): Argv {
     );
 }
 
-export async function handler(argv: CopyCommandOptions): Promise<void> {
-    const logger = createLogger(argv.verbose, argv.quiet);
+export async function handler(options: CopyCommandOptions): Promise<void> {
+    const logger = createLogger(options.verbose, options.quiet);
     const configLoader = new ConfigLoader();
 
     try {
         // 加载配置
         let config: TransferConfig;
 
-        if (argv.config) {
-            logger.info(`加载配置文件：${argv.config}`);
-            const cmtxConfig = await configLoader.loadFromFile(argv.config);
-            config = convertCmtxConfigToTransferConfig(cmtxConfig, argv);
+        if (options.config) {
+            logger.info(`加载配置文件：${options.config}`);
+            const cmtxConfig = await configLoader.loadFromFile(options.config);
+            config = convertCmtxConfigToTransferConfig(cmtxConfig, options);
         } else {
-            config = buildConfigFromEnv(argv);
+            config = buildConfigFromEnv(options);
         }
 
         // 应用命令行覆盖
-        config = applyCommandLineOverrides(config, argv);
+        config = applyCommandLineOverrides(config, options);
 
         // 预览模式
-        if (argv.dryRun) {
-            await previewCopy(argv.filePath, config, argv.format, logger);
+        if (options.dryRun) {
+            await previewCopy(options.filePath, config, options.format, logger);
             return;
         }
 
         // 执行复制
-        await executeCopy(argv.filePath, config, argv.format, logger);
+        await executeCopy(options.filePath, config, options.format, logger);
     } catch (error) {
         const message = error instanceof Error ? error : new Error(String(error));
         console.error(formatError(message));
@@ -191,7 +191,7 @@ export async function handler(argv: CopyCommandOptions): Promise<void> {
  */
 function convertCmtxConfigToTransferConfig(
     cmtxConfig: CmtxConfig,
-    argv: CopyCommandOptions,
+    options: CopyCommandOptions,
 ): TransferConfig {
     const uploadRule = cmtxConfig.rules?.["upload-images"] ?? {};
     const storageId = (uploadRule.useStorage as string) || "default";
@@ -203,7 +203,9 @@ function convertCmtxConfigToTransferConfig(
     }
 
     const provider =
-        (selectedStorage.provider as CloudCredentials["provider"]) || argv.provider || "aliyun-oss";
+        (selectedStorage.provider as CloudCredentials["provider"]) ||
+        options.provider ||
+        "aliyun-oss";
 
     // 从 selectedStorage.config 构建凭证
     const credentials = createCredentials(provider, selectedStorage.config || {});
@@ -214,14 +216,14 @@ function convertCmtxConfigToTransferConfig(
             credentials,
         },
         target: {
-            domain: argv.targetDomain ?? process.env.TARGET_DOMAIN,
+            domain: options.targetDomain ?? process.env.TARGET_DOMAIN,
             credentials,
-            prefix: argv.prefix,
-            overwrite: argv.overwrite,
+            prefix: options.prefix,
+            overwrite: options.overwrite,
         },
         options: {
-            concurrency: argv.concurrency,
-            tempDir: argv.tempDir,
+            concurrency: options.concurrency,
+            tempDir: options.tempDir,
         },
     };
 }
@@ -264,8 +266,8 @@ function overrideCredentials(
 /**
  * 从环境变量构建配置
  */
-function buildConfigFromEnv(argv: CopyCommandOptions): TransferConfig {
-    const provider = (argv.provider as CloudCredentials["provider"]) || "aliyun-oss";
+function buildConfigFromEnv(options: CopyCommandOptions): TransferConfig {
+    const provider = (options.provider as CloudCredentials["provider"]) || "aliyun-oss";
 
     const sourceBucket = process.env.SOURCE_BUCKET;
     const targetBucket = process.env.TARGET_BUCKET;
@@ -345,14 +347,14 @@ function buildConfigFromEnv(argv: CopyCommandOptions): TransferConfig {
             credentials: sourceCredentials,
         },
         target: {
-            domain: argv.targetDomain ?? process.env.TARGET_DOMAIN,
+            domain: options.targetDomain ?? process.env.TARGET_DOMAIN,
             credentials: targetCredentials,
-            prefix: argv.prefix,
-            overwrite: argv.overwrite,
+            prefix: options.prefix,
+            overwrite: options.overwrite,
         },
         options: {
-            concurrency: argv.concurrency,
-            tempDir: argv.tempDir,
+            concurrency: options.concurrency,
+            tempDir: options.tempDir,
         },
     };
 }
@@ -362,37 +364,37 @@ function buildConfigFromEnv(argv: CopyCommandOptions): TransferConfig {
  */
 function applyCommandLineOverrides(
     config: TransferConfig,
-    argv: CopyCommandOptions,
+    cmd: CopyCommandOptions,
 ): TransferConfig {
-    const result: TransferConfig = {
+    const merged = {
         source: { ...config.source },
         target: { ...config.target },
         options: { ...config.options },
     };
 
-    result.source.credentials = overrideCredentials(result.source.credentials, argv, "source");
-    result.target.credentials = overrideCredentials(result.target.credentials, argv, "target");
+    merged.source.credentials = overrideCredentials(merged.source.credentials, cmd, "source");
+    merged.target.credentials = overrideCredentials(merged.target.credentials, cmd, "target");
 
-    if (argv.concurrency) {
-        result.options = { ...result.options, concurrency: argv.concurrency };
+    if (cmd.concurrency) {
+        merged.options = { ...merged.options, concurrency: cmd.concurrency };
     }
-    if (argv.tempDir) {
-        result.options = { ...result.options, tempDir: argv.tempDir };
+    if (cmd.tempDir) {
+        merged.options = { ...merged.options, tempDir: cmd.tempDir };
     }
-    if (argv.prefix !== undefined) {
-        result.target = { ...result.target, prefix: argv.prefix };
+    if (cmd.prefix !== undefined) {
+        merged.target = { ...merged.target, prefix: cmd.prefix };
     }
-    if (argv.namingTemplate) {
-        result.target = {
-            ...result.target,
-            namingTemplate: argv.namingTemplate,
+    if (cmd.namingTemplate) {
+        merged.target = {
+            ...merged.target,
+            namingTemplate: cmd.namingTemplate,
         };
     }
-    if (argv.overwrite !== undefined) {
-        result.target = { ...result.target, overwrite: argv.overwrite };
+    if (cmd.overwrite !== undefined) {
+        merged.target = { ...merged.target, overwrite: cmd.overwrite };
     }
 
-    return result;
+    return merged;
 }
 
 /**
@@ -454,7 +456,7 @@ async function executeCopy(
     const targetAdapter = await createAdapter(config.target.credentials);
 
     // 使用 TransferAssetsService
-    const transferService = createTransferAssetsService({
+    const transferService = createTransferService({
         sourceAdapters: [
             {
                 domain: config.source.domain ?? "",
@@ -475,7 +477,7 @@ async function executeCopy(
         concurrency: config.options?.concurrency,
     });
 
-    if (result.content !== content && result.transferred > 0) {
+    if (result.content !== content && result.succeeded > 0) {
         await fs.promises.writeFile(filePath, result.content, "utf-8");
         logger.info(`已更新 Markdown 文件：${filePath}`);
     }
@@ -487,15 +489,15 @@ async function executeCopy(
         case "table":
             console.log("\n复制完成！");
             console.log("═".repeat(80));
-            console.log(`总文件数：${result.transferred + result.failed + result.skipped}`);
-            console.log(`成功：${result.transferred}`);
+            console.log(`总文件数：${result.succeeded + result.failed + result.skipped}`);
+            console.log(`成功：${result.succeeded}`);
             console.log(`失败：${result.failed}`);
             console.log(`跳过：${result.skipped}`);
             console.log("═".repeat(80));
             break;
         case "plain":
             console.log(
-                `复制完成：${result.transferred}/${result.transferred + result.failed + result.skipped}`,
+                `复制完成：${result.succeeded}/${result.succeeded + result.failed + result.skipped}`,
             );
             if (result.failed > 0) {
                 console.log(`失败：${result.failed}`);

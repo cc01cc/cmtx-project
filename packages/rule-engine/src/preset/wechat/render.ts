@@ -1,5 +1,10 @@
 import { type InlineStyleTheme, renderMarkdownAsHtml } from "../../markdown/render-html.js";
-import type { RenderResult } from "../../types.js";
+
+interface RenderResult {
+    content: string;
+    format: "html" | "markdown";
+    platform: string;
+}
 
 const wechatTheme: InlineStyleTheme = {
     h1: "margin: 1.4em 0 0.8em; font-size: 1.55em; line-height: 1.4; font-weight: 700; color: #1f2328",

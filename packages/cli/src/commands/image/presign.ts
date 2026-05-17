@@ -15,25 +15,17 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { CmtxConfig } from "@cmtx/asset/config";
 import { ConfigLoader } from "@cmtx/asset/config";
-import { filterImagesInText, type ImageMatch } from "@cmtx/core";
-import type { CloudCredentials, IStorageAdapter } from "@cmtx/storage";
+import { filterImages, type ImageMatch } from "@cmtx/core";
+import type { CloudCredentials, StorageAdapter } from "@cmtx/storage";
 import { createCredentials } from "@cmtx/storage";
 import { createAdapter } from "@cmtx/storage/adapters/factory";
 import type { Argv, CommandModule } from "yargs";
+import type { PresignCommandOptions } from "../../types/cli.js";
 import { formatError, formatInfo, formatSuccess, formatWarning } from "../../utils/formatter.js";
 import { createLogger } from "../../utils/logger.js";
 
 export const command = "presign [input]";
 export const describe = "生成预签名 URL";
-
-interface PresignCommandOptions {
-    input?: string;
-    url?: string;
-    expire?: number;
-    provider?: "aliyun-oss" | "tencent-cos";
-    config?: string;
-    verbose?: boolean;
-}
 
 export function builder(yargs: Argv): Argv {
     return yargs
@@ -46,7 +38,7 @@ export function builder(yargs: Argv): Argv {
             description: "单个图片 URL",
             type: "string",
         })
-        .option("expire", {
+        .option("expires", {
             alias: "e",
             description: "过期时间（秒）",
             type: "number",
@@ -71,8 +63,8 @@ export function builder(yargs: Argv): Argv {
             default: false,
         })
         .conflicts("input", "url")
-        .check((argv) => {
-            if (!argv.input && !argv.url) {
+        .check((options) => {
+            if (!options.input && !options.url) {
                 throw new Error("必须提供 input 文件路径或 --url 参数");
             }
             return true;
@@ -97,16 +89,15 @@ function generateDefaultDomain(
     }
 }
 
-export async function handler(argv: PresignCommandOptions): Promise<void> {
-    const logger = createLogger(argv.verbose);
+export async function handler(options: PresignCommandOptions): Promise<void> {
+    const logger = createLogger(options.verbose);
     const configLoader = new ConfigLoader();
 
     try {
-        // 加载配置
         let cliConfig: CmtxConfig | undefined;
-        if (argv.config) {
-            logger.info(`加载配置文件：${argv.config}`);
-            cliConfig = await configLoader.loadFromFile(argv.config);
+        if (options.config) {
+            logger.info(`加载配置文件：${options.config}`);
+            cliConfig = await configLoader.loadFromFile(options.config);
         } else {
             const defaultConfigPath = await configLoader.findDefaultConfig();
             if (defaultConfigPath) {
@@ -127,7 +118,7 @@ export async function handler(argv: PresignCommandOptions): Promise<void> {
 
         const provider =
             (selectedStorage.provider as CloudCredentials["provider"]) ||
-            argv.provider ||
+            options.provider ||
             "aliyun-oss";
 
         // 创建凭证和适配器
@@ -152,17 +143,17 @@ export async function handler(argv: PresignCommandOptions): Promise<void> {
         );
         logger.info(`默认域名: ${defaultDomain}`);
 
-        const expire = argv.expire || 600;
+        const expire = options.expires || 600;
 
         // 处理单个 URL
-        if (argv.url) {
-            await handleSingleUrl(argv.url, adapter, expire, logger, defaultDomain);
+        if (options.url) {
+            await handleSingleUrl(options.url, adapter, expire, logger, defaultDomain);
             return;
         }
 
         // 处理 Markdown 文件
-        if (argv.input) {
-            await handleMarkdownFile(argv.input, adapter, expire, logger, defaultDomain);
+        if (options.input) {
+            await handleMarkdownFile(options.input, adapter, expire, logger, defaultDomain);
             return;
         }
     } catch (error) {
@@ -174,7 +165,7 @@ export async function handler(argv: PresignCommandOptions): Promise<void> {
 
 async function handleSingleUrl(
     url: string,
-    adapter: IStorageAdapter,
+    adapter: StorageAdapter,
     expire: number,
     logger: ReturnType<typeof createLogger>,
     defaultDomain: string,
@@ -220,7 +211,7 @@ async function handleSingleUrl(
 
 async function processSingleImage(
     image: ImageMatch,
-    adapter: IStorageAdapter,
+    adapter: StorageAdapter,
     expire: number,
     index: number,
     total: number,
@@ -247,7 +238,7 @@ async function processSingleImage(
 
 async function handleMarkdownFile(
     inputPath: string,
-    adapter: IStorageAdapter,
+    adapter: StorageAdapter,
     expire: number,
     logger: ReturnType<typeof createLogger>,
     defaultDomain: string,
@@ -256,7 +247,7 @@ async function handleMarkdownFile(
     logger.info(`处理文件: ${absolutePath}`);
 
     const content = await readFile(absolutePath, "utf-8");
-    const images = filterImagesInText(content, {
+    const images = filterImages(content, {
         mode: "sourceType",
         value: "web",
     });

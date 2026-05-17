@@ -2,11 +2,11 @@
 
 ## 测试策略概述
 
-本扩展采用三层测试金字塔架构：
+本扩展分三层测试：
 
-1. **单元测试**（Unit Tests）：测试纯逻辑函数，不依赖 VS Code API
-2. **集成测试**（Integration Tests）：在真实 VS Code 环境中测试 Commands 和 Providers
-3. **E2E 测试**（End-to-End Tests）：验证完整的用户操作流程
+1. **单元测试**（Unit Tests）：测纯逻辑函数，不依赖 VS Code API
+2. **集成测试**（Integration Tests）：在真实 VS Code 中测 Commands 和 Providers
+3. **E2E 测试**（End-to-End Tests）：验证完整用户操作流程
 
 ## 运行测试
 
@@ -41,7 +41,7 @@ pnpm test:integration
 - **分支覆盖率**：> 70%
 - **行覆盖率**：> 80%
 
-**当前状态**：✅ 已达标（单元测试覆盖率达到 100%）
+**当前状态**：已达标（单元测试覆盖率 100%）
 
 ## 测试文件结构
 
@@ -65,7 +65,7 @@ packages/vscode-extension/
 │   │       └── config.test.ts      # 配置集成测试
 │   └── utils/                       # 可测试的纯逻辑函数
 │       ├── config-parser.ts        # 配置解析逻辑
-│       └── image-processor.ts      # 图片处理逻辑
+│               └── image-processor.ts      # 图片处理逻辑（从 @cmtx/core 转发）
 └── test-workspace/                  # 测试工作区
 ```
 
@@ -73,11 +73,11 @@ packages/vscode-extension/
 
 ### 单元测试
 
-单元测试应该：
+单元测试应当：
 
-- 测试纯逻辑函数，不依赖 VS Code API
+- 测纯逻辑函数，不依赖 VS Code API
 - 使用 Vitest 框架
-- 遵循 AAA 模式（Arrange-Act-Assert）
+- 按 AAA 模式组织（Arrange-Act-Assert）
 
 示例：
 
@@ -100,10 +100,10 @@ describe("myFunction", () => {
 
 ### 集成测试
 
-集成测试应该：
+集成测试应当：
 
 - 使用 Mocha 框架（VS Code 官方支持）
-- 在真实 VS Code 环境中运行
+- 在真实 VS Code 环境运行
 - 测试 Commands、Providers 和配置
 
 示例：
@@ -129,10 +129,10 @@ suite("My Command Integration Tests", () => {
 
 ## 测试最佳实践
 
-1. **分离关注点**：将纯逻辑提取到独立模块，便于单元测试
-2. **测试命名**：使用描述性的测试名称，说明测试的目的和预期结果
+1. **分离关注点**：纯逻辑提取到独立模块，方便单元测试
+2. **测试命名**：用描述性名称说明测试目的和预期结果
 3. **单一职责**：每个测试只验证一个行为
-4. **独立性**：测试之间不依赖执行顺序
+4. **独立性**：测试间不依赖执行顺序
 5. **边界测试**：覆盖正常、边界和错误场景
 
 ## CI/CD 集成（可选）
@@ -160,11 +160,11 @@ A: 确保安装了 `@vitest/coverage-v8` 包。
 
 ## 成果总结
 
-✅ **Phase 1 完成**：单元测试框架建立，测试覆盖率 100%
-✅ **Phase 2 完成**：集成测试框架建立，可本地运行
-✅ **Phase 3 完成**：E2E 测试框架准备就绪，可在真实环境中测试
+- **Phase 1 完成**：单元测试框架建立，覆盖率 100%
+- **Phase 2 完成**：集成测试框架建立，可本地运行
+- **Phase 3 完成**：E2E 测试框架就绪，可在真实环境测试
 
-**预期收益**：
+**效果**：
 
 - 编译时错误检测率 80%+
 - 开发效率提升 50%

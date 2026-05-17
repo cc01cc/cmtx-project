@@ -3,12 +3,8 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { glob } from "tinyglobby";
 import { stat } from "node:fs/promises";
-import {
-    createDefaultRuleEngine,
-    createFileSystemService,
-    createServiceRegistry,
-    createCounterService,
-} from "@cmtx/rule-engine";
+import { createDefaultRuleEngine } from "@cmtx/rule-engine";
+import { createFileSystemService, createServiceRegistry } from "@cmtx/rule-engine/internal";
 import type { Argv, CommandModule } from "yargs";
 import type { PublishCommandOptions } from "../types/cli.js";
 import { formatError, formatInfo, formatSuccess } from "../utils/formatter.js";
@@ -198,9 +194,23 @@ export async function handler(options: PublishCommandOptions): Promise<void> {
     const registry = createServiceRegistry();
     registry.register(createFileSystemService());
 
-    // Counter for private_id
-    const counterService = createCounterService({ initialValue: 1 });
-    registry.register(counterService);
+    // Counter for frontmatter-id — in-memory, not persisted across runs
+    const counterValues: Record<string, number> = {};
+    const stepsWithCounter = steps.map((s) => {
+        if (s.id === "frontmatter-id") {
+            return {
+                ...s,
+                config: {
+                    ...s.config,
+                    peekCounterValue: async (id: string) => counterValues[id] ?? 0,
+                    commitCounterValue: async (id: string) => {
+                        counterValues[id] = (counterValues[id] ?? 0) + 1;
+                    },
+                },
+            };
+        }
+        return s;
+    });
 
     // Create rule engine
     const engine = createDefaultRuleEngine();
@@ -223,7 +233,7 @@ export async function handler(options: PublishCommandOptions): Promise<void> {
             const presetConfig = {
                 id: presetName,
                 name: presetName,
-                steps: steps.map((s) => ({
+                steps: stepsWithCounter.map((s) => ({
                     id: s.id,
                     enabled: true,
                     config: s.config,

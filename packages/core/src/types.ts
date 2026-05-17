@@ -96,7 +96,7 @@ export interface ParsedImage {
  * 图片匹配信息
  *
  * @remarks
- * 由 `filterImagesInText` 解析 Markdown 文本产出，表示发现的一次图片引用。
+ * 由 `filterImages` 解析 Markdown 文本产出，表示发现的一次图片引用。
  * 纯文本层，不涉及文件系统路径（`absPath` 由 asset 层负责）。
  *
  * `type` 字段区分来源：
@@ -132,6 +132,8 @@ export interface ImageMatch {
 export interface ImageFilterOptions {
     mode: ImageFilterMode;
     value: ImageFilterValue;
+    /** 可选的日志记录器 */
+    logger?: import("./logger.js").Logger;
 }
 /**
  * 图片筛选模式
@@ -491,40 +493,25 @@ export interface FindMatchesResult {
  * @public
  * @category 元数据
  */
-export type FrontmatterValue = string | string[] | null;
+export type FrontmatterValue = string | number | boolean | null | FrontmatterValue[];
 
 /**
- * 文档元数据
+ * 文档条目（用于目录扫描和排序）
  *
  * @remarks
- * `extractMetadata` 函数保证返回的 `title` 字段必定存在：
- * 1. 优先从 Frontmatter YAML 提取
- * 2. 其次从 Markdown Heading 提取
- * 3. 最后使用文件名（不含扩展名）作为备选
+ * 由 `@cmtx/asset` 的 `scanDirectory()` 产生，供 `sortByOrder()` 消费。
+ * `filePath` 是文件系统元数据字符串，不涉及 I/O 操作。
  *
  * @public
  * @category 元数据
  */
-export interface DocumentMetadata {
-    /**
-     * 文档标题
-     *
-     * @remarks
-     * 必定存在，来源优先级：Frontmatter YAML > Markdown Heading > 文件名
-     */
+export interface DocEntry {
+    /** 文件路径 */
+    filePath: string;
+    /** 解析后的 frontmatter 字段 */
+    frontmatter: Record<string, FrontmatterValue>;
+    /** 文档标题（从 frontmatter.title 或 H1 或 filename 取）*/
     title: string;
-    /** 其他元数据字段 */
-    [key: string]: FrontmatterValue | undefined;
-}
-
-/**
- * 元数据提取选项
- * @public
- * @category 元数据
- */
-export interface MetadataExtractOptions {
-    /** 用于提取标题的标题等级，默认 1 */
-    headingLevel?: number;
 }
 
 /**
@@ -591,6 +578,30 @@ export interface FrontmatterUpdateResult {
     unchanged: string[];
     /** 更新后的 Markdown 内容 */
     markdown: string;
+}
+
+/**
+ * 偏移量替换操作
+ *
+ * @remarks
+ * 描述一次基于偏移量的文本替换操作。
+ * offset 是替换在原文本中的起始位置，length 是被替换文本的长度，
+ * newText 是替换后的文本。
+ *
+ * @example
+ * ```typescript
+ * const op: ReplacementOp = { offset: 10, length: 5, newText: "world" };
+ * ```
+ * @public
+ * @category 文档操作
+ */
+export interface ReplacementOp {
+    /** 替换在原文本中的起始位置 */
+    offset: number;
+    /** 被替换文本的长度 */
+    length: number;
+    /** 替换后的文本 */
+    newText: string;
 }
 
 // ==================== 章节编号类型 ====================

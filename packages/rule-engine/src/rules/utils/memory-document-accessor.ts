@@ -6,19 +6,8 @@
  * 实现 DocumentAccessor 接口，用于在内存中处理文档内容。
  */
 
-import type { ReplacementOp } from "@cmtx/asset/upload";
-
-/**
- * DocumentAccessor 接口
- */
-export interface DocumentAccessor {
-    /** 读取文档文本内容 */
-    readText(): Promise<string>;
-    /** 应用替换操作 */
-    applyReplacements(ops: ReplacementOp[]): Promise<boolean>;
-    /** 标识符 */
-    identifier: string;
-}
+import type { ReplacementOp } from "@cmtx/core";
+import type { DocumentAccessor } from "@cmtx/asset/upload";
 
 /**
  * 内存文档访问器实现

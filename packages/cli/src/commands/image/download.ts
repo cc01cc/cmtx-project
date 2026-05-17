@@ -10,22 +10,12 @@ import type { DownloadOptions, DownloadProgress } from "@cmtx/asset/download";
 import { createDownloadService } from "@cmtx/asset/download";
 import type { Argv, CommandModule } from "yargs";
 import type { DownloadResult } from "@cmtx/asset/download";
+import type { DownloadCommandOptions } from "../../types/cli.js";
 import { formatError, formatInfo, formatSuccess, formatWarning } from "../../utils/formatter.js";
 import { createLogger } from "../../utils/logger.js";
 
 export const command = "download <input>";
 export const describe = "下载 Markdown 中的远程图片到本地";
-
-interface DownloadCommandOptions {
-    input: string;
-    output: string;
-    domain?: string;
-    naming?: string;
-    concurrency?: number;
-    overwrite?: boolean;
-    "dry-run"?: boolean;
-    verbose?: boolean;
-}
 
 export function builder(yargs: Argv): Argv {
     return yargs
@@ -34,7 +24,7 @@ export function builder(yargs: Argv): Argv {
             type: "string",
             demandOption: true,
         })
-        .option("output", {
+        .option("output-dir", {
             alias: "o",
             description: "输出目录（必填）",
             type: "string",
@@ -45,7 +35,7 @@ export function builder(yargs: Argv): Argv {
             description: "只下载指定域名的图片",
             type: "string",
         })
-        .option("naming", {
+        .option("naming-template", {
             alias: "n",
             description:
                 "文件命名模板，支持变量：{original}, {hash}, {timestamp}, {date}, {sequence}",
@@ -80,7 +70,7 @@ function printDownloadResult(result: DownloadResult, verbose?: boolean): void {
     console.log("");
     console.log(formatInfo("下载完成:"));
     console.log(`  总数: ${result.total}`);
-    console.log(`  ${formatSuccess("成功")}: ${result.success}`);
+    console.log(`  ${formatSuccess("成功")}: ${result.succeeded}`);
     if (result.skipped > 0) {
         console.log(`  ${formatWarning("跳过")}: ${result.skipped}`);
     }
@@ -107,20 +97,20 @@ function printDownloadResult(result: DownloadResult, verbose?: boolean): void {
     }
 }
 
-export async function handler(argv: DownloadCommandOptions): Promise<void> {
-    const log = createLogger(argv.verbose);
+export async function handler(options: DownloadCommandOptions): Promise<void> {
+    const log = createLogger(options.verbose);
 
-    log.debug(`开始下载: ${argv.input}`);
-    log.debug(`输出目录: ${argv.output}`);
-    log.debug(`命名模板: ${argv.naming}`);
-    log.debug(`并发数: ${argv.concurrency}`);
+    log.debug(`开始下载: ${options.input}`);
+    log.debug(`输出目录: ${options.outputDir}`);
+    log.debug(`命名模板: ${options.namingTemplate}`);
+    log.debug(`并发数: ${options.concurrency}`);
 
-    const inputPath = resolve(argv.input);
-    const outputDir = resolve(argv.output);
+    const inputPath = resolve(options.input);
+    const outputDir = resolve(options.outputDir);
 
     // 进度回调
     const onProgress = (progress: DownloadProgress) => {
-        if (argv.verbose) {
+        if (options.verbose) {
             const status =
                 progress.status === "completed"
                     ? formatSuccess("完成")
@@ -134,18 +124,18 @@ export async function handler(argv: DownloadCommandOptions): Promise<void> {
     };
 
     // 创建下载选项
-    const options: DownloadOptions = {
+    const downloadOptions: DownloadOptions = {
         outputDir,
-        namingTemplate: argv.naming,
-        domain: argv.domain,
-        concurrency: argv.concurrency,
-        overwrite: argv.overwrite,
+        namingTemplate: options.namingTemplate,
+        domain: options.domain,
+        concurrency: options.concurrency,
+        overwrite: options.overwrite,
         onProgress,
-        debug: argv.verbose,
+        debug: options.verbose,
     };
 
     // 预览模式
-    if (argv["dry-run"]) {
+    if (options["dry-run"]) {
         log.info(formatInfo("预览模式：不实际下载文件"));
         log.info(`将从 ${inputPath} 下载图片到 ${outputDir}`);
         return;
@@ -153,13 +143,13 @@ export async function handler(argv: DownloadCommandOptions): Promise<void> {
 
     try {
         // 创建下载服务
-        const service = createDownloadService({ options });
+        const service = createDownloadService({ options: downloadOptions });
 
         // 执行下载
         const result = await service.downloadFromMarkdown(inputPath);
 
         // 输出结果
-        printDownloadResult(result, argv.verbose);
+        printDownloadResult(result, options.verbose);
         process.exit(result.failed > 0 ? 1 : 0);
     } catch (error) {
         console.error(

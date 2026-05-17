@@ -7,21 +7,17 @@
  * 采用 Facade 模式简化复杂的 Pipeline API。
  */
 
-import { filterImagesInText, isWebSource, type Logger } from "@cmtx/core";
+import { filterImages, isWebSource, applyReplacementOps, type Logger } from "@cmtx/core";
+import type { ReplacementOp } from "@cmtx/core";
 import { isAbsolute, resolve } from "node:path";
-import type { IStorageAdapter } from "@cmtx/storage";
+import type { StorageAdapter } from "@cmtx/storage";
 import type { ReplaceConfig } from "../config/types.js";
 import { DeleteService } from "../delete/delete-service.js";
 import type { DeleteOptions, DeleteResult } from "../delete/types.js";
 import { DownloadService } from "../download/download-service.js";
 import type { DownloadOptions, DownloadResult } from "../download/types.js";
-import {
-    batchUploadImages,
-    matchesToSources,
-    renderReplacementText,
-    applyReplacementOps,
-} from "../upload/index.js";
-import type { ReplacementOp } from "../upload/strategies.js";
+import { batchUploadImages, matchesToSources } from "../upload/index.js";
+import { renderReplacementText } from "../upload/batch-upload.js";
 import type { ConflictResolutionStrategy, FailedItemDetail } from "../upload/types.js";
 import type { Service } from "./service-registry.js";
 
@@ -33,7 +29,7 @@ import type { Service } from "./service-registry.js";
  */
 export interface AssetServiceConfig {
     /** 存储适配器 */
-    adapter: IStorageAdapter;
+    adapter: StorageAdapter;
     /** 前缀（可选） */
     prefix?: string;
     /** 命名模板（可选） */
@@ -63,7 +59,8 @@ export interface UploadResult {
     /** 处理后的 Markdown 内容 */
     content: string;
     /** 成功上传的图片数 */
-    uploaded: number;
+    succeeded: number;
+
     /** 失败的图片详情 */
     failed: FailedItemDetail[];
     /** 跳过的项 */
@@ -79,7 +76,7 @@ export interface TransferResult {
     /** 处理后的 Markdown 内容 */
     content: string;
     /** 成功转移的图片数 */
-    transferred: number;
+    succeeded: number;
     /** 失败的图片详情 */
     failed: FailedItemDetail[];
 }
@@ -89,7 +86,7 @@ export interface TransferResult {
  */
 export interface SimpleDownloadResult {
     /** 成功数 */
-    success: number;
+    succeeded: number;
 
     /** 失败数 */
     failed: number;
@@ -140,13 +137,13 @@ export class AssetService implements Service<AssetServiceConfig> {
     async uploadImagesInDocument(document: string, basePath: string): Promise<UploadResult> {
         this.config.logger?.info("[AssetService] Starting upload for document");
 
-        const allMatches = filterImagesInText(document);
+        const allMatches = filterImages(document);
         const localMatches = allMatches.filter(
             (m) => !isWebSource(m.src) && !m.src.startsWith("data:image/"),
         );
 
         if (localMatches.length === 0) {
-            return { content: document, uploaded: 0, failed: [], skipped: [], downloaded: [] };
+            return { content: document, succeeded: 0, failed: [], skipped: [], downloaded: [] };
         }
 
         const sources = matchesToSources(localMatches, basePath);
@@ -189,7 +186,7 @@ export class AssetService implements Service<AssetServiceConfig> {
 
         return {
             content: finalContent,
-            uploaded: batchResult.uploaded.length,
+            succeeded: batchResult.uploaded.length,
             failed: batchResult.failed.map((f) => ({
                 localPath: f.source.kind === "file" ? f.source.absPath : "buffer",
                 stage: "upload",
@@ -230,11 +227,11 @@ export class AssetService implements Service<AssetServiceConfig> {
         const result: DownloadResult = await downloadService.downloadFromContent(document);
 
         this.config.logger?.info(
-            `[AssetService] Download complete: ${result.success} images downloaded`,
+            `[AssetService] Download complete: ${result.succeeded} images downloaded`,
         );
 
         return {
-            success: result.success,
+            succeeded: result.succeeded,
             failed: result.failed,
             skipped: result.skipped,
         };
@@ -255,15 +252,13 @@ export class AssetService implements Service<AssetServiceConfig> {
     ): Promise<DeleteResult> {
         this.config.logger?.info("[AssetService] Starting delete for document");
 
-        const deleteService = new DeleteService(
-            {
-                workspaceRoot: baseDirectory,
-                options,
-            },
-            this.config.logger,
-        );
+        const deleteService = new DeleteService({
+            baseDirectory,
+            options,
+            logger: this.config.logger,
+        });
 
-        const images = filterImagesInText(document, {
+        const images = filterImages(document, {
             mode: "sourceType",
             value: "local",
         });

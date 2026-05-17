@@ -33,12 +33,12 @@ import type { FileReplaceResult, DirectoryReplaceResult } from "./types.js";
 
 // 从 core 导入纯文本处理函数
 import {
-    filterImagesInText,
+    filterImages,
     type ImageFilterOptions,
     type ImageMatch,
     type ReplaceOptions,
     type ReplaceResult,
-    replaceImagesInText,
+    updateImageRefs,
 } from "@cmtx/core";
 import { glob } from "tinyglobby";
 import trash from "trash";
@@ -51,7 +51,6 @@ import type {
     FileInfo,
     FileImageMatch,
     FileServiceConfig,
-    IFileService,
     LocalFileImageMatch,
     LocalImageEntry,
     WebFileImageMatch,
@@ -81,7 +80,7 @@ import type {
  * });
  * ```
  */
-export class FileService implements IFileService {
+export class FileService {
     private accessor: FileAccessor;
 
     constructor(accessor?: FileAccessor) {
@@ -101,7 +100,7 @@ export class FileService implements IFileService {
         options?: ImageFilterOptions,
     ): Promise<FileImageMatch[]> {
         const content = await this.accessor.readText(fileAbsPath);
-        const images = filterImagesInText(content, options);
+        const images = filterImages(content, options);
         const fileDir = dirname(fileAbsPath);
 
         return images.map((img: ImageMatch) => {
@@ -271,7 +270,7 @@ export class FileService implements IFileService {
         replaceOptions: ReplaceOptions[],
     ): Promise<FileReplaceResult> {
         const content = await this.accessor.readText(fileAbsPath);
-        const result: ReplaceResult = replaceImagesInText(content, replaceOptions);
+        const result: ReplaceResult = updateImageRefs(content, replaceOptions);
 
         if (result.replacements.length > 0) {
             await this.accessor.writeText(fileAbsPath, result.newText);
@@ -442,7 +441,7 @@ export class FileService implements IFileService {
 
         for (const file of files) {
             const content = await this.accessor.readText(file);
-            const images = filterImagesInText(content);
+            const images = filterImages(content);
 
             const isReferenced = images.some((img: ImageMatch) => {
                 if (img.type !== "local") {

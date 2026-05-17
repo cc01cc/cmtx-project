@@ -2,13 +2,14 @@ import type { Argv, CommandModule } from "yargs";
 import type { MoveCommandOptions } from "../../types/cli.js";
 import { formatError } from "../../utils/formatter.js";
 import { createLogger } from "../../utils/logger.js";
-import { createTransferAssetsService } from "@cmtx/asset";
+import { createTransferService } from "@cmtx/asset";
 import type { Logger } from "@cmtx/core";
 import { ConfigLoader } from "@cmtx/asset/config";
 import { createCredentials } from "@cmtx/storage";
 import { createAdapter } from "@cmtx/storage/adapters/factory";
 import fs from "node:fs";
-import type { TransferConfig, CloudCredentials } from "@cmtx/asset/transfer";
+import type { TransferConfig } from "@cmtx/asset/transfer";
+import type { CloudCredentials } from "@cmtx/storage";
 import type { CmtxConfig } from "@cmtx/asset/config";
 
 export const command = "move <filePath>";
@@ -66,11 +67,11 @@ export function builder(yargs: Argv): Argv {
         });
 }
 
-export async function handler(argv: MoveCommandOptions): Promise<void> {
-    const logger = createLogger(argv.verbose, argv.quiet);
+export async function handler(options: MoveCommandOptions): Promise<void> {
+    const logger = createLogger(options.verbose, options.quiet);
 
     try {
-        await executeMove(argv, logger);
+        await executeMove(options, logger);
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         console.error(formatError(message));
@@ -93,7 +94,7 @@ async function executeMove(argv: MoveCommandOptions, logger: Logger): Promise<vo
     const sourceAdapter = await createAdapter(config.source.credentials);
     const targetAdapter = await createAdapter(config.target.credentials);
 
-    const transferService = createTransferAssetsService({
+    const transferService = createTransferService({
         sourceAdapters: [
             {
                 domain: config.source.domain ?? "",
@@ -115,14 +116,14 @@ async function executeMove(argv: MoveCommandOptions, logger: Logger): Promise<vo
         deleteSource: true,
     });
 
-    if (result.content !== content && result.transferred > 0) {
+    if (result.content !== content && result.succeeded > 0) {
         await fs.promises.writeFile(argv.filePath, result.content, "utf-8");
         logger.info(`已更新 Markdown 文件：${argv.filePath}`);
     }
 
     // 输出结果
-    const total = result.transferred + result.failed + result.skipped;
-    logger.info(`移动完成：${result.transferred}/${total}`);
+    const total = result.succeeded + result.failed + result.skipped;
+    logger.info(`移动完成：${result.succeeded}/${total}`);
     if (result.failed > 0) {
         logger.info(`失败：${result.failed}`);
     }

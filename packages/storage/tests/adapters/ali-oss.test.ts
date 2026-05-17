@@ -1,5 +1,5 @@
 /**
- * AliOSSAdapter 单元测试
+ * AliyunOSSAdapter 单元测试
  *
  * @module @cmtx/storage/tests/adapters/ali-oss
  */
@@ -8,12 +8,12 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AliOSSClient } from "../../src/adapters/ali-oss.js";
-import { AliOSSAdapter } from "../../src/adapters/ali-oss.js";
+import type { AliyunOSSClient } from "../../src/adapters/ali-oss.js";
+import { AliyunOSSAdapter } from "../../src/adapters/ali-oss.js";
 
-describe("AliOSSAdapter", () => {
-    let mockClient: AliOSSClient;
-    let adapter: AliOSSAdapter;
+describe("AliyunOSSAdapter", () => {
+    let mockClient: AliyunOSSClient;
+    let adapter: AliyunOSSAdapter;
     let tempDir: string;
 
     beforeEach(() => {
@@ -22,8 +22,8 @@ describe("AliOSSAdapter", () => {
             signatureUrl: vi.fn(),
             get: vi.fn(),
             head: vi.fn(),
-        } as unknown as AliOSSClient;
-        adapter = new AliOSSAdapter(mockClient);
+        } as unknown as AliyunOSSClient;
+        adapter = new AliyunOSSAdapter(mockClient);
         tempDir = mkdtempSync(join(tmpdir(), "ali-oss-test-"));
     });
 
@@ -37,7 +37,7 @@ describe("AliOSSAdapter", () => {
 
     describe("upload", () => {
         it("should upload file successfully", async () => {
-            const mockResult: Awaited<ReturnType<AliOSSClient["put"]>> = {
+            const mockResult: Awaited<ReturnType<AliyunOSSClient["put"]>> = {
                 name: "test.png",
                 url: "https://bucket.oss-cn-hangzhou.aliyuncs.com/test.png",
                 res: { status: 200 } as any,
@@ -90,7 +90,7 @@ describe("AliOSSAdapter", () => {
 
     describe("uploadBuffer", () => {
         it("should upload buffer successfully", async () => {
-            const mockResult: Awaited<ReturnType<AliOSSClient["put"]>> = {
+            const mockResult: Awaited<ReturnType<AliyunOSSClient["put"]>> = {
                 name: "test.png",
                 url: "https://bucket.oss-cn-hangzhou.aliyuncs.com/test.png",
                 res: { status: 200 } as any,
@@ -108,7 +108,7 @@ describe("AliOSSAdapter", () => {
         });
 
         it("should upload buffer with options", async () => {
-            const mockResult: Awaited<ReturnType<AliOSSClient["put"]>> = {
+            const mockResult: Awaited<ReturnType<AliyunOSSClient["put"]>> = {
                 name: "test.png",
                 url: "https://bucket.oss-cn-hangzhou.aliyuncs.com/test.png",
                 res: { status: 200 } as any,
@@ -150,7 +150,7 @@ describe("AliOSSAdapter", () => {
         it("should download file with Buffer content successfully", async () => {
             const testContent = "test file content";
             const mockBuffer = Buffer.from(testContent);
-            const mockResult: Awaited<ReturnType<AliOSSClient["get"]>> = {
+            const mockResult: Awaited<ReturnType<AliyunOSSClient["get"]>> = {
                 content: mockBuffer,
                 res: { status: 200 } as any,
             } as any;
@@ -168,7 +168,7 @@ describe("AliOSSAdapter", () => {
             const testContent = "test file content from stream";
             const { Readable } = await import("node:stream");
             const mockStream = Readable.from([testContent]);
-            const mockResult: Awaited<ReturnType<AliOSSClient["get"]>> = {
+            const mockResult: Awaited<ReturnType<AliyunOSSClient["get"]>> = {
                 content: mockStream as unknown as Buffer,
                 res: { status: 200 } as any,
             } as any;
@@ -192,7 +192,7 @@ describe("AliOSSAdapter", () => {
         });
 
         it("should throw error for unexpected content type", async () => {
-            const mockResult: Awaited<ReturnType<AliOSSClient["get"]>> = {
+            const mockResult: Awaited<ReturnType<AliyunOSSClient["get"]>> = {
                 content: "invalid content" as unknown as Buffer,
                 res: { status: 200 } as any,
             } as any;
@@ -207,7 +207,7 @@ describe("AliOSSAdapter", () => {
 
     describe("getObjectMeta", () => {
         it("should get object metadata successfully", async () => {
-            const mockResponse: Awaited<ReturnType<AliOSSClient["head"]>> = {
+            const mockResponse: Awaited<ReturnType<AliyunOSSClient["head"]>> = {
                 res: {
                     headers: {
                         "content-length": "1024",
@@ -233,7 +233,7 @@ describe("AliOSSAdapter", () => {
         });
 
         it("should handle missing optional headers", async () => {
-            const mockResponse: Awaited<ReturnType<AliOSSClient["head"]>> = {
+            const mockResponse: Awaited<ReturnType<AliyunOSSClient["head"]>> = {
                 res: {
                     headers: {
                         "content-length": "0",
@@ -266,7 +266,7 @@ describe("AliOSSAdapter", () => {
 
     describe("exists", () => {
         it("should return true when object exists", async () => {
-            const mockResult: Awaited<ReturnType<AliOSSClient["head"]>> = {
+            const mockResult: Awaited<ReturnType<AliyunOSSClient["head"]>> = {
                 res: { headers: {} },
                 status: 200,
                 meta: {},
@@ -333,8 +333,8 @@ describe("AliOSSAdapter", () => {
                     bucket: "my-bucket",
                     region: "oss-cn-beijing",
                 },
-            }) as unknown as AliOSSClient;
-            const adapterWithOptions = new AliOSSAdapter(mockClientWithOptions);
+            }) as unknown as AliyunOSSClient;
+            const adapterWithOptions = new AliyunOSSAdapter(mockClientWithOptions);
 
             const url = adapterWithOptions.buildUrl("images/test.png");
 
@@ -345,8 +345,8 @@ describe("AliOSSAdapter", () => {
             const mockClientWithoutOptions = Object.assign(
                 {},
                 mockClient,
-            ) as unknown as AliOSSClient;
-            const adapterWithoutOptions = new AliOSSAdapter(mockClientWithoutOptions);
+            ) as unknown as AliyunOSSClient;
+            const adapterWithoutOptions = new AliyunOSSAdapter(mockClientWithoutOptions);
 
             const url = adapterWithoutOptions.buildUrl("images/test.png");
 
@@ -356,8 +356,8 @@ describe("AliOSSAdapter", () => {
         it("should handle client with empty options", () => {
             const mockClientWithEmptyOptions = Object.assign({}, mockClient, {
                 options: {},
-            }) as unknown as AliOSSClient;
-            const adapterWithEmptyOptions = new AliOSSAdapter(mockClientWithEmptyOptions);
+            }) as unknown as AliyunOSSClient;
+            const adapterWithEmptyOptions = new AliyunOSSAdapter(mockClientWithEmptyOptions);
 
             const url = adapterWithEmptyOptions.buildUrl("images/test.png");
 

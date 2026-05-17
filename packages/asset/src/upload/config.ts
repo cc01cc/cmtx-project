@@ -3,12 +3,12 @@
  * 支持多个 storage provider，通过 ID 标识
  */
 
-import type { IStorageAdapter } from "@cmtx/storage";
+import type { StorageAdapter } from "@cmtx/storage";
 
 // ==================== 单个存储配置 ====================
 export interface StorageConfig {
     /** 云存储适配器 */
-    adapter: IStorageAdapter;
+    adapter: StorageAdapter;
 
     /** 命名模板 */
     namingTemplate?: string;

@@ -10,6 +10,7 @@ import configCmd from "./commands/config.js";
 import formatCmd from "./commands/format.js";
 import imageCmd from "./commands/image.js";
 import publishCmd from "./commands/publish.js";
+import sectionNumbersCmd from "./commands/section-numbers.js";
 
 export const cli = yargs(hideBin(process.argv))
     .scriptName("cmtx")
@@ -18,6 +19,7 @@ export const cli = yargs(hideBin(process.argv))
     .command(formatCmd)
     .command(imageCmd)
     .command(publishCmd)
+    .command(sectionNumbersCmd)
     .demandCommand(1, "请提供一个命令，运行 cmtx --help 查看帮助")
     .strictCommands()
     .recommendCommands()

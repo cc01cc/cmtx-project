@@ -6,38 +6,23 @@
  * 提供统一的 Rule 接口和类型定义，支持文本替换、图片处理、元数据处理等多种操作。
  */
 
+import type { FrontmatterValue } from "@cmtx/core";
 import type { ServiceRegistry } from "./service-registry.js";
 
 // ==================== 外部类型（从 @cmtx/asset 导入）====================
 export type { ConflictResolutionStrategy } from "@cmtx/asset/upload";
-export type { IStorageAdapter } from "@cmtx/storage";
-// 重新导出服务相关类型
-export type {
-    CallbackService,
-    CallbackServiceConfig,
-    CoreContext,
-    CounterService,
-    CounterServiceConfig,
-    PresignedUrlService,
-    PresignedUrlServiceConfig,
-    StorageServiceConfig,
-} from "./service-registry.js";
+export type { StorageAdapter } from "@cmtx/storage";
+
 // ==================== Service 类型（从 @cmtx/asset 统一导入）====================
 export type {
-    CoreService,
-    CoreServiceConfig,
-    DownloadAssetsService,
-    DownloadAssetsServiceConfig,
-    TransferAssetsService,
-    TransferAssetsServiceConfig,
+    DownloadService,
+    DownloadServiceConfig,
+    TransferService,
+    TransferServiceConfig,
     UploadResult,
     UploadService,
     UploadServiceConfig,
 } from "@cmtx/asset";
-/** @deprecated 使用 UploadService / DownloadAssetsService / TransferAssetsService 替代 */
-export type { AssetService, AssetServiceConfig } from "@cmtx/asset";
-// 重新导出 Service 接口（从 service-registry.js，最终来源是 @cmtx/asset）
-export type { Service } from "./service-registry.js";
 
 /**
  * Rule 执行上下文
@@ -67,7 +52,7 @@ export interface RuleContext {
     dryRun?: boolean;
 
     /** 调用方输入参数 */
-    input?: Record<string, string>;
+    input?: Record<string, FrontmatterValue>;
 
     /** 其他配置项 */
     [key: string]: unknown;
@@ -227,8 +212,3 @@ export interface RuleRegistry {
     /** 获取所有 Rule ID */
     getAllIds(): string[];
 }
-
-/**
- * 重新导出 ServiceRegistry 和 ServiceTypeMap
- */
-export type { ServiceRegistry, ServiceTypeMap } from "./service-registry.js";

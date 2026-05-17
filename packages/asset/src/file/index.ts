@@ -32,17 +32,4 @@
 
 export { createFileService, FileService } from "./file-service.js";
 export { type FileAccessor, FsFileAccessor } from "./file-accessor.js";
-export type {
-    AnalyzeOptions,
-    DirectoryAnalysis,
-    DirectoryScanOptions,
-    FileImageMatch,
-    FileInfo,
-    FileServiceConfig,
-    IFileService,
-    ImageEntry,
-    LocalFileImageMatch,
-    LocalImageEntry,
-    WebFileImageMatch,
-    WebImageEntry,
-} from "./types.js";
+export type { AnalyzeOptions, DirectoryAnalysis, ImageEntry, LocalImageEntry } from "./types.js";

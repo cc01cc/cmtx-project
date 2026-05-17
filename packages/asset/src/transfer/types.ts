@@ -24,7 +24,7 @@
  * - {@link TransferEvent} - 事件类型
  */
 
-import type { CloudCredentials, IStorageAdapter } from "@cmtx/storage";
+import type { CloudCredentials, StorageAdapter } from "@cmtx/storage";
 
 // ==================== 凭证配置 ====================
 
@@ -114,7 +114,7 @@ export interface TargetConfig {
  */
 export interface InternalSourceConfig extends Omit<SourceConfig, "credentials"> {
     /** 存储适配器 */
-    adapter: IStorageAdapter;
+    adapter: StorageAdapter;
 }
 
 /**
@@ -123,7 +123,7 @@ export interface InternalSourceConfig extends Omit<SourceConfig, "credentials"> 
  */
 export interface InternalTargetConfig extends Omit<TargetConfig, "credentials"> {
     /** 存储适配器 */
-    adapter: IStorageAdapter;
+    adapter: StorageAdapter;
 }
 
 /**
@@ -222,7 +222,7 @@ export interface TransferResult {
     total: number;
 
     /** 成功数 */
-    success: number;
+    succeeded: number;
 
     /** 失败数 */
     failed: number;

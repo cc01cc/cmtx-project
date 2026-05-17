@@ -36,7 +36,7 @@ export function builder(yargs: Argv): Argv {
             demandOption: true,
             type: "string",
         })
-        .option("output", {
+        .option("output-path", {
             alias: "o",
             description: "输出文件路径（默认覆盖原文件）",
             type: "string",
@@ -69,8 +69,8 @@ export function builder(yargs: Argv): Argv {
         });
 }
 
-function resolveOutputPath(filePath: string, output?: string): string {
-    return output ? resolve(output) : filePath;
+function resolveOutputPath(filePath: string, outputPath?: string): string {
+    return outputPath ? resolve(outputPath) : filePath;
 }
 
 // 辅助函数：从 Rule 结果生成统计信息
@@ -207,20 +207,20 @@ async function executeResizeRule(
     });
 }
 
-export async function handler(argv: FormatCommandOptions): Promise<void> {
-    const logger = createLogger(argv.verbose, false);
+export async function handler(options: FormatCommandOptions): Promise<void> {
+    const logger = createLogger(options.verbose, false);
 
     try {
         // 验证参数
-        if (argv.output && argv.inPlace) {
+        if (options.outputPath && options.inPlace) {
             console.error(formatError("--output 和 --in-place 参数不能同时使用"));
             process.exit(1);
         }
 
-        const targetFormat = argv.to;
-        const filePath = resolve(argv.filePath);
-        const width = argv.width;
-        const height = argv.height;
+        const targetFormat = options.to;
+        const filePath = resolve(options.filePath);
+        const width = options.width;
+        const height = options.height;
 
         logger.info(`读取文件: ${filePath}`);
 
@@ -229,7 +229,6 @@ export async function handler(argv: FormatCommandOptions): Promise<void> {
 
         // 创建 Rule 引擎适配器
         const ruleAdapter = await createRuleEngineAdapter();
-        ruleAdapter.configureCore();
 
         // 第一步：执行 convert-images Rule
         let result = await executeConvertRule(ruleAdapter, content, filePath, targetFormat);
@@ -243,17 +242,17 @@ export async function handler(argv: FormatCommandOptions): Promise<void> {
         const stats = parseConversionStats(result.messages ?? [], targetFormat);
 
         // 确定输出路径
-        const outputPath = resolveOutputPath(filePath, argv.output);
+        const outputPath = resolveOutputPath(filePath, options.outputPath);
 
         // 如果是 dry-run，只显示预览
-        if (argv.dryRun) {
+        if (options.dryRun) {
             printDryRunSummary({
                 filePath,
                 targetFormat,
                 stats,
                 width,
                 height,
-                verbose: Boolean(argv.verbose),
+                verbose: Boolean(options.verbose),
                 messages: result.messages ?? [],
             });
             return;

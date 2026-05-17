@@ -49,31 +49,51 @@ export interface FindCommandOptions extends GlobalOptions {
 }
 
 /**
+ * Download 命令选项
+ */
+export interface DownloadCommandOptions extends GlobalOptions {
+    input: string;
+    outputDir: string;
+    domain?: string;
+    namingTemplate?: string;
+    concurrency?: number;
+    overwrite?: boolean;
+    "dry-run"?: boolean;
+}
+
+/**
  * Delete 命令选项
  */
 export interface DeleteCommandOptions extends GlobalOptions {
-    imagePath: string;
-    strategy?: "trash" | "move" | "hard-delete";
+    imagePath: string[];
+    strategy?: string;
     force?: boolean;
-    "remove-references"?: boolean;
-    "move-dir"?: string;
-    "dry-run"?: boolean;
+    removeReferences?: boolean;
+    moveDir?: string;
+    dryRun?: boolean;
     yes?: boolean;
-    projectRoot?: string;
 }
 
 /**
  * Prune 命令选项
  */
 export interface PruneCommandOptions extends GlobalOptions {
-    searchDir: string;
-    strategy?: "trash" | "move" | "hard-delete";
-    "move-dir"?: string;
-    "dry-run"?: boolean;
+    searchDir?: string;
+    strategy?: string;
+    moveDir?: string;
+    dryRun?: boolean;
     force?: boolean;
     yes?: boolean;
-    extensions?: string;
-    "max-size"?: number;
+}
+
+/**
+ * Presign 命令选项
+ */
+export interface PresignCommandOptions extends GlobalOptions {
+    input?: string;
+    url?: string;
+    expires?: number;
+    provider?: "aliyun-oss" | "tencent-cos";
 }
 
 /**
@@ -85,7 +105,8 @@ export interface CopyCommandOptions extends GlobalOptions {
     provider?: "aliyun-oss" | "tencent-cos";
     dryRun: boolean;
     concurrency: number;
-    verbose: boolean;
+    // verbose/quiet 继承自 GlobalOptions
+
     // 阿里云凭证
     sourceAccessKeyId?: string;
     sourceAccessKeySecret?: string;
@@ -109,10 +130,11 @@ export interface CopyCommandOptions extends GlobalOptions {
     namingTemplate?: string;
     overwrite: boolean;
     tempDir?: string;
-    quiet: boolean;
-    format: "json" | "table" | "plain";
+    // output 继承自 GlobalOptions（OutputFormat 类型）
     /** 删除源文件（move 命令使用） */
     deleteSource?: boolean;
+    /** 输出格式 (json|table|plain) */
+    format: OutputFormat;
 }
 
 /**
@@ -137,11 +159,13 @@ export interface ConfigCommandOptions extends GlobalOptions {
 
 /**
  * Format 命令选项
+ *
+ * 使用 Omit<GlobalOptions, "output"> 避免 output 属性与 OutputFormat 类型冲突。
  */
 export interface FormatCommandOptions extends Omit<GlobalOptions, "output"> {
     filePath: string;
     to: "markdown" | "html";
-    output?: string;
+    outputPath?: string;
     width?: string;
     height?: string;
     inPlace?: boolean;
@@ -175,6 +199,34 @@ export interface PublishCommandOptions extends GlobalOptions {
     dryRun: boolean;
     verbose: boolean;
     force: boolean;
+}
+
+/**
+ * Section Numbers Add 命令选项
+ */
+export interface SectionNumbersAddOptions extends Omit<GlobalOptions, "output"> {
+    filePath: string;
+    minLevel?: number;
+    maxLevel?: number;
+    startLevel?: number;
+    separator?: string;
+    outputPath?: string;
+    inPlace?: boolean;
+    dryRun?: boolean;
+    verbose?: boolean;
+}
+
+/**
+ * Section Numbers Remove 命令选项
+ */
+export interface SectionNumbersRemoveOptions extends Omit<GlobalOptions, "output"> {
+    filePath: string;
+    minLevel?: number;
+    maxLevel?: number;
+    outputPath?: string;
+    inPlace?: boolean;
+    dryRun?: boolean;
+    verbose?: boolean;
 }
 
 /**

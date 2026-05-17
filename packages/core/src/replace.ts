@@ -14,7 +14,7 @@
  * ## 核心功能
  *
  * ### 文本层 API
- * - {@link replaceImagesInText} - 替换纯文本 Markdown 内容中的图片
+ * - {@link updateImageRefs} - 替换纯文本 Markdown 内容中的图片
  *
  * ### 替换模式
  * - **多字段模式**：通过 src 或 raw 识别图片，同时替换 src、alt、title
@@ -32,7 +32,7 @@
  */
 
 import { IMAGE_REGEX } from "./constants/regex.js";
-import type { ReplacementDetail, ReplaceOptions, ReplaceResult } from "./types.js";
+import type { ReplacementDetail, ReplacementOp, ReplaceOptions, ReplaceResult } from "./types.js";
 
 /**
  * 处理 Markdown 图片替换
@@ -268,7 +268,7 @@ function _extractAllHtmlAttributes(imgTag: string): Record<string, string> {
  *
  * @example
  * ```typescript
- * const result = replaceImagesInText(markdown, [
+ * const result = updateImageRefs(markdown, [
  *   {
  *     field: 'src',
  *     pattern: './old.png',
@@ -282,7 +282,7 @@ function _extractAllHtmlAttributes(imgTag: string): Record<string, string> {
  *
  * @public
  */
-export function replaceImagesInText(text: string, options: ReplaceOptions[]): ReplaceResult {
+export function updateImageRefs(text: string, options: ReplaceOptions[]): ReplaceResult {
     const replacements: ReplacementDetail[] = [];
     let currentText = text;
 
@@ -318,23 +318,7 @@ export function replaceImagesInText(text: string, options: ReplaceOptions[]): Re
  * @param value - 新的属性值
  * @returns 更新后的 HTML 字符串
  *
- * @remarks
- * 如果属性已存在则更新值，不存在则添加。
- * 支持更新 src、alt、title、width、height 属性。
- * 保持原有标签格式不变，仅修改指定属性。
- *
- * @example
- * ```typescript
- * // 更新已存在的属性
- * const newHtml = updateImageAttribute('<img src="a.png" width="100" />', 'width', '200');
- * // 返回: '<img src="a.png" width="200" />'
- *
- * // 添加新属性
- * const newHtml = updateImageAttribute('<img src="a.png" />', 'width', '100');
- * // 返回: '<img src="a.png" width="100" />'
- * ```
- *
- * @public
+ * @internal
  */
 export function updateImageAttribute(html: string, attribute: string, value: string): string {
     // 属性名必须是支持的属性
@@ -354,6 +338,32 @@ export function updateImageAttribute(html: string, attribute: string, value: str
     }
     // 属性不存在，在 <img 后添加
     return html.replace(/<img\s/i, `<img ${attribute}="${value}" `);
+}
+
+// ==================== 偏移量替换功能 ====================
+
+/**
+ * 按偏移量从后向前应用替换操作
+ *
+ * 纯函数，不修改传入的数组。按 offset 降序排序后逐个替换，
+ * 避免前面的替换导致偏移量错位。
+ *
+ * @param documentText - 原始文档文本
+ * @param options - 替换操作数组
+ * @returns 替换后的文档文本
+ *
+ * @public
+ * @category 文档操作
+ */
+export function applyReplacementOps(documentText: string, options: ReplacementOp[]): string {
+    const sortedOps = [...options].sort((a, b) => b.offset - a.offset);
+    let content = documentText;
+    for (const op of sortedOps) {
+        const before = content.slice(0, op.offset);
+        const after = content.slice(op.offset + op.length);
+        content = `${before}${op.newText}${after}`;
+    }
+    return content;
 }
 
 // ==================== 多组正则表达式集成功能 ====================

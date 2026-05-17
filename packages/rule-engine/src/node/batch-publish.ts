@@ -4,13 +4,13 @@ import type { FileAccessor } from "@cmtx/asset/file";
 import { FsFileAccessor } from "@cmtx/asset/file";
 import { consoleLogger } from "@cmtx/core";
 import type { ConflictResolutionStrategy } from "@cmtx/asset/upload";
-import type { IStorageAdapter } from "@cmtx/storage";
+import type { StorageAdapter } from "@cmtx/storage";
 import { createRuleEngineContext } from "../rule-context.js";
 import type { RuleContext } from "../rules/rule-types.js";
 import { createServiceRegistry } from "../rules/services/index.js";
 
 export interface PublishReplaceConfig {
-    adapter: IStorageAdapter;
+    adapter: StorageAdapter;
     namingTemplate?: string;
     prefix?: string;
     conflictStrategy?: ConflictResolutionStrategy;
@@ -18,7 +18,9 @@ export interface PublishReplaceConfig {
 
 export interface PublishReplaceResult {
     modified: boolean;
-    uploaded: number;
+    succeeded: number;
+    failed: number;
+    skipped: number;
     messages: string[];
 }
 
@@ -67,7 +69,13 @@ export async function publishAndReplaceFile(
         await fileAccessor.writeText(filePath, result.content);
     }
 
-    return { modified: result.modified, uploaded: 0, messages: result.messages ?? [] };
+    return {
+        modified: result.modified,
+        succeeded: 0,
+        failed: 0,
+        skipped: 0,
+        messages: result.messages ?? [],
+    };
 }
 
 /**

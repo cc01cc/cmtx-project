@@ -15,7 +15,7 @@
  * - {@link EventConfig} - 事件配置
  *
  * ### 结果相关
- * - {@link UploadResult} - 上传结果
+ * - {@link InternalUploadResult} - 上传结果
  * - {@link DeduplicationInfo} - 去重信息
  * - {@link FailedItem} - 失败项详情
  *
@@ -148,9 +148,9 @@ export interface DeduplicationInfo {
 
 /**
  * 上传结果
- * @public
+ * @internal
  */
-export interface UploadResult {
+export interface InternalUploadResult {
     /** 是否成功（至少上传了一张图片） */
     success: boolean;
 

@@ -1,13 +1,7 @@
 /* eslint-disable no-console */
 
 import { readFile, stat } from "node:fs/promises";
-import {
-    extractMetadata as extractMetadataFromCore,
-    extractSectionHeadings,
-    extractTitleFromMarkdown,
-    parseFrontmatter,
-    parseYamlFrontmatter,
-} from "@cmtx/core";
+import { extractFrontmatter, extractSectionHeadings, type FrontmatterValue } from "@cmtx/core";
 import { glob } from "tinyglobby";
 import type { ExtractOptions, MarkdownMetadata } from "../types.js";
 
@@ -18,64 +12,6 @@ import type { ExtractOptions, MarkdownMetadata } from "../types.js";
  * @public
  */
 export class MarkdownMetadataExtractor {
-    /**
-     * 从文本中提取文档元数据
-     *
-     * 纯提取操作，不包含副作用（如 ID 生成）。
-     * 提取优先级：
-     * 1. Frontmatter 中的数据
-     * 2. 文档顶部的一级标题（如果 Frontmatter 中没有 title）
-     * 3. 章节标题（如果 extractAllHeadings 选项启用）
-     *
-     * @param content - Markdown 文本内容
-     * @param options - 提取选项
-     * @returns 提取到的元数据（key-value 对）
-     */
-    async extractFromText(
-        content: string,
-        options: ExtractOptions = {},
-    ): Promise<Record<string, string | string[]>> {
-        const { extractAllHeadings = false, headingLevel = 1 } = options;
-
-        const metadata: Record<string, string | string[]> = {};
-
-        // 提取 Frontmatter
-        const { hasFrontmatter, data } = parseFrontmatter(content);
-        if (hasFrontmatter) {
-            try {
-                const frontmatter = parseYamlFrontmatter(data);
-                // 将 frontmatter 中的字段合并到 metadata，过滤掉 null 值和非字符串/数组值
-                for (const [key, value] of Object.entries(frontmatter)) {
-                    if (value !== null && (typeof value === "string" || Array.isArray(value))) {
-                        metadata[key] = value;
-                    }
-                }
-            } catch (error) {
-                console.warn("Failed to parse frontmatter:", error);
-            }
-        }
-
-        // 如果 Frontmatter 中没有 title，尝试从文档顶部提取一级标题
-        if (!metadata.title) {
-            const title = extractTitleFromMarkdown(content);
-            if (title) {
-                metadata.title = title;
-            }
-        }
-        // 如果需要，提取所有标题
-        if (extractAllHeadings) {
-            const headings = extractSectionHeadings(content, {
-                minLevel: 1,
-                maxLevel: headingLevel,
-            });
-            if (headings.length > 0) {
-                metadata.headings = headings.map((h) => h.text);
-            }
-        }
-
-        return metadata;
-    }
-
     /**
      * 从文件中提取文档元数据
      *
@@ -92,20 +28,19 @@ export class MarkdownMetadataExtractor {
     ): Promise<MarkdownMetadata> {
         const { extractAllHeadings = false, headingLevel = 1 } = options;
 
-        // 复用 @cmtx/core 的 extractMetadata 获取基础元数据
-        const coreMetadata = extractMetadataFromCore(filePath, {
-            headingLevel,
-        });
-
-        // 读取文件以获取 headings 和文件系统信息
+        // 读取文件内容
         const [content, fileStats] = await Promise.all([
             readFile(filePath, "utf-8"),
             stat(filePath),
         ]);
 
-        // 构建完整的 metadata
+        // 从 frontmatter 提取元数据
+        const frontmatter = extractFrontmatter(content) ?? {};
         const metadata: MarkdownMetadata = {
-            ...coreMetadata,
+            ...frontmatter,
+            title:
+                (frontmatter.title as string | undefined) ??
+                extractTitle(content, headingLevel, filePath),
             abspath: filePath,
             filename: filePath.split(/[/\\]/).pop() || filePath,
             size: fileStats.size,
@@ -114,7 +49,6 @@ export class MarkdownMetadataExtractor {
             atime: fileStats.atime,
         };
 
-        // 如果需要，提取所有标题
         if (extractAllHeadings) {
             const headings = extractSectionHeadings(content, {
                 minLevel: 1,
@@ -155,4 +89,19 @@ export class MarkdownMetadataExtractor {
 
         return results;
     }
+}
+
+/**
+ * 从 Markdown 内容中提取标题（frontmatter → heading → filename fallback）
+ */
+function extractTitle(content: string, headingLevel: number, filePath: string): string {
+    const fm = extractFrontmatter(content);
+    if (fm?.title) return String(fm.title);
+
+    const headingRegex = new RegExp(String.raw`^${"#".repeat(headingLevel)}\s+(.+)$`, "m");
+    const headingMatch = headingRegex.exec(content);
+    if (headingMatch) return headingMatch[1].trim();
+
+    const filename = filePath.split(/[/\\]/).pop() || filePath;
+    return filename.replace(/\.[^.]+$/, "");
 }

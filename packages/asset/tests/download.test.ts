@@ -216,7 +216,7 @@ describe("DownloadService", () => {
             const result = await service.downloadFromContent("No images here");
 
             expect(result.total).toBe(0);
-            expect(result.success).toBe(0);
+            expect(result.succeeded).toBe(0);
         });
 
         it("should return empty result when domain filter excludes all", async () => {

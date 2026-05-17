@@ -55,10 +55,10 @@ export async function downloadFromExplorer(uri: vscode.Uri): Promise<void> {
 
                 if (result.failed > 0) {
                     await showError(
-                        `Downloaded ${result.success}/${result.total}, ${result.failed} failed`,
+                        `Downloaded ${result.succeeded}/${result.total}, ${result.failed} failed`,
                     );
                 } else {
-                    await showInfo(`Downloaded ${result.success} images to ${outputDir}`);
+                    await showInfo(`Downloaded ${result.succeeded} images to ${outputDir}`);
                 }
             },
         );

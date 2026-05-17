@@ -3,46 +3,20 @@
  *
  * @module utils
  * @description
- * 提供工具函数，包括路径规范化、类型判断和 Web 链接检测。
+ * 提供 Markdown/HTML 图片格式化函数。
  *
  * @remarks
- * ## 功能概述
- *
- * 提供核心包所需的基础工具函数，主要用于路径处理和类型判断。
- * 所有函数都经过优化，支持跨平台兼容性。
- *
  * ## 核心功能
  *
- * ### 路径处理
- * - {@link normalizePath} - 路径规范化（跨平台兼容）
+ * ### 图片格式化
+ * - {@link formatMarkdownImage} - 生成 Markdown 图片语法
+ * - {@link formatHtmlImage} - 生成 HTML img 标签
  *
- * ### 类型判断
- * - {@link isWebSource} - 判断是否为 Web 链接
- * - 类型守卫：{@link isWebImage}, {@link isLocalImage}, {@link isLocalImageWithAbsPath} 等
- *
- * ### 跨平台支持
- * - 自动处理 Windows 和 Unix 系统的路径差异
- * - 统一使用正斜杠作为路径分隔符
- * - Windows 系统下自动转换为小写（不区分大小写）
- *
- * @example
- * ```typescript
- * import { normalizePath, isWebSource, isLocalImage } from '@cmtx/core';
- *
- * // 规范化路径
- * const normalized = normalizePath('/path\\to/file.png');
- *
- * // 判断图片来源
- * const isWeb = isWebSource('https://example.com/image.png');
- *
- * // 类型守卫
- * if (isLocalImage(image)) {
- *   console.log(image.absLocalPath);
- * }
- * ```
+ * ### 内部工具
+ * 路径处理、URL 检测、类型判断等工具函数已标记为 @internal，
+ * 仅在包内部使用，不推荐外部直接调用。
  *
  * @see {@link ImageMatch} - 图片匹配类型
- * @see {@link LocalImageMatchWithAbsPath} - 带绝对路径的本地图片类型
  */
 
 import { isAbsolute, normalize, relative } from "node:path";
@@ -83,8 +57,6 @@ export function normalizePath(filePath: string): string {
  * @param src - 图片源地址
  * @returns 如果是 Web 链接返回 true
  *
- * @remarks
- * 匹配以 `http://`、`https://` 或 `//` 开头的 URL
  * @public
  */
 export function isWebSource(src: string): boolean {
@@ -97,12 +69,7 @@ export function isWebSource(src: string): boolean {
  * @param src - 路径字符串
  * @returns 如果是本地绝对路径返回 true
  *
- * @remarks
- * 匹配：
- * - /path/to/img (Unix)
- * - C:\path\to\img (Windows)
- * - \path\to\img (Windows)
- * @public
+ * @internal
  */
 export function isLocalAbsolutePath(src: string): boolean {
     return /^([/\\]|[a-zA-Z]:[/\\])/.test(src.trim());
@@ -114,7 +81,7 @@ export function isLocalAbsolutePath(src: string): boolean {
  * @param parent - 父目录绝对路径
  * @param child - 子路径（绝对路径）
  * @returns 如果 child 在 parent 之内（或是 parent 本身）返回 true
- * @public
+ * @internal
  */
 export function isPathInside(parent: string, child: string): boolean {
     const rel = relative(parent, child);
@@ -129,14 +96,7 @@ export function isPathInside(parent: string, child: string): boolean {
  * @param urlString - 要验证的 URL 字符串
  * @returns 如果是有效 URL 返回 true
  *
- * @example
- * ```typescript
- * import { isValidUrl } from '@cmtx/core';
- *
- * console.log(isValidUrl('https://example.com')); // true
- * console.log(isValidUrl('not-a-url')); // false
- * ```
- * @public
+ * @internal
  */
 export function isValidUrl(urlString: string): boolean {
     try {
@@ -153,14 +113,7 @@ export function isValidUrl(urlString: string): boolean {
  * @param urlString - 要解析的 URL 字符串
  * @returns 解析后的 URL 对象，如果解析失败返回 null
  *
- * @example
- * ```typescript
- * import { parseUrlSafe } from '@cmtx/core';
- *
- * const url = parseUrlSafe('https://example.com/path');
- * console.log(url?.hostname); // 'example.com'
- * ```
- * @public
+ * @internal
  */
 export function parseUrlSafe(urlString: string): URL | null {
     try {
@@ -237,52 +190,4 @@ export function formatHtmlImage(options: import("./types.js").FormatHtmlImageOpt
     }
 
     return `<img ${attrs.join(" ")}>`;
-}
-
-/**
- * 替换 alt 模板变量
- *
- * @param template - 模板字符串
- * @param filename - 可选的文件名
- * @returns 替换后的字符串
- *
- * @remarks
- * 支持的变量：
- * - `{timestamp}` - 时间戳（毫秒）
- * - `{date}` - 日期（YYYYMMDD）
- * - `{time}` - 时间（HHmmss）
- * - `{datetime}` - 日期时间（YYYYMMDDHHmmss）
- * - `{year}`, `{month}`, `{day}`, `{hour}`, `{minute}`, `{second}` - 单独的时间组件
- * - `{filename}` - 文件名
- *
- * @example
- * ```typescript
- * import { replaceAltVariables } from '@cmtx/core';
- *
- * const alt = replaceAltVariables('{filename} - {date}', 'my-image.png');
- * console.log(alt); // 'my-image.png - 20240101'
- * ```
- * @public
- */
-export function replaceAltVariables(template: string, filename?: string): string {
-    const now = new Date();
-    const year = now.getFullYear().toString();
-    const month = (now.getMonth() + 1).toString().padStart(2, "0");
-    const day = now.getDate().toString().padStart(2, "0");
-    const hour = now.getHours().toString().padStart(2, "0");
-    const minute = now.getMinutes().toString().padStart(2, "0");
-    const second = now.getSeconds().toString().padStart(2, "0");
-
-    return template
-        .replace(/\{timestamp\}/g, Date.now().toString())
-        .replace(/\{date\}/g, `${year}${month}${day}`)
-        .replace(/\{time\}/g, `${hour}${minute}${second}`)
-        .replace(/\{datetime\}/g, `${year}${month}${day}${hour}${minute}${second}`)
-        .replace(/\{year\}/g, year)
-        .replace(/\{month\}/g, month)
-        .replace(/\{day\}/g, day)
-        .replace(/\{hour\}/g, hour)
-        .replace(/\{minute\}/g, minute)
-        .replace(/\{second\}/g, second)
-        .replace(/\{filename\}/g, filename || "image");
 }

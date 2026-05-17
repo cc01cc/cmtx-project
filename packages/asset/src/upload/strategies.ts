@@ -1,15 +1,24 @@
-import { readFile, writeFile } from "node:fs/promises";
-import type { AdapterUploadResult, IStorageAdapter, UploadBufferOptions } from "@cmtx/storage";
+import { readFile } from "node:fs/promises";
+import type { AdapterUploadResult, StorageAdapter, UploadBufferOptions } from "@cmtx/storage";
+import type { ReplacementOp } from "@cmtx/core";
 
-export interface ReplacementOp {
-    offset: number;
-    length: number;
-    newText: string;
-}
+export type { ReplacementOp };
 
+/**
+ * 文档访问器接口
+ *
+ * @remarks
+ * 提供文档的读取和替换操作抽象。
+ * 不同实现可以操作内存中的文档（MemoryDocumentAccessor）或文件系统中的文档（FileDocumentAccessor）。
+ *
+ * @public
+ */
 export interface DocumentAccessor {
+    /** 文档标识符 */
     readonly identifier: string;
+    /** 读取文档文本内容 */
     readText(): Promise<string>;
+    /** 应用替换操作 */
     applyReplacements(ops: ReplacementOp[]): Promise<boolean>;
 }
 
@@ -52,7 +61,7 @@ export class FileDocumentAccessor implements DocumentAccessor {
 }
 
 export class StorageUploadStrategy implements UploadStrategy {
-    constructor(private readonly adapter: IStorageAdapter) {}
+    constructor(private readonly adapter: StorageAdapter) {}
 
     async upload(
         source: UploadSource,

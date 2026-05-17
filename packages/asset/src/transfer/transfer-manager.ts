@@ -8,7 +8,7 @@
 
 import { promises as fs } from "node:fs";
 import type { ReplaceOptions, ReplaceResult } from "@cmtx/core";
-import { replaceImagesInText } from "@cmtx/core";
+import { updateImageRefs } from "@cmtx/core";
 import pLimit from "p-limit";
 import { createProgressTracker } from "../utils/progress-tracker.js";
 import { createTempManager, type TempManager } from "../utils/temp-manager.js";
@@ -62,7 +62,7 @@ export class TransferManager {
             if (matchedUrls.length === 0) {
                 return {
                     total: 0,
-                    success: 0,
+                    succeeded: 0,
                     failed: 0,
                     skipped: 0,
                     mappings: [],
@@ -105,7 +105,7 @@ export class TransferManager {
             // 返回结果
             return {
                 total: mappings.length,
-                success: mappings.filter((m) => m.success).length,
+                succeeded: mappings.filter((m) => m.success).length,
                 failed: mappings.filter((m) => !m.success && !m.error?.includes("skip")).length,
                 skipped: mappings.filter((m) => m.error?.includes("skip")).length,
                 mappings,
@@ -174,7 +174,7 @@ export class TransferManager {
             return content;
         }
 
-        // 使用 replaceImagesInText 替换 URL
+        // 使用 updateImageRefs 替换 URL
         const replaceOptions: ReplaceOptions[] = [];
         for (const [originalUrl, newUrl] of urlMap.entries()) {
             replaceOptions.push({
@@ -183,7 +183,7 @@ export class TransferManager {
                 newSrc: newUrl,
             });
         }
-        const result: ReplaceResult = replaceImagesInText(content, replaceOptions);
+        const result: ReplaceResult = updateImageRefs(content, replaceOptions);
         return result.newText;
     }
 }

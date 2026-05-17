@@ -1,4 +1,4 @@
-import { parseFrontmatter, parseYamlFrontmatter, upsertFrontmatterFields } from "@cmtx/core";
+import { splitFrontmatter, parseYamlFrontmatter, upsertFrontmatterFields } from "@cmtx/core";
 import type { Rule, RuleContext, RuleResult } from "../rule-types.js";
 
 interface FieldMapping {
@@ -19,7 +19,7 @@ export const frontmatterMapRule: Rule = {
 
     execute(context: RuleContext, config?: FrontmatterMapConfig): RuleResult {
         const document = context.document;
-        const parsed = parseFrontmatter(document);
+        const parsed = splitFrontmatter(document);
         const fm = parsed.hasFrontmatter ? parseYamlFrontmatter(parsed.data) : {};
         const fields: Record<string, string> = {};
         const messages: string[] = [];

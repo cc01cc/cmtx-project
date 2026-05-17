@@ -16,8 +16,8 @@ describe("TencentCOSAdapter", () => {
     let adapter: TencentCOSAdapter;
     let tempDir: string;
     const mockConfig = {
-        Bucket: "test-bucket-1250000000",
-        Region: "ap-guangzhou",
+        bucket: "test-bucket-1250000000",
+        region: "ap-guangzhou",
     };
 
     beforeEach(() => {
@@ -57,8 +57,8 @@ describe("TencentCOSAdapter", () => {
             });
             expect(mockClient.uploadFile).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    Bucket: mockConfig.Bucket,
-                    Region: mockConfig.Region,
+                    Bucket: mockConfig.bucket,
+                    Region: mockConfig.region,
                     Key: "test.png",
                     FilePath: "/local/path.png",
                 }),
@@ -93,8 +93,8 @@ describe("TencentCOSAdapter", () => {
             expect(result).toBe(mockUrl);
             expect(mockClient.getObjectUrl).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    Bucket: mockConfig.Bucket,
-                    Region: mockConfig.Region,
+                    Bucket: mockConfig.bucket,
+                    Region: mockConfig.region,
                     Key: "test.png",
                     Sign: true,
                     Expires: 3600,
@@ -148,8 +148,8 @@ describe("TencentCOSAdapter", () => {
 
             expect(mockClient.putObject).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    Bucket: mockConfig.Bucket,
-                    Region: mockConfig.Region,
+                    Bucket: mockConfig.bucket,
+                    Region: mockConfig.region,
                     Key: "test.png",
                     Body: buffer,
                     Headers: { "Content-Type": "image/png" },
@@ -184,8 +184,8 @@ describe("TencentCOSAdapter", () => {
 
             expect(mockClient.getObject).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    Bucket: mockConfig.Bucket,
-                    Region: mockConfig.Region,
+                    Bucket: mockConfig.bucket,
+                    Region: mockConfig.region,
                     Key: "remote/path.png",
                 }),
                 expect.any(Function),
@@ -233,8 +233,8 @@ describe("TencentCOSAdapter", () => {
             expect(meta.lastModified.toISOString()).toBe("2024-01-01T00:00:00.000Z");
             expect(mockClient.headObject).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    Bucket: mockConfig.Bucket,
-                    Region: mockConfig.Region,
+                    Bucket: mockConfig.bucket,
+                    Region: mockConfig.region,
                     Key: "test.png",
                 }),
                 expect.any(Function),
@@ -292,8 +292,8 @@ describe("TencentCOSAdapter", () => {
             expect(result).toBe(true);
             expect(mockClient.headObject).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    Bucket: mockConfig.Bucket,
-                    Region: mockConfig.Region,
+                    Bucket: mockConfig.bucket,
+                    Region: mockConfig.region,
                     Key: "test.png",
                 }),
                 expect.any(Function),
@@ -351,8 +351,8 @@ describe("TencentCOSAdapter", () => {
 
             expect(mockClient.deleteObject).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    Bucket: mockConfig.Bucket,
-                    Region: mockConfig.Region,
+                    Bucket: mockConfig.bucket,
+                    Region: mockConfig.region,
                     Key: "test.png",
                 }),
                 expect.any(Function),

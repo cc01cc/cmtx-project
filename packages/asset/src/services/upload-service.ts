@@ -4,19 +4,15 @@
  * @module services/upload-service
  * @description
  * 负责将 Markdown 文档中的本地图片上传到对象存储。
- * 单存储目标，持有单个 IStorageAdapter。
+ * 单存储目标，持有单个 StorageAdapter。
  */
 
-import { filterImagesInText, isWebSource, type Logger } from "@cmtx/core";
-import type { IStorageAdapter } from "@cmtx/storage";
+import { filterImages, isWebSource, applyReplacementOps, type Logger } from "@cmtx/core";
+import type { ReplacementOp } from "@cmtx/core";
+import type { StorageAdapter } from "@cmtx/storage";
 import type { ReplaceConfig } from "../config/types.js";
-import {
-    batchUploadImages,
-    matchesToSources,
-    renderReplacementText,
-    applyReplacementOps,
-} from "../upload/index.js";
-import type { ReplacementOp } from "../upload/strategies.js";
+import { batchUploadImages, matchesToSources } from "../upload/index.js";
+import { renderReplacementText } from "../upload/batch-upload.js";
 import type { ConflictResolutionStrategy, FailedItemDetail } from "../upload/types.js";
 import type { Service } from "./service-registry.js";
 
@@ -25,7 +21,7 @@ import type { Service } from "./service-registry.js";
  */
 export interface UploadServiceConfig {
     /** 上传目标存储适配器（单存储） */
-    adapter: IStorageAdapter;
+    adapter: StorageAdapter;
     /** 上传前缀 */
     prefix?: string;
     /** 命名模板 */
@@ -41,13 +37,30 @@ export interface UploadServiceConfig {
 }
 
 /**
+ * Upload 调用时可选覆盖参数
+ * 用于 Rule 执行时动态覆盖 Service 配置
+ */
+export interface UploadInvocationOptions {
+    /** 上传前缀 */
+    prefix?: string;
+    /** 命名模板 */
+    namingTemplate?: string;
+    /** 冲突处理策略 */
+    conflictStrategy?: ConflictResolutionStrategy;
+    /** 图片替换配置 */
+    replace?: ReplaceConfig;
+    /** 自定义域名（上传后 URL 替换为此域名） */
+    domain?: string;
+}
+
+/**
  * 上传结果
  */
 export interface UploadResult {
     /** 处理后的 Markdown 内容 */
     content: string;
     /** 成功上传的图片数 */
-    uploaded: number;
+    succeeded: number;
     /** 失败的图片详情 */
     failed: FailedItemDetail[];
     /** 跳过的项 */
@@ -82,35 +95,51 @@ export class UploadService implements Service<UploadServiceConfig> {
      *
      * @param document - Markdown 文档内容
      * @param basePath - 基础目录（本地图片的相对路径基准）
+     * @param options - 可选覆盖参数（调用时动态覆盖 Service 配置）
      * @returns 上传结果
      */
-    async uploadImagesInDocument(document: string, basePath: string): Promise<UploadResult> {
+    async uploadImagesInDocument(
+        document: string,
+        basePath: string,
+        options?: UploadInvocationOptions,
+    ): Promise<UploadResult> {
         this.config.logger?.info("[UploadService] Starting upload for document");
 
-        const allMatches = filterImagesInText(document);
+        // 合并配置：options > this.config
+        const effectiveConfig = {
+            adapter: this.config.adapter,
+            namingTemplate: options?.namingTemplate ?? this.config.namingTemplate,
+            prefix: options?.prefix ?? this.config.prefix,
+            conflictStrategy: options?.conflictStrategy ?? this.config.conflictStrategy,
+            replace: options?.replace ?? this.config.replace,
+            domain: options?.domain ?? this.config.domain,
+            logger: this.config.logger,
+        };
+
+        const allMatches = filterImages(document);
         const localMatches = allMatches.filter(
             (m) => !isWebSource(m.src) && !m.src.startsWith("data:image/"),
         );
 
         if (localMatches.length === 0) {
-            return { content: document, uploaded: 0, failed: [], skipped: [], downloaded: [] };
+            return { content: document, succeeded: 0, failed: [], skipped: [], downloaded: [] };
         }
 
         const sources = matchesToSources(localMatches, basePath);
 
         const batchResult = await batchUploadImages(sources, {
-            adapter: this.config.adapter,
-            namingTemplate: this.config.namingTemplate,
-            prefix: this.config.prefix,
-            conflictStrategy: this.config.conflictStrategy,
-            logger: this.config.logger,
+            adapter: effectiveConfig.adapter,
+            namingTemplate: effectiveConfig.namingTemplate,
+            prefix: effectiveConfig.prefix,
+            conflictStrategy: effectiveConfig.conflictStrategy,
+            logger: effectiveConfig.logger,
         });
 
         const replaceDomain = (url: string): string => {
-            if (!this.config.domain) return url;
+            if (!effectiveConfig.domain) return url;
             try {
                 const parsed = new URL(url);
-                return url.replace(parsed.host, this.config.domain!);
+                return url.replace(parsed.host, effectiveConfig.domain);
             } catch {
                 return url;
             }
@@ -123,7 +152,7 @@ export class UploadService implements Service<UploadServiceConfig> {
             const newText = renderReplacementText(
                 localMatches[i],
                 { cloudUrl: replaceDomain(cloudResult.cloudUrl), variables: cloudResult.variables },
-                this.config.replace as
+                effectiveConfig.replace as
                     | { fields: Record<string, string>; context?: Record<string, string> }
                     | undefined,
             );
@@ -142,7 +171,7 @@ export class UploadService implements Service<UploadServiceConfig> {
 
         return {
             content: finalContent,
-            uploaded: batchResult.uploaded.length,
+            succeeded: batchResult.uploaded.length,
             failed: batchResult.failed.map((f) => ({
                 localPath: f.source.kind === "file" ? f.source.absPath : "buffer",
                 stage: "upload",

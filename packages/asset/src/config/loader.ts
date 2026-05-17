@@ -12,7 +12,7 @@ import { dirname, isAbsolute, join } from "node:path";
 import * as yaml from "js-yaml";
 import { consoleLogger } from "@cmtx/core";
 import { substituteEnvVarsInObject } from "../utils/env-substitution.js";
-import type { CmtxConfig, CmtxStorageConfig } from "./types.js";
+import type { AIConfig, CmtxConfig, CmtxStorageConfig } from "./types.js";
 import { DEFAULT_CONFIG } from "./types.js";
 
 /**
@@ -159,8 +159,8 @@ export class ConfigLoader {
         }
 
         // 解析 ai（可选）
-        if (raw.ai) {
-            config.ai = raw.ai as Record<string, unknown>;
+        if (raw.ai && typeof raw.ai === "object") {
+            config.ai = raw.ai as AIConfig;
         }
 
         return config;

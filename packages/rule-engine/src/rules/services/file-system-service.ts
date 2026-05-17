@@ -2,7 +2,7 @@ import { mkdir, readFile, stat, copyFile as fsCopy, writeFile } from "node:fs/pr
 import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { spawn } from "node:child_process";
 
-import { filterImagesInText, upsertFrontmatterFields } from "@cmtx/core";
+import { filterImages, upsertFrontmatterFields, type FrontmatterValue } from "@cmtx/core";
 import { MarkdownMetadataExtractor } from "../../metadata/markdown-metadata-extractor.js";
 import type { AssetRef, FileSystemService, FileSystemServiceConfig } from "../service-registry.js";
 
@@ -60,7 +60,7 @@ export class FileSystemServiceImpl implements FileSystemService {
     }
 
     async scanAssets(sourceDir: string, mdContent: string): Promise<AssetRef[]> {
-        const images = filterImagesInText(mdContent);
+        const images = filterImages(mdContent);
         const results: AssetRef[] = [];
 
         for (const img of images) {
@@ -85,25 +85,25 @@ export class FileSystemServiceImpl implements FileSystemService {
         return results;
     }
 
-    async readFileFrontMatter(path: string): Promise<Record<string, string>> {
+    async readFileFrontMatter(path: string): Promise<Record<string, FrontmatterValue>> {
         try {
             const metadata = await extractor.extractFromFile(path);
-            return Object.fromEntries(
-                Object.entries(metadata)
-                    .filter(
-                        ([, v]) =>
-                            typeof v === "string" ||
-                            typeof v === "number" ||
-                            typeof v === "boolean",
-                    )
-                    .map(([k, v]) => [k, String(v)]),
-            );
+            const result: Record<string, FrontmatterValue> = {};
+            for (const [key, value] of Object.entries(metadata)) {
+                if (typeof value === "string") {
+                    result[key] = value;
+                }
+            }
+            return result;
         } catch {
             return {};
         }
     }
 
-    async updateFileFrontMatter(path: string, fields: Record<string, string>): Promise<void> {
+    async updateFileFrontMatter(
+        path: string,
+        fields: Record<string, FrontmatterValue>,
+    ): Promise<void> {
         const content = await readFile(path, "utf-8");
         const result = upsertFrontmatterFields(content, fields);
         if (result.success && result.markdown !== content) {

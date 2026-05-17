@@ -1,40 +1,37 @@
-/* eslint-disable no-console */
-import { createInterface } from "node:readline";
 import { resolve } from "node:path";
-import { DeleteService } from "@cmtx/asset";
+import { createInterface } from "node:readline";
+import { DeleteService, resolveBaseDirectory } from "@cmtx/asset";
+import type { Argv, CommandModule } from "yargs";
 import type { DeleteCommandOptions } from "../../types/cli.js";
 import { formatError, formatInfo, formatSuccess, formatWarning } from "../../utils/formatter.js";
 import { createLogger } from "../../utils/logger.js";
-import { loadConfig } from "../../utils/config-loader.js";
-import type { Argv, CommandModule } from "yargs";
+import { loadConfig, mergeWithEnv } from "../../utils/config-loader.js";
 
-export const command = "delete <imagePath>";
-export const describe = "安全删除图片（先检查引用再删除）";
+export const command = "delete <imagePath..>";
+export const describe = "安全删除指定图片（引用检查 + 支持批量）";
 
 export function builder(yargs: Argv): Argv {
     return yargs
         .positional("imagePath", {
-            description: "图片路径",
+            description: "图片路径（支持多个）",
             type: "string",
+            array: true,
             demandOption: true,
         })
         .option("strategy", {
             alias: "s",
             description: "删除策略",
             choices: ["trash", "move", "hard-delete"] as const,
-            default: "trash",
         })
         .option("force", {
             alias: "f",
             description: "强制删除（跳过引用检查）",
             type: "boolean",
-            default: false,
         })
         .option("remove-references", {
             alias: "r",
             description: "从引用的 Markdown 文件中移除图片标记",
             type: "boolean",
-            default: false,
         })
         .option("move-dir", {
             description: "move 策略的目标目录",
@@ -47,24 +44,10 @@ export function builder(yargs: Argv): Argv {
         })
         .option("yes", {
             alias: "y",
-            description: "自动确认，不进行交互提示",
-            type: "boolean",
-            default: false,
-        })
-        .option("verbose", {
-            alias: "v",
-            description: "显示详细信息",
+            description: "自动确认，跳过交互提示",
             type: "boolean",
             default: false,
         });
-}
-
-async function resolveProjectRoot(argv: DeleteCommandOptions): Promise<string> {
-    if (argv.projectRoot) return resolve(argv.projectRoot);
-    const config = await loadConfig(argv.config);
-    if (config.projectRoot) return resolve(config.projectRoot);
-    if (process.env.CMTX_PROJECT_ROOT) return resolve(process.env.CMTX_PROJECT_ROOT);
-    return process.cwd();
 }
 
 function promptConfirm(message: string): Promise<boolean> {
@@ -77,118 +60,94 @@ function promptConfirm(message: string): Promise<boolean> {
     });
 }
 
-export async function handler(argv: DeleteCommandOptions): Promise<void> {
-    const logger = createLogger(argv.verbose);
-    const workspaceRoot = await resolveProjectRoot(argv);
-    const imagePath = resolve(argv.imagePath);
-    const isDryRun = !!argv["dry-run"];
-    const isYes = !!argv.yes;
-
-    logger.debug(`Image path: ${imagePath}`);
-    logger.debug(`Workspace root: ${workspaceRoot}`);
-    logger.debug(`Strategy: ${argv.strategy ?? "trash"}`);
-    logger.debug(`Force: ${!!argv.force}`);
-    logger.debug(`Remove references: ${!!argv["remove-references"]}`);
-
-    const deleteService = new DeleteService(
-        {
-            workspaceRoot,
-            options: {
-                strategy: argv.strategy ?? "trash",
-                trashDir: argv["move-dir"],
-                removeFromMarkdown: argv["remove-references"],
-            },
-        },
-        logger,
+export async function handler(options: DeleteCommandOptions): Promise<void> {
+    const logger = createLogger(options.verbose);
+    const config = mergeWithEnv(await loadConfig(options.config)) as Record<string, unknown>;
+    const rulesConfig = config?.rules as Record<string, unknown> | undefined;
+    const ruleConfig = rulesConfig?.["delete-image"] as Record<string, unknown> | undefined;
+    const appDefaultDir = options.projectRoot ? resolve(options.projectRoot) : process.cwd();
+    const baseDir = resolveBaseDirectory(
+        ruleConfig?.baseDirectory as string | undefined,
+        appDefaultDir,
     );
 
-    try {
-        // 1. 扫描引用
-        console.log(formatInfo("正在扫描引用..."));
-        const target = await deleteService.scanReferences(imagePath);
+    const deleteOptions = {
+        strategy: (options.strategy ?? ruleConfig?.strategy ?? "trash") as
+            | "trash"
+            | "move"
+            | "hard-delete",
+        removeFromMarkdown:
+            options.removeReferences ??
+            (ruleConfig?.removeFromMarkdown as boolean | undefined) ??
+            true,
+        force: options.force ?? (ruleConfig?.force as boolean | undefined) ?? false,
+        trashDir: options.moveDir,
+    };
 
-        const hasReferences = target.referencedIn.length > 0;
+    const dryRun = !!options.dryRun;
+    const yes = !!options.yes;
 
-        // 2. 展示扫描结果
-        if (hasReferences) {
-            console.log("");
-            console.log(formatWarning(`图片被 ${target.referencedIn.length} 个文件引用:`));
-            for (const ref of target.referencedIn) {
-                console.log(`  ${ref.relativePath} (${ref.count} 次)`);
+    logger.debug(`Base directory: ${baseDir}`);
+    logger.debug(`Strategy: ${deleteOptions.strategy}`);
+
+    const deleteService = new DeleteService({ baseDirectory: baseDir, options: deleteOptions });
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const rawPath of options.imagePath) {
+        const imagePath = resolve(rawPath);
+
+        if (!yes && !dryRun) {
+            const confirmed = await promptConfirm(`确定要删除 ${imagePath} 吗？`);
+            if (!confirmed) {
+                console.log(formatInfo(`跳过 ${imagePath}`));
+                continue;
             }
-            console.log("");
-        } else {
-            console.log(formatInfo("图片未被任何 Markdown 文件引用"));
-            console.log("");
         }
 
-        // 3. 引用检查 + 交互确认
-        if (hasReferences && !argv.force) {
-            if (isDryRun) {
-                console.log(
-                    formatWarning("[DRY-RUN] 图片被引用，跳过删除（使用 --force 强制删除）"),
-                );
-                console.log("");
-                return;
-            }
+        if (dryRun) {
+            console.log(formatWarning(`[DRY-RUN] 将删除: ${imagePath}`));
+            continue;
+        }
 
-            if (!isYes) {
-                const confirmed = await promptConfirm("图片被引用，确定要删除吗？");
-                if (!confirmed) {
-                    console.log(formatInfo("已取消删除"));
-                    return;
+        try {
+            const result = await deleteService.safeDelete(imagePath, deleteOptions);
+            if (result.success) {
+                console.log(formatSuccess(`已删除: ${imagePath}`));
+                if (
+                    result.deleteResult?.referencesRemovedFrom &&
+                    result.deleteResult.referencesRemovedFrom > 0
+                ) {
+                    console.log(
+                        formatInfo(
+                            `  从 ${result.deleteResult.referencesRemovedFrom} 个文件移除引用`,
+                        ),
+                    );
                 }
+                successCount++;
+            } else if (!result.deleted) {
+                console.log(
+                    formatWarning(`跳过: ${imagePath}（图片被引用，使用 --force 强制删除）`),
+                );
+            } else {
+                console.log(formatError(`删除失败: ${imagePath}`));
+                failCount++;
             }
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.error(formatError(`${imagePath}: ${message}`));
+            failCount++;
         }
+    }
 
-        // 4. 执行安全删除
-        if (isDryRun) {
-            console.log(formatWarning("[DRY-RUN] 预览模式，不实际执行"));
-            console.log(formatInfo(`将删除: ${imagePath}`));
-            if (argv["remove-references"]) {
-                console.log(formatInfo(`将移除 ${target.referencedIn.length} 个文件中的引用`));
-            }
-            console.log("");
-            return;
-        }
-
-        console.log(formatInfo("正在执行删除..."));
-        const result = await deleteService.safeDelete(imagePath, {
-            strategy: argv.strategy ?? "trash",
-            trashDir: argv["move-dir"],
-            force: !!argv.force,
-            removeFromMarkdown: argv["remove-references"],
-        });
-
-        // 5. 输出结果
-        console.log("");
-        if (result.success) {
-            console.log(formatSuccess("删除成功"));
-        } else if (!result.deleted) {
-            console.log(formatWarning("文件删除已跳过（图片被引用，使用 --force 强制删除）"));
-        } else {
-            console.log(formatError("删除失败"));
-        }
-
-        if (result.deleteResult && result.deleteResult.referencesRemovedFrom > 0) {
-            console.log(
-                formatInfo(`已从 ${result.deleteResult.referencesRemovedFrom} 个文件中移除引用`),
-            );
-        }
-
-        if (argv.verbose && result.detail.referencedIn.length > 0) {
-            console.log("");
-            console.log(formatInfo("引用详情:"));
-            for (const ref of result.detail.referencedIn) {
-                console.log(`  ${ref.relativePath} (${ref.count} 次)`);
-            }
-        }
-
-        process.exit(result.success ? 0 : 1);
-    } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.error(formatError(message));
+    console.log("");
+    if (failCount > 0) {
+        console.log(formatError(`完成: ${successCount} 成功, ${failCount} 失败`));
         process.exit(1);
+    } else if (successCount > 0) {
+        console.log(formatSuccess(`全部删除成功 (${successCount} 个文件)`));
+    } else {
+        console.log(formatWarning("没有文件被删除"));
     }
 }
 

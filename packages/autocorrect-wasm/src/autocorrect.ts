@@ -85,7 +85,7 @@ export function formatForType(text: string, fileType: string): string {
  */
 export function lintForType(text: string, fileType: string): LintResult {
     const result = wasmLintFor(text, fileType);
-    return typeof result === "string" ? JSON.parse(result) : result;
+    return typeof result === "string" ? JSON.parse(result) : (result as LintResult);
 }
 
 /**

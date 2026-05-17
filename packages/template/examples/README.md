@@ -1,6 +1,6 @@
 # @cmtx/template 示例
 
-这个目录包含了使用 @cmtx/template 包的各种示例代码。
+该目录收录了 @cmtx/template 包的各种示例代码。
 
 ## 示例列表
 

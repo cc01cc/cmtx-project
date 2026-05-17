@@ -1,9 +1,11 @@
+import type { FrontmatterValue } from "@cmtx/core";
+
 export interface TemplateContext {
     rule: {
-        target: Record<string, string>;
-        source: Record<string, string>;
+        target: Record<string, FrontmatterValue>;
+        source: Record<string, FrontmatterValue>;
     };
-    input: Record<string, string>;
+    input: Record<string, FrontmatterValue>;
     env: NodeJS.ProcessEnv;
 }
 

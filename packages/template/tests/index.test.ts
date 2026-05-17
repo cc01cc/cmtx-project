@@ -7,15 +7,7 @@
 import { describe, expect, it } from "vitest";
 // 测试默认导出
 // 测试命名导出
-import defaultExport, {
-    BaseTemplateBuilder,
-    BuiltinVariables,
-    ContextManager,
-    renderTemplate,
-    type TemplateContext,
-    type TemplateEngine,
-    type ValidationResult,
-} from "../src/index.js";
+import defaultExport, { renderTemplate, type TemplateContext } from "../src/index.js";
 
 describe("模块导出测试", () => {
     describe("默认导出", () => {
@@ -28,23 +20,6 @@ describe("模块导出测试", () => {
     describe("核心功能导出", () => {
         it("应该导出 renderTemplate 函数", () => {
             expect(typeof renderTemplate).toBe("function");
-        });
-
-        it("应该导出 ContextManager 类", () => {
-            expect(typeof ContextManager).toBe("function");
-            expect(new ContextManager()).toBeInstanceOf(ContextManager);
-        });
-
-        it("应该导出 BuiltinVariables 类", () => {
-            expect(typeof BuiltinVariables).toBe("function");
-            expect(typeof BuiltinVariables.getDate).toBe("function");
-            expect(typeof BuiltinVariables.getTimestamp).toBe("function");
-            expect(typeof BuiltinVariables.getUUID).toBe("function");
-            expect(typeof BuiltinVariables.getAll).toBe("function");
-        });
-
-        it("应该导出 BaseTemplateBuilder 类", () => {
-            expect(typeof BaseTemplateBuilder).toBe("function");
         });
     });
 

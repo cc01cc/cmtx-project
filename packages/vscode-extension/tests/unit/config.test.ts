@@ -341,9 +341,9 @@ describe("Config Validation", () => {
     describe("validateConfig", () => {
         it("should report error when version is missing", () => {
             const config = {};
-            const errors = validateConfig(config as any);
+            const result = validateConfig(config as any);
 
-            expect(errors).toContainEqual({
+            expect(result.errors).toContainEqual({
                 path: "version",
                 message: "Version is required",
                 severity: "error",
@@ -360,23 +360,23 @@ describe("Config Validation", () => {
                     },
                 },
             };
-            const errors = validateConfig(config);
+            const result = validateConfig(config);
 
-            expect(errors).toHaveLength(0);
+            expect(result.errors).toHaveLength(0);
         });
 
-        it("should report error for invalid batchLimit", () => {
+        it("should report error for invalid concurrency", () => {
             const config = {
                 version: "v2",
                 rules: {
-                    "upload-images": { batchLimit: 0 },
+                    "upload-images": { concurrency: 0 },
                 },
             };
-            const errors = validateConfig(config);
+            const result = validateConfig(config);
 
-            expect(errors).toContainEqual({
-                path: "rules.upload-images.batchLimit",
-                message: "Batch limit must be at least 1",
+            expect(result.errors).toContainEqual({
+                path: "rules.upload-images.concurrency",
+                message: "Concurrency must be at least 1",
                 severity: "error",
             });
         });
@@ -388,9 +388,9 @@ describe("Config Validation", () => {
                     "upload-images": { imageFormat: "invalid" },
                 },
             };
-            const errors = validateConfig(config);
+            const result = validateConfig(config);
 
-            expect(errors).toContainEqual({
+            expect(result.errors).toContainEqual({
                 path: "rules.upload-images.imageFormat",
                 message: 'Image format must be "markdown" or "html"',
                 severity: "error",
@@ -404,9 +404,9 @@ describe("Config Validation", () => {
                     "resize-image": { widths: "invalid" },
                 },
             };
-            const errors = validateConfig(config);
+            const result = validateConfig(config);
 
-            expect(errors).toContainEqual({
+            expect(result.errors).toContainEqual({
                 path: "rules.resize-image.widths",
                 message: "Widths must be an array",
                 severity: "error",
@@ -420,9 +420,9 @@ describe("Config Validation", () => {
                     "resize-image": { widths: [100, -50, 200] },
                 },
             };
-            const errors = validateConfig(config);
+            const result = validateConfig(config);
 
-            expect(errors).toContainEqual({
+            expect(result.errors).toContainEqual({
                 path: "rules.resize-image.widths",
                 message: "All widths must be positive numbers",
                 severity: "error",
@@ -434,9 +434,9 @@ describe("Config Validation", () => {
                 version: "v2",
                 presignedUrls: { expire: 30 },
             };
-            const errors = validateConfig(config);
+            const result = validateConfig(config);
 
-            expect(errors).toContainEqual({
+            expect(result.errors).toContainEqual({
                 path: "presignedUrls.expire",
                 message: "Expiration time should be at least 60 seconds",
                 severity: "warning",
@@ -448,9 +448,9 @@ describe("Config Validation", () => {
                 version: "v2",
                 presignedUrls: { maxRetryCount: -1 },
             };
-            const errors = validateConfig(config);
+            const result = validateConfig(config);
 
-            expect(errors).toContainEqual({
+            expect(result.errors).toContainEqual({
                 path: "presignedUrls.maxRetryCount",
                 message: "Max retry count must be non-negative",
                 severity: "error",
@@ -462,9 +462,9 @@ describe("Config Validation", () => {
                 version: "v2",
                 presignedUrls: { imageFormat: "invalid" as any },
             };
-            const errors = validateConfig(config);
+            const result = validateConfig(config);
 
-            expect(errors).toContainEqual({
+            expect(result.errors).toContainEqual({
                 path: "presignedUrls.imageFormat",
                 message: 'Image format must be "markdown", "html", or "all"',
                 severity: "error",
@@ -478,9 +478,9 @@ describe("Config Validation", () => {
                     default: { config: {} },
                 },
             };
-            const errors = validateConfig(config as any);
+            const result = validateConfig(config as any);
 
-            expect(errors).toContainEqual({
+            expect(result.errors).toContainEqual({
                 path: "storages.default.adapter",
                 message: "Storage adapter is required",
                 severity: "error",
@@ -494,9 +494,9 @@ describe("Config Validation", () => {
                     default: { adapter: "aliyun-oss" },
                 },
             };
-            const errors = validateConfig(config as any);
+            const result = validateConfig(config as any);
 
-            expect(errors).toContainEqual({
+            expect(result.errors).toContainEqual({
                 path: "storages.default.config",
                 message: "Storage config is required",
                 severity: "error",

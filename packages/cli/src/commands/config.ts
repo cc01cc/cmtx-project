@@ -55,17 +55,17 @@ export function builder(yargs: Argv): Argv {
         });
 }
 
-export async function handler(argv: ConfigCommandOptions): Promise<void> {
+export async function handler(options: ConfigCommandOptions): Promise<void> {
     try {
-        switch (argv.action) {
+        switch (options.action) {
             case "init":
-                await handleInit(argv);
+                await handleInit(options);
                 break;
             case "show":
                 await handleShow();
                 break;
             default:
-                throw new Error(`未知的操作: ${argv.action}`);
+                throw new Error(`未知的操作: ${options.action}`);
         }
     } catch (error) {
         const message = error instanceof Error ? error : new Error(String(error));
@@ -74,13 +74,13 @@ export async function handler(argv: ConfigCommandOptions): Promise<void> {
     }
 }
 
-async function handleInit(argv: ConfigCommandOptions): Promise<void> {
-    const outputPath = resolve(argv.outputFile || "cmtx.config.yaml");
+async function handleInit(cfg: ConfigCommandOptions): Promise<void> {
+    const outputPath = resolve(cfg.outputFile || "cmtx.config.yaml");
     const outputDir = dirname(outputPath);
 
     // 检查文件是否存在
     const exists = await fileExists(outputPath);
-    if (exists && !argv.force) {
+    if (exists && !cfg.force) {
         throw new Error(`配置文件已存在: ${outputPath}。使用 --force 选项强制覆盖。`);
     }
 

@@ -10,7 +10,7 @@ const fileService = new FileService(accessor);
 
 async function doUpload(
     label: string,
-    fn: () => Promise<{ modified: boolean; uploaded: number; messages?: string[] }>,
+    fn: () => Promise<{ modified: boolean; succeeded: number; messages?: string[] }>,
 ): Promise<void> {
     let messages: string[] | undefined;
     await vscode.window.withProgress(
@@ -64,7 +64,11 @@ export async function uploadFileFromExplorer(uri: vscode.Uri): Promise<void> {
             },
             accessor,
         );
-        return { modified: result.modified, uploaded: result.uploaded, messages: result.messages };
+        return {
+            modified: result.modified,
+            succeeded: result.succeeded,
+            messages: result.messages,
+        };
     });
 }
 
@@ -107,7 +111,7 @@ export async function uploadDirectoryFromExplorer(uri: vscode.Uri): Promise<void
         );
         return {
             modified: result.updatedFiles.length > 0,
-            uploaded: result.totalUploaded,
+            succeeded: result.totalUploaded,
             messages: result.messages,
         };
     });

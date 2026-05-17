@@ -64,7 +64,7 @@ export const autocorrectRule: Rule = {
             const fileType = inferFileType(filePath);
 
             // 执行格式化
-            const formatted = formatFor(document, fileType);
+            const formatted = formatFor(document, fileType) as string;
 
             const modified = formatted !== document;
 

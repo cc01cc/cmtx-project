@@ -30,11 +30,11 @@
  *
  * ```typescript
  * import { transferRemoteImages, TransferConfigBuilder } from "@cmtx/asset/transfer";
- * import { AliOSSAdapter } from "@cmtx/storage/adapters/ali-oss";
+ * import { AliyunOSSAdapter } from "@cmtx/storage/adapters/ali-oss";
  * import OSS from "ali-oss";
  *
  * // 1. 配置源存储适配器
- * const sourceAdapter = new AliOSSAdapter(
+ * const sourceAdapter = new AliyunOSSAdapter(
  *   new OSS({
  *     region: "oss-cn-hangzhou",
  *     accessKeyId: "source-key",
@@ -44,7 +44,7 @@
  * );
  *
  * // 2. 配置目标存储适配器
- * const targetAdapter = new AliOSSAdapter(
+ * const targetAdapter = new AliyunOSSAdapter(
  *   new OSS({
  *     region: "oss-cn-beijing",
  *     accessKeyId: "target-key",
@@ -83,39 +83,11 @@
  * @see {@link @cmtx/storage} - 存储适配器（独立包）
  */
 
-// URL 解析器
-export {
-    createUrlParser,
-    type ParsedUrl,
-    UrlParser,
-    type UrlParserConfig,
-} from "../utils/url-parser.js";
 // 核心功能
-export {
-    createTransferManager,
-    TransferManager,
-    transferRemoteImages,
-} from "./transfer-manager.js";
-// 传输服务
-export { createTransferService, TransferService } from "./transfer-service.js";
+export { createTransferManager, transferRemoteImages } from "./transfer-manager.js";
 // 类型定义
-export type {
-    CloudCredentials,
-    FileFilter,
-    InternalSourceConfig,
-    InternalTargetConfig,
-    InternalTransferConfig,
-    SourceConfig,
-    TargetConfig,
-    TransferConfig,
-    TransferEvent,
-    TransferEventType,
-    TransferOptions,
-    TransferProgress,
-    TransferResult,
-    UrlMapping,
-} from "./types.js";
+export type { InternalTransferConfig, TransferConfig } from "./types.js";
 // 配置构建器
 export { TransferConfigBuilder } from "./types.js";
-// URL 转换器
-export { createUrlTransformer, UrlTransformer } from "./url-transformer.js";
+// URL 解析器
+export { createUrlParser } from "../utils/url-parser.js";

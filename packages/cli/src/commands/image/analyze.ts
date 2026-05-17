@@ -40,25 +40,19 @@ export function builder(yargs: Argv): Argv {
         });
 }
 
-export async function handler(argv: AnalyzeCommandOptions): Promise<void> {
+export async function handler(options: AnalyzeCommandOptions): Promise<void> {
     try {
-        const logger = createLogger(argv.verbose, argv.quiet);
+        const logger = createLogger(options.verbose, options.quiet);
         const fileService = new FileService();
 
-        const searchDir = resolve(argv.searchDir);
+        const searchDir = resolve(options.searchDir);
         logger.info(`扫描目录: ${searchDir}`);
 
-        const options: AnalyzeOptions = {};
-        if (argv.extensions) {
-            options.extensions = argv.extensions.split(",").map((e) => e.trim().replace(/^\./, ""));
-        }
-        if (argv.maxSize) {
-            options.maxSize = argv.maxSize;
-        }
+        const result = await fileService.analyzeDirectory(searchDir);
 
-        const result = await fileService.analyzeDirectory(searchDir, options);
-
-        console.log(formatAnalyzeResult(result, argv.output as "json" | "table" | "plain"));
+        console.log(
+            formatAnalyzeResult(result, (options.output ?? "table") as "json" | "table" | "plain"),
+        );
     } catch (error) {
         const message = error instanceof Error ? error : String(error);
         console.error(formatError(message));

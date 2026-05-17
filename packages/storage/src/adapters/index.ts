@@ -1,13 +1,3 @@
-/**
- * 存储适配器导出
- *
- * @module adapters
- *
- * @description
- * 导出所有支持的存储服务适配器和工厂函数。
- */
-
-export { AliOSSAdapter, type AliOSSClient } from "./ali-oss.js";
+export { AliyunOSSAdapter } from "./ali-oss.js";
 export { createAdapter } from "./factory.js";
-export { type CosAdapterConfig, TencentCOSAdapter } from "./tencent-cos.js";
-export type { CosClient } from "./cos-types.js";
+export { TencentCOSAdapter } from "./tencent-cos.js";

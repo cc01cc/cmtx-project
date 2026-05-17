@@ -1,5 +1,5 @@
 import type { AliyunCredentials } from "@cmtx/storage";
-import { AliOSSAdapter } from "@cmtx/storage/adapters/ali-oss";
+import { AliyunOSSAdapter } from "@cmtx/storage/adapters/ali-oss";
 import OSS from "ali-oss";
 import type {
     CloudStorageConfig,
@@ -220,7 +220,7 @@ export class UrlSigner {
         };
     }
 
-    private _createOSSAdapter(credentials: AliyunCredentials): AliOSSAdapter {
+    private _createOSSAdapter(credentials: AliyunCredentials): AliyunOSSAdapter {
         const client = new OSS({
             region: credentials.region,
             accessKeyId: credentials.accessKeyId,
@@ -228,6 +228,6 @@ export class UrlSigner {
             bucket: credentials.bucket,
         });
 
-        return new AliOSSAdapter(client);
+        return new AliyunOSSAdapter(client);
     }
 }

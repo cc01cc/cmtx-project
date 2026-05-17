@@ -37,11 +37,8 @@ export type {
     PresetConfigFull,
     RuleStepConfig,
 } from "./types.js";
-export type {
-    ConfigValidationError,
-    ConfigValidationError as ValidationResult,
-} from "./validator.js";
-export { ConfigValidator, formatValidationErrors, validateConfig } from "./validator.js";
+export type { ConfigValidationError } from "./validator.js";
+export { ValidationResult, validateConfig } from "./validator.js";
 // 预签名 URL 解析器
 export {
     resolvePresignedUrlOptions,

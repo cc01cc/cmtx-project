@@ -27,7 +27,7 @@ describe("ConfigValidator", () => {
         },
         rules: {
             "upload-images": {
-                batchLimit: 10,
+                concurrency: 10,
                 imageFormat: "markdown",
                 conflictStrategy: "skip",
             },
@@ -37,7 +37,7 @@ describe("ConfigValidator", () => {
     describe("validateConfig", () => {
         it("should validate valid config", () => {
             const config = createValidConfig();
-            const errors = validateConfig(config);
+            const { errors } = validateConfig(config);
             const errorCount = errors.filter((e) => e.severity === "error").length;
             expect(errorCount).toBe(0);
         });
@@ -57,7 +57,7 @@ describe("ConfigValidator", () => {
                 },
             } as CmtxConfig;
 
-            const errors = validateConfig(config);
+            const { errors } = validateConfig(config);
             const versionErrors = errors.filter((e) => e.path === "version");
             expect(versionErrors.length).toBeGreaterThan(0);
         });
@@ -67,7 +67,7 @@ describe("ConfigValidator", () => {
                 version: "1.0.0",
             } as CmtxConfig;
 
-            const errors = validateConfig(config);
+            const { errors } = validateConfig(config);
             const storageErrors = errors.filter((e) => e.path === "storages");
             expect(storageErrors.length).toBeGreaterThan(0);
         });
@@ -87,7 +87,7 @@ describe("ConfigValidator", () => {
                 },
             } as CmtxConfig;
 
-            const errors = validateConfig(config);
+            const { errors } = validateConfig(config);
             const adapterErrors = errors.filter((e) => e.path === "storages.default.adapter");
             expect(adapterErrors.length).toBeGreaterThan(0);
         });
@@ -108,14 +108,14 @@ describe("ConfigValidator", () => {
                 },
             } as CmtxConfig;
 
-            const errors = validateConfig(config);
+            const { errors } = validateConfig(config);
             const warningErrors = errors.filter(
                 (e) => e.path === "storages.default.config.accessKeyId" && e.severity === "warning",
             );
             expect(warningErrors.length).toBeGreaterThan(0);
         });
 
-        it("should fail when upload.batchLimit is invalid", () => {
+        it("should warn when upload.batchLimit is used (renamed to concurrency)", () => {
             const config = {
                 version: "1.0.0",
                 storages: {
@@ -131,16 +131,44 @@ describe("ConfigValidator", () => {
                 },
                 rules: {
                     "upload-images": {
-                        batchLimit: 0,
+                        batchLimit: 5,
                     },
                 },
             } as unknown as CmtxConfig;
 
-            const errors = validateConfig(config);
-            const batchLimitErrors = errors.filter(
-                (e) => e.path === "rules.upload-images.batchLimit",
+            const { errors } = validateConfig(config);
+            const batchLimitWarnings = errors.filter(
+                (e) => e.path === "rules.upload-images.batchLimit" && e.severity === "warning",
             );
-            expect(batchLimitErrors.length).toBeGreaterThan(0);
+            expect(batchLimitWarnings.length).toBeGreaterThan(0);
+        });
+
+        it("should fail when upload.concurrency is invalid", () => {
+            const config = {
+                version: "1.0.0",
+                storages: {
+                    default: {
+                        adapter: "aliyun-oss",
+                        config: {
+                            accessKeyId: "${TEST_ACCESS_KEY_ID}",
+                            accessKeySecret: "${TEST_ACCESS_KEY_SECRET}",
+                            bucket: "test-bucket",
+                            region: "oss-cn-hangzhou",
+                        },
+                    },
+                },
+                rules: {
+                    "upload-images": {
+                        concurrency: 0,
+                    },
+                },
+            } as unknown as CmtxConfig;
+
+            const { errors } = validateConfig(config);
+            const concurrencyErrors = errors.filter(
+                (e) => e.path === "rules.upload-images.concurrency",
+            );
+            expect(concurrencyErrors.length).toBeGreaterThan(0);
         });
 
         it("should fail when upload.imageFormat is invalid", () => {
@@ -164,7 +192,7 @@ describe("ConfigValidator", () => {
                 },
             } as unknown as CmtxConfig;
 
-            const errors = validateConfig(config);
+            const { errors } = validateConfig(config);
             const formatErrors = errors.filter((e) => e.path === "rules.upload-images.imageFormat");
             expect(formatErrors.length).toBeGreaterThan(0);
         });
@@ -190,7 +218,7 @@ describe("ConfigValidator", () => {
                 },
             } as unknown as CmtxConfig;
 
-            const errors = validateConfig(config);
+            const { errors } = validateConfig(config);
             const strategyErrors = errors.filter(
                 (e) => e.path === "rules.upload-images.conflictStrategy",
             );
@@ -218,9 +246,177 @@ describe("ConfigValidator", () => {
                 },
             } as unknown as CmtxConfig;
 
-            const errors = validateConfig(config);
+            const { errors } = validateConfig(config);
             const widthErrors = errors.filter((e) => e.path === "rules.resize-image.widths");
             expect(widthErrors.length).toBeGreaterThan(0);
+        });
+
+        it("should warn when resize.availableWidths is used (renamed to widths)", () => {
+            const config = {
+                version: "1.0.0",
+                storages: {
+                    default: {
+                        adapter: "aliyun-oss",
+                        config: {
+                            accessKeyId: "${TEST_ACCESS_KEY_ID}",
+                            accessKeySecret: "${TEST_ACCESS_KEY_SECRET}",
+                            bucket: "test-bucket",
+                            region: "oss-cn-hangzhou",
+                        },
+                    },
+                },
+                rules: {
+                    "resize-image": {
+                        availableWidths: [300, 600],
+                    },
+                },
+            } as unknown as CmtxConfig;
+
+            const { errors } = validateConfig(config);
+            const renameWarnings = errors.filter(
+                (e) => e.path === "rules.resize-image.availableWidths" && e.severity === "warning",
+            );
+            expect(renameWarnings.length).toBeGreaterThan(0);
+        });
+
+        it("should fail when download.concurrency is invalid", () => {
+            const config = {
+                version: "1.0.0",
+                storages: {
+                    default: {
+                        adapter: "aliyun-oss",
+                        config: {
+                            accessKeyId: "${TEST_ACCESS_KEY_ID}",
+                            accessKeySecret: "${TEST_ACCESS_KEY_SECRET}",
+                            bucket: "test-bucket",
+                            region: "oss-cn-hangzhou",
+                        },
+                    },
+                },
+                rules: {
+                    "download-images": {
+                        concurrency: 0,
+                    },
+                },
+            } as unknown as CmtxConfig;
+
+            const { errors } = validateConfig(config);
+            const concurrencyErrors = errors.filter(
+                (e) => e.path === "rules.download-images.concurrency",
+            );
+            expect(concurrencyErrors.length).toBeGreaterThan(0);
+        });
+
+        it("should fail when download.overwrite is not boolean", () => {
+            const config = {
+                version: "1.0.0",
+                storages: {
+                    default: {
+                        adapter: "aliyun-oss",
+                        config: {
+                            accessKeyId: "${TEST_ACCESS_KEY_ID}",
+                            accessKeySecret: "${TEST_ACCESS_KEY_SECRET}",
+                            bucket: "test-bucket",
+                            region: "oss-cn-hangzhou",
+                        },
+                    },
+                },
+                rules: {
+                    "download-images": {
+                        overwrite: "yes" as unknown as boolean,
+                    },
+                },
+            } as unknown as CmtxConfig;
+
+            const { errors } = validateConfig(config);
+            const overwriteErrors = errors.filter(
+                (e) => e.path === "rules.download-images.overwrite",
+            );
+            expect(overwriteErrors.length).toBeGreaterThan(0);
+        });
+
+        it("should fail when transfer.concurrency is invalid", () => {
+            const config = {
+                version: "1.0.0",
+                storages: {
+                    default: {
+                        adapter: "aliyun-oss",
+                        config: {
+                            accessKeyId: "${TEST_ACCESS_KEY_ID}",
+                            accessKeySecret: "${TEST_ACCESS_KEY_SECRET}",
+                            bucket: "test-bucket",
+                            region: "oss-cn-hangzhou",
+                        },
+                    },
+                },
+                rules: {
+                    "transfer-images": {
+                        concurrency: 0,
+                        maxConcurrentDownloads: -1,
+                    },
+                },
+            } as unknown as CmtxConfig;
+
+            const { errors } = validateConfig(config);
+            expect(
+                errors.filter((e) => e.path === "rules.transfer-images.concurrency").length,
+            ).toBeGreaterThan(0);
+            expect(
+                errors.filter((e) => e.path === "rules.transfer-images.maxConcurrentDownloads")
+                    .length,
+            ).toBeGreaterThan(0);
+        });
+
+        it("should fail when delete-image.strategy is invalid", () => {
+            const config = {
+                version: "1.0.0",
+                storages: {
+                    default: {
+                        adapter: "aliyun-oss",
+                        config: {
+                            accessKeyId: "${TEST_ACCESS_KEY_ID}",
+                            accessKeySecret: "${TEST_ACCESS_KEY_SECRET}",
+                            bucket: "test-bucket",
+                            region: "oss-cn-hangzhou",
+                        },
+                    },
+                },
+                rules: {
+                    "delete-image": {
+                        strategy: "invalid",
+                    },
+                },
+            } as unknown as CmtxConfig;
+
+            const { errors } = validateConfig(config);
+            const strategyErrors = errors.filter((e) => e.path === "rules.delete-image.strategy");
+            expect(strategyErrors.length).toBeGreaterThan(0);
+        });
+
+        it("should fail when cleanup-images.strategy is invalid", () => {
+            const config = {
+                version: "1.0.0",
+                storages: {
+                    default: {
+                        adapter: "aliyun-oss",
+                        config: {
+                            accessKeyId: "${TEST_ACCESS_KEY_ID}",
+                            accessKeySecret: "${TEST_ACCESS_KEY_SECRET}",
+                            bucket: "test-bucket",
+                            region: "oss-cn-hangzhou",
+                        },
+                    },
+                },
+                rules: {
+                    "cleanup-images": {
+                        strategy: "invalid",
+                    },
+                },
+            } as unknown as CmtxConfig;
+
+            const { errors } = validateConfig(config);
+            const strategyErrors = errors.filter((e) => e.path === "rules.cleanup-images.strategy");
+            expect(strategyErrors.length).toBeGreaterThan(0);
         });
 
         it("should fail when resize.widths contains negative numbers", () => {
@@ -244,7 +440,7 @@ describe("ConfigValidator", () => {
                 },
             } as unknown as CmtxConfig;
 
-            const errors = validateConfig(config);
+            const { errors } = validateConfig(config);
             const widthErrors = errors.filter((e) => e.path === "rules.resize-image.widths");
             expect(widthErrors.length).toBeGreaterThan(0);
         });
@@ -268,7 +464,7 @@ describe("ConfigValidator", () => {
                 },
             } as CmtxConfig;
 
-            const errors = validateConfig(config);
+            const { errors } = validateConfig(config);
             const expireErrors = errors.filter((e) => e.path === "presignedUrls.expire");
             expect(expireErrors.length).toBeGreaterThan(0);
         });
@@ -292,7 +488,7 @@ describe("ConfigValidator", () => {
                 },
             } as CmtxConfig;
 
-            const errors = validateConfig(config);
+            const { errors } = validateConfig(config);
             const retryErrors = errors.filter((e) => e.path === "presignedUrls.maxRetryCount");
             expect(retryErrors.length).toBeGreaterThan(0);
         });
@@ -316,7 +512,7 @@ describe("ConfigValidator", () => {
                 },
             } as CmtxConfig;
 
-            const errors = validateConfig(config);
+            const { errors } = validateConfig(config);
             const formatErrors = errors.filter((e) => e.path === "presignedUrls.imageFormat");
             expect(formatErrors.length).toBeGreaterThan(0);
         });
@@ -341,7 +537,7 @@ describe("ConfigValidator", () => {
         it("should validate config", () => {
             const validator = createConfigValidator();
             const config = createValidConfig();
-            const errors = validator.validate(config);
+            const { errors } = validator.validate(config);
             const errorCount = errors.filter((e) => e.severity === "error").length;
             expect(errorCount).toBe(0);
         });

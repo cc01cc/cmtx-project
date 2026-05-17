@@ -9,6 +9,8 @@
 
 // Service 接口从 @cmtx/asset 统一导入（唯一定义点）
 import type { Service } from "@cmtx/asset";
+import type { FrontmatterValue } from "@cmtx/core";
+// Service 类型在 rule-engine 内部使用，也导出供需要类型引用的场景
 export type { Service } from "@cmtx/asset";
 
 /**
@@ -68,171 +70,7 @@ export interface RuleContext extends CoreContext {
     dryRun?: boolean;
 
     /** 调用方输入参数（来自 CLI / VS Code / MCP） */
-    input?: Record<string, string>;
-}
-
-/**
- * 存储服务配置
- *
- * @TODO 技术债务：检查此接口与 @cmtx/storage 的 StorageServiceConfig 是否存在冗余设计
- */
-export interface StorageServiceConfig {
-    /** 适配器类型 */
-    adapter: string;
-    /** 适配器配置 */
-    config: Record<string, string>;
-    /** 前缀 */
-    prefix?: string;
-}
-
-/**
- * 存储服务接口
- * 提供图片上传等存储相关功能
- */
-export interface StorageService extends Service<StorageServiceConfig> {
-    readonly id: "storage";
-
-    /**
-     * 上传文件
-     * @param localPath - 本地文件路径
-     * @param remotePath - 远程路径
-     * @returns 远程 URL
-     */
-    upload(localPath: string, remotePath: string): Promise<string>;
-
-    /**
-     * 获取存储配置
-     */
-    getConfig(): StorageServiceConfig;
-}
-
-/**
- * 计数器服务配置
- */
-export interface CounterServiceConfig {
-    /** 初始值 */
-    initialValue?: number;
-    /** 步长 */
-    step?: number;
-}
-
-/**
- * 计数器配置映射
- * key 为计数器 id，value 为计数器配置
- */
-export interface CounterConfigMap {
-    [counterId: string]: CounterServiceConfig;
-}
-
-/**
- * 计数器服务接口
- * 提供多计数器功能，用于 ID 生成
- * 每个计数器有唯一的 id，通过 counterId 区分
- */
-export interface CounterService extends Service<CounterServiceConfig> {
-    readonly id: "counter";
-
-    /**
-     * 获取指定计数器的下一个计数值
-     * @param counterId - 计数器 ID
-     */
-    next(counterId: string): number;
-
-    /**
-     * 获取指定计数器的当前值
-     * @param counterId - 计数器 ID
-     */
-    current(counterId: string): number;
-
-    /**
-     * 重置指定计数器
-     * @param counterId - 计数器 ID
-     * @param value - 重置值
-     */
-    reset(counterId: string, value?: number): void;
-}
-
-/**
- * 回调服务配置
- */
-export interface CallbackServiceConfig {
-    /**
-     * 文件已存在时的冲突处理回调
-     */
-    onFileExists?: (
-        fileName: string,
-        remotePath: string,
-        remoteUrl: string,
-    ) => Promise<"skip" | "replace" | "download">;
-
-    /**
-     * 进度回调
-     */
-    onProgress?: (message: string) => void;
-}
-
-/**
- * 回调服务接口
- * 提供用户交互相关的回调功能
- */
-export interface CallbackService extends Service<CallbackServiceConfig> {
-    readonly id: "callback";
-
-    /**
-     * 文件已存在时的冲突处理
-     */
-    onFileExists?(
-        fileName: string,
-        remotePath: string,
-        remoteUrl: string,
-    ): Promise<"skip" | "replace" | "download">;
-
-    /**
-     * 进度回调
-     */
-    onProgress?(message: string): void;
-}
-
-/**
- * 预签名 URL 服务配置
- */
-export interface PresignedUrlServiceConfig {
-    /** 过期时间（秒） */
-    expire?: number;
-    /** 最大重试次数 */
-    maxRetryCount?: number;
-    /** 图片格式 */
-    imageFormat?: "markdown" | "html" | "all";
-    /** 域名配置 */
-    domains?: Array<{
-        domain: string;
-        provider: string;
-        bucket?: string;
-        region?: string;
-        path?: string;
-        accessKeyId?: string;
-        accessKeySecret?: string;
-    }>;
-}
-
-/**
- * 预签名 URL 服务接口
- * 提供预签名 URL 转换功能
- */
-export interface PresignedUrlService extends Service<PresignedUrlServiceConfig> {
-    readonly id: "presigned-url";
-
-    /**
-     * 转换 Markdown 中的 URL 为预签名 URL
-     * @param markdown - Markdown 内容
-     * @returns 转换后的内容
-     */
-    transform(markdown: string): Promise<string>;
-
-    /**
-     * 获取配置
-     */
-    getConfig(): PresignedUrlServiceConfig;
+    input?: Record<string, FrontmatterValue>;
 }
 
 /**
@@ -245,6 +83,8 @@ export interface FileSystemServiceConfig {
 
 /**
  * Asset 引用类型
+ *
+ * @internal
  */
 export interface AssetRef {
     /** 源文件中的相对路径 */
@@ -275,10 +115,10 @@ export interface FileSystemService extends Service<FileSystemServiceConfig> {
     scanAssets(sourceDir: string, mdContent: string): Promise<AssetRef[]>;
 
     /** 读取文件的 front matter */
-    readFileFrontMatter(path: string): Promise<Record<string, string>>;
+    readFileFrontMatter(path: string): Promise<Record<string, FrontmatterValue>>;
 
     /** 更新文件的 front matter 字段 */
-    updateFileFrontMatter(path: string, fields: Record<string, string>): Promise<void>;
+    updateFileFrontMatter(path: string, fields: Record<string, FrontmatterValue>): Promise<void>;
 
     /** 检测目录所属的 workspace 根目录 */
     detectWorkspaceRoot(path: string): Promise<string | null>;
@@ -291,16 +131,12 @@ export interface FileSystemService extends Service<FileSystemServiceConfig> {
  * 内置服务 ID 类型
  * 用于类型安全的服务获取
  */
-export type BuiltInServiceId = "storage" | "counter" | "callback" | "presigned-url" | "filesystem";
+export type BuiltInServiceId = "filesystem";
 
 /**
  * 服务 ID 到服务类型的映射
  * 用于类型推断
  */
 export interface ServiceTypeMap {
-    storage: StorageService;
-    counter: CounterService;
-    callback: CallbackService;
-    "presigned-url": PresignedUrlService;
     filesystem: FileSystemService;
 }

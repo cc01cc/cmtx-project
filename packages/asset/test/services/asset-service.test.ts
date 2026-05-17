@@ -60,7 +60,7 @@ describe("AssetService", () => {
             const service = new AssetService({ adapter: mockAdapter as any });
             const doc = "![alt](https://example.com/img.jpg)";
             const result = await service.uploadImagesInDocument(doc, TEST_DIR);
-            expect(result.uploaded).toBe(0);
+            expect(result.succeeded).toBe(0);
             expect(result.content).toBe(doc);
         });
 
@@ -73,7 +73,7 @@ describe("AssetService", () => {
             const result = await service.uploadImagesInDocument(doc, TEST_DIR);
             // Pipeline will process the image
             expect(result).toHaveProperty("content");
-            expect(result).toHaveProperty("uploaded");
+            expect(result).toHaveProperty("succeeded");
         });
 
         it("should call onProgress callback when images uploaded", async () => {
@@ -87,7 +87,7 @@ describe("AssetService", () => {
             const doc = `![alt](${imgFile})`;
             const result = await service.uploadImagesInDocument(doc, TEST_DIR);
             // onProgress is called when images were uploaded
-            if (result.uploaded > 0) {
+            if (result.succeeded > 0) {
                 expect(onProgress).toHaveBeenCalled();
             }
         });
@@ -98,7 +98,7 @@ describe("AssetService", () => {
             const service = new AssetService({ adapter: mockAdapter as any });
             const doc = "![alt](./local.png)";
             const result = await service.downloadImages(doc, TEST_DIR);
-            expect(result).toHaveProperty("success");
+            expect(result).toHaveProperty("succeeded");
             expect(result).toHaveProperty("failed");
             expect(result).toHaveProperty("skipped");
         });

@@ -14,7 +14,7 @@
  * ## 核心功能
  *
  * ### 文本层 API
- * - {@link filterImagesInText} - 从纯文本 Markdown 内容筛选图片
+ * - {@link filterImages} - 从纯文本 Markdown 内容筛选图片
  *
  * ### 支持的筛选模式
  * - **sourceType**: 按图片来源筛选 ("web" 或 "local")
@@ -40,7 +40,6 @@ import type {
     ImageMatch,
     ParsedImage,
 } from "./types.js";
-import type { Logger } from "./logger.js";
 import { isWebSource } from "./utils.js";
 
 /**
@@ -243,22 +242,22 @@ function _mayContainFile(content: string, filePath: string): boolean {
  * @example
  * ```typescript
  * // 获取文本中的所有图片
- * const allImages = filterImagesInText(markdown);
+ * const allImages = filterImages(markdown);
  *
  * // 只获取本地图片
- * const localImages = filterImagesInText(markdown, {
+ * const localImages = filterImages(markdown, {
  *   mode: 'sourceType',
  *   value: 'local'
  * });
  *
  * // 获取特定主机的远程图片
- * const remoteImages = filterImagesInText(markdown, {
+ * const remoteImages = filterImages(markdown, {
  *   mode: 'hostname',
  *   value: 'example.com'
  * });
  *
  * // 使用正则表达式筛选
- * const matchedImages = filterImagesInText(markdown, {
+ * const matchedImages = filterImages(markdown, {
  *   mode: 'regex',
  *   value: /\.png$/i
  * });
@@ -266,11 +265,7 @@ function _mayContainFile(content: string, filePath: string): boolean {
  *
  * @public
  */
-export function filterImagesInText(
-    markdown: string,
-    options?: ImageFilterOptions,
-    logger?: Logger,
-): ImageMatch[] {
+export function filterImages(markdown: string, options?: ImageFilterOptions): ImageMatch[] {
     const { mode, value } = options || { mode: undefined, value: undefined };
 
     try {
@@ -281,7 +276,7 @@ export function filterImagesInText(
         const parsedImages = parseImages(markdown);
         return _parsedToImageMatches(parsedImages, mode, value);
     } catch (error) {
-        logger?.error("Failed to filter images from text", { error });
+        options?.logger?.error("Failed to filter images from text", { error });
         throw error;
     }
 }

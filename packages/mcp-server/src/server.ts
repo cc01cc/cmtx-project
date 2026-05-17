@@ -1,7 +1,9 @@
 import path from "node:path";
 import fs from "node:fs/promises";
+import { DeleteService } from "@cmtx/asset";
 import { FileService } from "@cmtx/asset/file";
-import type { CloudCredentials, InternalTransferConfig } from "@cmtx/asset/transfer";
+import type { CloudCredentials } from "@cmtx/storage";
+import type { InternalTransferConfig } from "@cmtx/asset/transfer";
 import { createTransferManager, createUrlParser } from "@cmtx/asset/transfer";
 import { createAdapter } from "@cmtx/storage/adapters/factory";
 import { createCredentials } from "@cmtx/storage";
@@ -72,10 +74,13 @@ export async function startServer(): Promise<void> {
                     description: "List files referencing an image",
                 },
                 { name: "find.referenceDetails", description: "Get detailed reference locations" },
-                { name: "delete.safe", description: "Safe delete with reference check" },
                 {
-                    name: "delete.force",
-                    description: "Force delete image (requires allowHardDelete)",
+                    name: "delete.image",
+                    description: "Delete image with reference check. Use force=true to skip check.",
+                },
+                {
+                    name: "cleanup.images",
+                    description: "Clean up unreferenced images in a directory",
                 },
             ],
         },
@@ -128,11 +133,11 @@ export async function startServer(): Promise<void> {
                     case "transfer.execute":
                         await handleTransferExecute(id, args, projectRoot);
                         break;
-                    case "delete.safe":
-                        await handleDeleteSafe(id, args, fileService);
+                    case "delete.image":
+                        await handleDeleteImage(id, args, fileService);
                         break;
-                    case "delete.force":
-                        await handleDeleteForce(id, args, fileService);
+                    case "cleanup.images":
+                        await handleCleanupImages(id, args);
                         break;
                     default:
                         error(id, 4400, `Unknown tool: ${toolName}`);
@@ -254,7 +259,6 @@ async function handleUploadRun(
     const adapter = await createAdapter(credentials);
 
     const ruleAdapter = await createRuleEngineAdapter();
-    ruleAdapter.configureCore();
     ruleAdapter.configureStorage(adapter, {
         prefix: getStringArg(args, "uploadPrefix") || "",
         namingTemplate: getStringArg(args, "namingTemplate"),
@@ -650,7 +654,7 @@ async function handleTransferExecute(
             id,
             result: {
                 total: result.total,
-                success: result.success,
+                succeeded: result.succeeded,
                 failed: result.failed,
                 skipped: result.skipped,
                 mappings: result.mappings,
@@ -663,78 +667,69 @@ async function handleTransferExecute(
     }
 }
 
-async function handleDeleteSafe(
+async function handleDeleteImage(
     id: JsonRpcRequest["id"],
     args: Record<string, unknown>,
-    fileService: FileService,
+    _fileService: FileService,
 ): Promise<void> {
     const imagePath = getStringArg(args, "imagePath");
-    const searchDir = getStringArg(args, "searchDir");
+    const searchDir = getStringArg(args, "searchDir") ?? process.cwd();
+    const force = getBooleanArg(args, "force");
 
-    if (!imagePath || !searchDir) {
-        error(id, 4400, "Missing required parameters: imagePath, searchDir");
-        return;
-    }
-
-    const result = await fileService.deleteLocalImageSafely(imagePath, searchDir, {
-        strategy: "move",
-    });
-
-    if (result.status === "success") {
-        write({
-            jsonrpc: "2.0",
-            id,
-            result: { deleted: true, path: imagePath },
-        });
-    } else {
-        write({
-            jsonrpc: "2.0",
-            id,
-            result: {
-                deleted: false,
-                reason: result.error,
-            },
-        });
-    }
-}
-
-async function handleDeleteForce(
-    id: JsonRpcRequest["id"],
-    args: Record<string, unknown>,
-    fileService: FileService,
-): Promise<void> {
-    const imagePath = getStringArg(args, "imagePath");
-    const searchDir = getStringArg(args, "searchDir");
-
-    if (!imagePath || !searchDir) {
-        error(id, 4400, "Missing required parameters: imagePath, searchDir");
-        return;
-    }
-
-    if (!getBooleanArg(args, "allowHardDelete")) {
-        error(id, 4400, "Hard delete requires allowHardDelete=true for safety");
+    if (!imagePath) {
+        error(id, 4400, "Missing required parameter: imagePath");
         return;
     }
 
     try {
-        const result = await fileService.deleteLocalImageSafely(imagePath, searchDir, {
-            strategy: "hard-delete",
+        const deleteService = new DeleteService({ baseDirectory: searchDir });
+        const result = await deleteService.safeDelete(imagePath, {
+            force,
+            strategy: "trash",
         });
-        if (result.status === "success") {
-            write({
-                jsonrpc: "2.0",
-                id,
-                result: {
-                    deleted: true,
-                    path: imagePath,
-                    forced: true,
-                },
-            });
-        } else {
-            error(id, 4300, `Cannot force delete: ${result.error}`);
-        }
+
+        write({
+            jsonrpc: "2.0",
+            id,
+            result: {
+                deleted: result.deleted,
+                success: result.success,
+                hasReferences: result.detail.hasReferences,
+                forceDeleted: result.detail.forceDeleted,
+                referencesCount: result.detail.referencedIn.length,
+            },
+        });
     } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        error(id, 4301, `Hard delete failed: ${msg}`);
+        error(id, 5000, `Delete failed: ${msg}`);
+    }
+}
+
+async function handleCleanupImages(
+    id: JsonRpcRequest["id"],
+    args: Record<string, unknown>,
+): Promise<void> {
+    const searchDir = getStringArg(args, "searchDir") ?? process.cwd();
+    const strategy = getStringArg(args, "strategy") ?? "trash";
+
+    try {
+        const deleteService = new DeleteService({ baseDirectory: searchDir });
+        const result = await deleteService.pruneDirectory(searchDir, {
+            strategy: strategy as "trash" | "move" | "hard-delete",
+        });
+
+        write({
+            jsonrpc: "2.0",
+            id,
+            result: {
+                totalOrphans: result.totalOrphans,
+                deletedCount: result.deletedCount,
+                failedCount: result.failedCount,
+                freedSize: result.freedSize,
+            },
+        });
+    } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        error(id, 5000, `Cleanup failed: ${msg}`);
     }
 }

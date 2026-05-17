@@ -9,7 +9,7 @@
 import { resolve } from "node:path";
 import type { CmtxConfig } from "@cmtx/asset/config";
 import { ConfigLoader } from "@cmtx/asset/config";
-import type { CloudCredentials, IStorageAdapter } from "@cmtx/storage";
+import type { CloudCredentials, StorageAdapter } from "@cmtx/storage";
 import { createCredentials } from "@cmtx/storage";
 import { createAdapter } from "@cmtx/storage/adapters/factory";
 import type { ConflictResolutionStrategy } from "@cmtx/asset/upload";
@@ -65,7 +65,7 @@ export function builder(yargs: Argv): Argv {
 }
 
 type ResolvedConfig = {
-    adapter: IStorageAdapter;
+    adapter: StorageAdapter;
     provider: CloudCredentials["provider"];
     prefix: string;
     namingTemplate: string;
@@ -146,16 +146,16 @@ async function resolveStorageConfig(argv: UploadCommandOptions): Promise<Resolve
     };
 }
 
-export async function handler(argv: UploadCommandOptions): Promise<void> {
-    const logger = createLogger(argv.verbose);
+export async function handler(options: UploadCommandOptions): Promise<void> {
+    const logger = createLogger(options.verbose);
 
     try {
-        const absolutePath = resolve(argv.filePath);
+        const absolutePath = resolve(options.filePath);
 
         logger.info(`处理文件：${absolutePath}`);
 
         const { provider, adapter, prefix, namingTemplate, conflictStrategy } =
-            await resolveStorageConfig(argv);
+            await resolveStorageConfig(options);
         logger.info(`使用云存储：${provider}`);
 
         logger.info(`发现本地图片，开始上传...`);
@@ -169,7 +169,7 @@ export async function handler(argv: UploadCommandOptions): Promise<void> {
         const report = [
             `上传完成！`,
             `  修改：${result.modified ? "是" : "否"}`,
-            `  上传：${result.uploaded}`,
+            `  上传：${result.succeeded}`,
         ];
         console.log(formatInfo(report.join("\n")));
     } catch (error) {

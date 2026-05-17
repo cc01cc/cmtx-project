@@ -7,6 +7,7 @@
  */
 
 export { addSectionNumbersRuleCommand } from "./add-section-numbers.js";
+export { cleanupImagesRuleCommand } from "./cleanup-images.js";
 export { convertImagesRuleCommand } from "./convert-images.js";
 export { deleteImageRuleCommand } from "./delete-image.js";
 export { downloadImagesRuleCommand } from "./download-images.js";

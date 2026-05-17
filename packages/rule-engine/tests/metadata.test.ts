@@ -6,52 +6,11 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { IdGenerator, MarkdownFileQuery, MarkdownMetadataExtractor } from "../src/index.js";
+import { MarkdownFileQuery } from "../src/metadata/markdown-file-query.js";
+import { MarkdownMetadataExtractor } from "../src/metadata/markdown-metadata-extractor.js";
 
 describe("MarkdownMetadataExtractor (DocumentManager)", () => {
     const manager = new MarkdownMetadataExtractor();
-
-    it("should correctly extract top-level heading", async () => {
-        const content = "# My Document Title\n\nThis is the document content.";
-        const metadata = await manager.extractFromText(content);
-
-        expect(metadata.title).toBe("My Document Title");
-    });
-
-    it("should handle cases without a title", async () => {
-        const content = "This is content without a title.";
-        const metadata = await manager.extractFromText(content);
-
-        expect(metadata.title).toBeUndefined();
-    });
-
-    it("should extract title from Frontmatter with priority", async () => {
-        const content = "---\ntitle: Frontmatter Title\n---\n\n# Heading Title\n\nContent";
-        const metadata = await manager.extractFromText(content);
-
-        expect(metadata.title).toBe("Frontmatter Title");
-    });
-
-    it("should correctly extract Frontmatter fields", async () => {
-        const content =
-            '---\nauthor: "Alice"\ntags:\n  - tag1\n  - tag2\n---\n\n# Title\n\nContent';
-        const metadata = await manager.extractFromText(content);
-
-        expect(metadata.author).toBe("Alice");
-        expect(metadata.tags).toEqual(["tag1", "tag2"]);
-    });
-
-    it("should extract all headings when extractAllHeadings option is enabled", async () => {
-        const content = "# Heading 1\n\n## Heading 2\n\n### Heading 3\n\nContent";
-        const metadata = await manager.extractFromText(content, {
-            extractAllHeadings: true,
-        });
-
-        expect(metadata.title).toBe("Heading 1");
-        expect(metadata.headings).toBeDefined();
-        expect(Array.isArray(metadata.headings)).toBe(true);
-        expect(metadata.headings).toContain("Heading 1");
-    });
 
     it("should extract metadata from a file", async () => {
         // Create a temporary file for testing
@@ -98,61 +57,6 @@ describe("MarkdownMetadataExtractor (DocumentManager)", () => {
 
         // Clean up
         await rm(testDir, { recursive: true, force: true });
-    });
-});
-
-describe("IdGenerator", () => {
-    const generator = new IdGenerator();
-
-    it("should generate correct slug", () => {
-        const id = generator.generate("slug", "My Doc Title!");
-        expect(id).toBe("My-Doc-Title");
-    });
-
-    it("should generate UUID", () => {
-        const id = generator.generate("uuid");
-        expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
-    });
-
-    it("should generate hashes (md5, sha1, sha256)", () => {
-        const input = "Test content";
-        const md5 = generator.generate("md5", input);
-        const sha1 = generator.generate("sha1", input);
-        const sha256 = generator.generate("sha256", input);
-
-        expect(md5).toMatch(/^[a-f0-9]{8}$/);
-        expect(sha1).toMatch(/^[a-f0-9]{8}$/);
-        expect(sha256).toMatch(/^[a-f0-9]{8}$/);
-    });
-
-    it("should support specific hash variables in templates", () => {
-        const id = generator.generate("{md5}_{sha1}_{sha256}", "My Article");
-        const parts = id.split("_");
-        expect(parts).toHaveLength(3);
-        expect(parts[0]).toMatch(/^[a-f0-9]{8}$/);
-        expect(parts[1]).toMatch(/^[a-f0-9]{8}$/);
-        expect(parts[2]).toMatch(/^[a-f0-9]{8}$/);
-    });
-
-    it("should handle special characters", () => {
-        const id = generator.generate("slug", "Short Title!");
-        expect(id).toBe("Short-Title");
-    });
-
-    it("should support template generation", () => {
-        const id = generator.generate("{date}_{slug}", "My Article");
-        const expectedDate = new Date().toISOString().split("T")[0];
-        expect(id).toContain(`${expectedDate}_My-Article`);
-    });
-
-    it("should generate batch IDs", () => {
-        const inputs = ["Article 1", "Article 2", "Article 3"];
-        const ids = generator.generateBatch(inputs, "slug");
-
-        expect(ids).toHaveLength(3);
-        expect(ids[0]).toBe("Article-1");
-        expect(ids[1]).toBe("Article-2");
-        expect(ids[2]).toBe("Article-3");
     });
 });
 

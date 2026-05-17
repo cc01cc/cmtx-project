@@ -9,10 +9,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import OSS from "ali-oss";
 import COS from "cos-nodejs-sdk-v5";
-import { AliOSSAdapter } from "../../src/adapters/ali-oss.js";
+import { AliyunOSSAdapter } from "../../src/adapters/ali-oss.js";
 import type { CosClient } from "../../src/adapters/cos-types.js";
 import { TencentCOSAdapter } from "../../src/adapters/tencent-cos.js";
-import type { IStorageAdapter } from "../../src/types.js";
+import type { StorageAdapter } from "../../src/types.js";
 
 export interface AliyunTestConfig {
     enabled: boolean;
@@ -98,7 +98,7 @@ function validateConfig(config: TestConfig): void {
     }
 }
 
-export function createOSSAdapter(config: AliyunTestConfig): AliOSSAdapter {
+export function createOSSAdapter(config: AliyunTestConfig): AliyunOSSAdapter {
     const client = new OSS({
         region: config.region,
         accessKeyId: config.accessKeyId,
@@ -106,7 +106,7 @@ export function createOSSAdapter(config: AliyunTestConfig): AliOSSAdapter {
         bucket: config.bucket,
     });
 
-    return new AliOSSAdapter(client);
+    return new AliyunOSSAdapter(client);
 }
 
 export function createCOSAdapter(config: TencentTestConfig): TencentCOSAdapter {
@@ -116,8 +116,8 @@ export function createCOSAdapter(config: TencentTestConfig): TencentCOSAdapter {
     });
 
     return new TencentCOSAdapter(client as unknown as CosClient, {
-        Bucket: config.bucket,
-        Region: config.region,
+        bucket: config.bucket,
+        region: config.region,
     });
 }
 
@@ -146,7 +146,7 @@ export function cleanupTempDir(tempDir: string): void {
     }
 }
 
-export async function cleanupTestFiles(adapter: IStorageAdapter, testPath: string): Promise<void> {
+export async function cleanupTestFiles(adapter: StorageAdapter, testPath: string): Promise<void> {
     if (!adapter.delete) {
         return;
     }
@@ -217,7 +217,7 @@ export async function fetchUrl(url: string): Promise<{ status: number; data: Buf
 }
 
 export async function downloadAndCompare(
-    adapter: IStorageAdapter,
+    adapter: StorageAdapter,
     remotePath: string,
     expectedContent: Buffer,
 ): Promise<boolean> {

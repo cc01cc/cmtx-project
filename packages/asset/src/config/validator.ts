@@ -1,18 +1,7 @@
 /* eslint-disable no-console */
 
-/**
- * CMTX 配置验证器
- *
- * @module config/validator
- * @description
- * 验证 CMTX 配置的有效性和完整性。
- */
-
 import type { CmtxConfig } from "./types.js";
 
-/**
- * 配置验证错误
- */
 /**
  * 配置验证错误
  */
@@ -26,8 +15,40 @@ export interface ConfigValidationError {
 }
 
 /**
- * 验证版本配置
+ * 配置验证结果
  */
+export class ValidationResult {
+    constructor(public errors: ConfigValidationError[]) {}
+
+    /** 是否存在错误 */
+    hasErrors(): boolean {
+        return this.errors.length > 0;
+    }
+
+    /** 是否存在 severity === 'error' 的致命错误 */
+    hasFatal(): boolean {
+        return this.errors.some((e) => e.severity === "error");
+    }
+
+    /** 格式化错误为可读字符串 */
+    format(): string {
+        return formatValidationErrors(this.errors);
+    }
+}
+
+/**
+ * 验证 CMTX 配置
+ *
+ * @param config - 待验证的配置
+ * @returns 验证结果
+ */
+export function validateConfig(config: CmtxConfig): ValidationResult {
+    const errors = _validateConfig(config);
+    return new ValidationResult(errors);
+}
+
+// ==================== 内部验证函数 ====================
+
 function validateVersion(config: CmtxConfig): ConfigValidationError[] {
     if (!config.version) {
         return [
@@ -41,20 +62,25 @@ function validateVersion(config: CmtxConfig): ConfigValidationError[] {
     return [];
 }
 
-/**
- * 验证上传配置
- */
 function validateUpload(config: CmtxConfig): ConfigValidationError[] {
     const errors: ConfigValidationError[] = [];
     const uploadRule = config.rules?.["upload-images"];
     if (!uploadRule) return errors;
 
-    const batchLimit = uploadRule.batchLimit as number | undefined;
-    if (batchLimit !== undefined && batchLimit < 1) {
+    const concurrency = (uploadRule.concurrency ?? uploadRule.batchLimit) as number | undefined;
+    if (concurrency !== undefined && concurrency < 1) {
+        errors.push({
+            path: "rules.upload-images.concurrency",
+            message: "Concurrency must be at least 1",
+            severity: "error",
+        });
+    }
+
+    if (uploadRule.batchLimit !== undefined) {
         errors.push({
             path: "rules.upload-images.batchLimit",
-            message: "Batch limit must be at least 1",
-            severity: "error",
+            message: "batchLimit has been renamed to concurrency, please update your config",
+            severity: "warning",
         });
     }
 
@@ -79,13 +105,151 @@ function validateUpload(config: CmtxConfig): ConfigValidationError[] {
     return errors;
 }
 
-/**
- * 验证图片缩放配置
- */
+function validateDownload(config: CmtxConfig): ConfigValidationError[] {
+    const errors: ConfigValidationError[] = [];
+    const rule = config.rules?.["download-images"];
+    if (!rule) return errors;
+
+    const concurrency = rule.concurrency as number | undefined;
+    if (concurrency !== undefined && concurrency < 1) {
+        errors.push({
+            path: "rules.download-images.concurrency",
+            message: "Concurrency must be at least 1",
+            severity: "error",
+        });
+    }
+
+    const overwrite = rule.overwrite as boolean | undefined;
+    if (overwrite !== undefined && typeof overwrite !== "boolean") {
+        errors.push({
+            path: "rules.download-images.overwrite",
+            message: "Overwrite must be a boolean",
+            severity: "error",
+        });
+    }
+
+    return errors;
+}
+
+function validateTransfer(config: CmtxConfig): ConfigValidationError[] {
+    const errors: ConfigValidationError[] = [];
+    const rule = config.rules?.["transfer-images"];
+    if (!rule) return errors;
+
+    const concurrency = rule.concurrency as number | undefined;
+    if (concurrency !== undefined && concurrency < 1) {
+        errors.push({
+            path: "rules.transfer-images.concurrency",
+            message: "Concurrency must be at least 1",
+            severity: "error",
+        });
+    }
+
+    const maxConcurrentDownloads = rule.maxConcurrentDownloads as number | undefined;
+    if (maxConcurrentDownloads !== undefined && maxConcurrentDownloads < 1) {
+        errors.push({
+            path: "rules.transfer-images.maxConcurrentDownloads",
+            message: "maxConcurrentDownloads must be at least 1",
+            severity: "error",
+        });
+    }
+
+    const deleteSource = rule.deleteSource as boolean | undefined;
+    if (deleteSource !== undefined && typeof deleteSource !== "boolean") {
+        errors.push({
+            path: "rules.transfer-images.deleteSource",
+            message: "deleteSource must be a boolean",
+            severity: "error",
+        });
+    }
+
+    const overwrite = rule.overwrite as boolean | undefined;
+    if (overwrite !== undefined && typeof overwrite !== "boolean") {
+        errors.push({
+            path: "rules.transfer-images.overwrite",
+            message: "overwrite must be a boolean",
+            severity: "error",
+        });
+    }
+
+    return errors;
+}
+
+function validateDeleteStrategy(strategy: unknown, path: string): ConfigValidationError | null {
+    if (strategy !== undefined && !["trash", "move", "hard-delete"].includes(strategy as string)) {
+        return {
+            path,
+            message: 'Strategy must be "trash", "move", or "hard-delete"',
+            severity: "error",
+        };
+    }
+    return null;
+}
+
+function validateDelete(config: CmtxConfig): ConfigValidationError[] {
+    const errors: ConfigValidationError[] = [];
+    const rule = config.rules?.["delete-image"];
+    if (!rule) return errors;
+
+    const strategyError = validateDeleteStrategy(rule.strategy, "rules.delete-image.strategy");
+    if (strategyError) errors.push(strategyError);
+
+    const removeFromMarkdown = rule.removeFromMarkdown as boolean | undefined;
+    if (removeFromMarkdown !== undefined && typeof removeFromMarkdown !== "boolean") {
+        errors.push({
+            path: "rules.delete-image.removeFromMarkdown",
+            message: "removeFromMarkdown must be a boolean",
+            severity: "error",
+        });
+    }
+
+    const force = rule.force as boolean | undefined;
+    if (force !== undefined && typeof force !== "boolean") {
+        errors.push({
+            path: "rules.delete-image.force",
+            message: "force must be a boolean",
+            severity: "error",
+        });
+    }
+
+    return errors;
+}
+
+function validateCleanup(config: CmtxConfig): ConfigValidationError[] {
+    const errors: ConfigValidationError[] = [];
+    const rule = config.rules?.["cleanup-images"];
+    if (!rule) return errors;
+
+    const strategyError = validateDeleteStrategy(rule.strategy, "rules.cleanup-images.strategy");
+    if (strategyError) errors.push(strategyError);
+
+    const force = rule.force as boolean | undefined;
+    if (force !== undefined && typeof force !== "boolean") {
+        errors.push({
+            path: "rules.cleanup-images.force",
+            message: "force must be a boolean",
+            severity: "error",
+        });
+    }
+
+    return errors;
+}
+
 function validateResize(config: CmtxConfig): ConfigValidationError[] {
     const errors: ConfigValidationError[] = [];
     const resizeRule = config.rules?.["resize-image"];
-    const widths = resizeRule?.widths;
+    if (!resizeRule) return errors;
+
+    const oldWidths = resizeRule.availableWidths;
+    if (oldWidths !== undefined) {
+        errors.push({
+            path: "rules.resize-image.availableWidths",
+            message: "availableWidths has been renamed to widths, please update your config",
+            severity: "warning",
+        });
+    }
+
+    const widths = resizeRule.widths;
     if (widths === undefined) return errors;
 
     if (!Array.isArray(widths)) {
@@ -109,9 +273,6 @@ function validateResize(config: CmtxConfig): ConfigValidationError[] {
     return errors;
 }
 
-/**
- * 验证预签名 URL 配置
- */
 function validatePresignedUrls(config: CmtxConfig): ConfigValidationError[] {
     const errors: ConfigValidationError[] = [];
     if (!config.presignedUrls) return errors;
@@ -149,9 +310,6 @@ function validatePresignedUrls(config: CmtxConfig): ConfigValidationError[] {
     return errors;
 }
 
-/**
- * 检查环境变量占位符
- */
 function checkEnvPlaceholder(
     key: string,
     value: string,
@@ -173,9 +331,6 @@ function checkEnvPlaceholder(
     return null;
 }
 
-/**
- * 验证存储配置
- */
 function validateStorage(config: CmtxConfig): ConfigValidationError[] {
     const errors: ConfigValidationError[] = [];
 
@@ -188,7 +343,6 @@ function validateStorage(config: CmtxConfig): ConfigValidationError[] {
         return errors;
     }
 
-    // 验证每个存储配置
     for (const [storageId, storage] of Object.entries(config.storages)) {
         if (!storage.adapter) {
             errors.push({
@@ -221,14 +375,16 @@ function validateStorage(config: CmtxConfig): ConfigValidationError[] {
 }
 
 /**
- * 验证配置
- * @param config - CMTX 配置
- * @returns 验证错误列表
+ * 验证 CMTX 配置（内部实现，返回裸数组）
  */
-export function validateConfig(config: CmtxConfig): ConfigValidationError[] {
+function _validateConfig(config: CmtxConfig): ConfigValidationError[] {
     const errors: ConfigValidationError[] = [];
     errors.push(...validateVersion(config));
     errors.push(...validateUpload(config));
+    errors.push(...validateDownload(config));
+    errors.push(...validateTransfer(config));
+    errors.push(...validateDelete(config));
+    errors.push(...validateCleanup(config));
     errors.push(...validateResize(config));
     errors.push(...validatePresignedUrls(config));
     errors.push(...validateStorage(config));
@@ -239,43 +395,50 @@ export function validateConfig(config: CmtxConfig): ConfigValidationError[] {
  * 配置验证器类
  */
 export class ConfigValidator {
-    /**
-     * 验证配置
-     * @param config - CMTX 配置
-     * @returns 验证错误列表
-     */
-    validate(config: CmtxConfig): ConfigValidationError[] {
+    validate(config: CmtxConfig): ValidationResult {
         return validateConfig(config);
     }
 
     /**
      * 验证配置并抛出错误（如果有错误）
-     * @param config - CMTX 配置
-     * @throws Error 当验证失败时
      */
     validateOrThrow(config: CmtxConfig): void {
-        const errors = this.validate(config);
-        const errorCount = errors.filter((e) => e.severity === "error").length;
-        if (errorCount > 0) {
+        const result = this.validate(config);
+        if (result.hasFatal()) {
+            const errorMessages = result.errors
+                .filter((e) => e.severity === "error")
+                .map((e) => `  - ${e.path}: ${e.message}`)
+                .join("\n");
             throw new Error(
-                `Configuration validation failed with ${errorCount} error(s):\n` +
-                    errors
-                        .filter((e) => e.severity === "error")
-                        .map((e) => `  - ${e.path}: ${e.message}`)
-                        .join("\n"),
+                `Configuration validation failed with ${result.errors.filter((e) => e.severity === "error").length} error(s):\n${errorMessages}`,
             );
         }
     }
 
     /**
      * 检查配置是否有效
-     * @param config - CMTX 配置
-     * @returns 是否有效
      */
     isValid(config: CmtxConfig): boolean {
-        const errors = this.validate(config);
-        return errors.filter((e) => e.severity === "error").length === 0;
+        const result = this.validate(config);
+        return !result.hasFatal();
     }
+}
+
+/**
+ * 验证配置并抛出错误（如果有错误）
+ */
+export function validateConfigOrThrow(config: CmtxConfig): void {
+    const result = validateConfig(config);
+    if (result.hasFatal()) {
+        throw new Error(result.format());
+    }
+}
+
+/**
+ * 创建配置验证器实例
+ */
+export function createConfigValidator(): ConfigValidator {
+    return new ConfigValidator();
 }
 
 /**
@@ -297,31 +460,4 @@ export function formatValidationErrors(errors: ConfigValidationError[]): string 
     ];
 
     return lines.join("\n");
-}
-
-/**
- * 验证配置并抛出错误（如果有错误）
- * @param config - CMTX 配置
- * @throws Error 当验证失败时
- */
-export function validateConfigOrThrow(config: CmtxConfig): void {
-    const errors = validateConfig(config);
-    const errorCount = errors.filter((e) => e.severity === "error").length;
-    if (errorCount > 0) {
-        const errorMessages = errors
-            .filter((e) => e.severity === "error")
-            .map((e) => `  - ${e.path}: ${e.message}`)
-            .join("\n");
-        throw new Error(
-            `Configuration validation failed with ${errorCount} error(s):\n${errorMessages}`,
-        );
-    }
-}
-
-/**
- * 创建配置验证器实例
- * @returns ConfigValidator 实例
- */
-export function createConfigValidator(): ConfigValidator {
-    return new ConfigValidator();
 }

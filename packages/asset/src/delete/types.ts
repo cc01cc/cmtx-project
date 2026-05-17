@@ -316,9 +316,12 @@ export interface PruneResult {
  * DeleteService 配置
  */
 export interface DeleteServiceConfig {
-    /** Workspace 根目录绝对路径 */
-    workspaceRoot: string;
+    /** 根目录绝对路径（用于搜索 Markdown 文件和解析相对路径） */
+    baseDirectory: string;
 
     /** 删除选项 */
     options?: DeleteOptions;
+
+    /** 日志记录器 */
+    logger?: import("@cmtx/core").Logger;
 }

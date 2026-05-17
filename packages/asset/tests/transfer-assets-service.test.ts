@@ -1,5 +1,5 @@
 /**
- * TransferAssetsService 单元测试
+ * TransferService 单元测试
  *
  * @module transfer-assets-service.test
  * @description
@@ -7,10 +7,10 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { TransferAssetsService } from "../src/services/transfer-assets-service.js";
-import type { IStorageAdapter } from "@cmtx/storage";
+import { TransferService } from "../src/services/transfer-service.js";
+import type { StorageAdapter } from "@cmtx/storage";
 
-function createMockAdapter(name: string): IStorageAdapter {
+function createMockAdapter(name: string): StorageAdapter {
     return {
         provider: "aliyun-oss" as const,
         upload: async () => {},
@@ -19,16 +19,16 @@ function createMockAdapter(name: string): IStorageAdapter {
         delete: async () => {},
         list: async () => [],
         getObjectMeta: async () => ({ size: 100, lastModified: new Date() }),
-    } as unknown as IStorageAdapter;
+    } as unknown as StorageAdapter;
 }
 
-describe("TransferAssetsService", () => {
+describe("TransferService", () => {
     describe("constructor", () => {
         it("should create service with required config", () => {
             const sourceAdapter = createMockAdapter("source");
             const targetAdapter = createMockAdapter("target");
 
-            const service = new TransferAssetsService({
+            const service = new TransferService({
                 sourceAdapters: [{ domain: "source.example.com", adapter: sourceAdapter }],
                 targetAdapter,
             });
@@ -41,7 +41,7 @@ describe("TransferAssetsService", () => {
             const targetAdapter = createMockAdapter("target");
             const logger = { info: () => {} } as any;
 
-            const service = new TransferAssetsService({
+            const service = new TransferService({
                 sourceAdapters: [{ domain: "source.example.com", adapter: sourceAdapter }],
                 targetAdapter,
                 targetPrefix: "images/",
@@ -62,7 +62,7 @@ describe("TransferAssetsService", () => {
             const sourceAdapter = createMockAdapter("source");
             const targetAdapter = createMockAdapter("target");
 
-            const service = new TransferAssetsService({
+            const service = new TransferService({
                 sourceAdapters: [{ domain: "source.example.com", adapter: sourceAdapter }],
                 targetAdapter,
             });
@@ -82,14 +82,14 @@ describe("TransferAssetsService", () => {
             const sourceAdapter = createMockAdapter("source");
             const targetAdapter = createMockAdapter("target");
 
-            const service = new TransferAssetsService({
+            const service = new TransferService({
                 sourceAdapters: [{ domain: "source.example.com", adapter: sourceAdapter }],
                 targetAdapter,
             });
 
             const result = await service.transferImages("No images here", "/test.md");
 
-            expect(result.transferred).toBe(0);
+            expect(result.succeeded).toBe(0);
             expect(result.failed).toBe(0);
             expect(result.content).toBe("No images here");
         });
@@ -97,7 +97,7 @@ describe("TransferAssetsService", () => {
         it("should return error when no source adapter configured", async () => {
             const targetAdapter = createMockAdapter("target");
 
-            const service = new TransferAssetsService({
+            const service = new TransferService({
                 sourceAdapters: [],
                 targetAdapter,
             });
@@ -107,7 +107,7 @@ describe("TransferAssetsService", () => {
                 "/test.md",
             );
 
-            expect(result.transferred).toBe(0);
+            expect(result.succeeded).toBe(0);
             expect(result.errors.length).toBeGreaterThan(0);
             expect(result.errors[0].error).toContain("No source adapter");
         });
@@ -116,7 +116,7 @@ describe("TransferAssetsService", () => {
             const sourceAdapter = createMockAdapter("source");
             const targetAdapter = createMockAdapter("target");
 
-            const service = new TransferAssetsService({
+            const service = new TransferService({
                 sourceAdapters: [{ domain: "source.example.com", adapter: sourceAdapter }],
                 targetAdapter,
             });
@@ -126,6 +126,58 @@ describe("TransferAssetsService", () => {
                 concurrency: 3,
                 deleteSource: false,
             });
+
+            expect(result).toBeDefined();
+        });
+
+        it("should accept targetPrefix and namingTemplate options", async () => {
+            const sourceAdapter = createMockAdapter("source");
+            const targetAdapter = createMockAdapter("target");
+
+            const service = new TransferService({
+                sourceAdapters: [{ domain: "source.example.com", adapter: sourceAdapter }],
+                targetAdapter,
+            });
+
+            const result = await service.transferImages("No images", "/test.md", {
+                targetPrefix: "images/",
+                namingTemplate: "{date}/{name}{ext}",
+            });
+
+            expect(result).toBeDefined();
+        });
+
+        it("options should override constructor config", async () => {
+            const sourceAdapter = createMockAdapter("source");
+            const targetAdapter = createMockAdapter("target");
+
+            const service = new TransferService({
+                sourceAdapters: [{ domain: "source.example.com", adapter: sourceAdapter }],
+                targetAdapter,
+                targetPrefix: "default-prefix/",
+                concurrency: 3,
+            });
+
+            const result = await service.transferImages("No images", "/test.md", {
+                targetPrefix: "override-prefix/",
+                concurrency: 10,
+            });
+
+            expect(result).toBeDefined();
+        });
+
+        it("should use constructor config when no options provided", async () => {
+            const sourceAdapter = createMockAdapter("source");
+            const targetAdapter = createMockAdapter("target");
+
+            const service = new TransferService({
+                sourceAdapters: [{ domain: "source.example.com", adapter: sourceAdapter }],
+                targetAdapter,
+                targetPrefix: "default-prefix/",
+                concurrency: 5,
+            });
+
+            const result = await service.transferImages("No images", "/test.md");
 
             expect(result).toBeDefined();
         });

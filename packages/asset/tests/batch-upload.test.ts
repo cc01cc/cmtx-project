@@ -2,16 +2,16 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { batchUploadImages, type BatchUploadConfig } from "../src/upload/batch-upload.js";
-import type { IStorageAdapter } from "@cmtx/storage";
+import type { StorageAdapter } from "@cmtx/storage";
 
 const TEST_DIR = resolve(process.cwd(), ".test-batch-upload");
 
-function createMockAdapter(): IStorageAdapter {
+function createMockAdapter(): StorageAdapter {
     return {
         upload: vi.fn().mockResolvedValue({ url: "https://cdn.example.com/test.png" }),
         exists: vi.fn().mockResolvedValue(false),
         buildUrl: vi.fn().mockReturnValue("https://cdn.example.com/test.png"),
-    } as unknown as IStorageAdapter;
+    } as unknown as StorageAdapter;
 }
 
 function makeConfig(overrides?: Partial<BatchUploadConfig>): BatchUploadConfig {

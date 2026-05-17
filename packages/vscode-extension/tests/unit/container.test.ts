@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createServiceRegistry } from "@cmtx/rule-engine";
+import { createServiceRegistry } from "@cmtx/rule-engine/internal";
 import { createVsCodeContainer, createStorageAdapterAsync } from "../../src/container.js";
 
 describe("createVsCodeContainer", () => {
@@ -22,16 +22,10 @@ describe("createVsCodeContainer", () => {
         expect(registry.getAllIds()).toEqual([]);
     });
 
-    it("registers callbackService when both workspaceFolder and config are provided", () => {
+    it("returns empty registry when both workspaceFolder and config are provided (no services auto-registered)", () => {
         const registry = createVsCodeContainer(mockWorkspaceFolder, { version: "v2" });
         const ids = registry.getAllIds();
-        expect(ids).toContain("callback");
-    });
-
-    it("registers only callbackService (counter is deferred)", () => {
-        const registry = createVsCodeContainer(mockWorkspaceFolder, { version: "v2" });
-        const ids = registry.getAllIds();
-        expect(ids).toEqual(["callback"]);
+        expect(ids).toEqual([]);
     });
 });
 

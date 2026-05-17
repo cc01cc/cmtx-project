@@ -39,10 +39,10 @@
  * ```
  */
 
-import type { CloudCredentials, IStorageAdapter } from "../types.js";
+import type { CloudCredentials, StorageAdapter } from "../types.js";
 import OSS from "ali-oss";
 import COS from "cos-nodejs-sdk-v5";
-import { AliOSSAdapter } from "./ali-oss.js";
+import { AliyunOSSAdapter } from "./ali-oss.js";
 import { TencentCOSAdapter } from "./tencent-cos.js";
 import type { CosClient } from "./cos-types.js";
 
@@ -76,7 +76,7 @@ import type { CosClient } from "./cos-types.js";
  * });
  * ```
  */
-export async function createAdapter(credentials: CloudCredentials): Promise<IStorageAdapter> {
+export async function createAdapter(credentials: CloudCredentials): Promise<StorageAdapter> {
     switch (credentials.provider) {
         case "aliyun-oss": {
             const client = new OSS({
@@ -86,7 +86,7 @@ export async function createAdapter(credentials: CloudCredentials): Promise<ISto
                 stsToken: credentials.stsToken,
                 bucket: credentials.bucket,
             });
-            return new AliOSSAdapter(client);
+            return new AliyunOSSAdapter(client);
         }
 
         case "tencent-cos": {
@@ -96,8 +96,8 @@ export async function createAdapter(credentials: CloudCredentials): Promise<ISto
                 SecurityToken: credentials.sessionToken,
             }) as unknown as CosClient;
             return new TencentCOSAdapter(client, {
-                Bucket: credentials.bucket,
-                Region: credentials.region,
+                bucket: credentials.bucket,
+                region: credentials.region,
             });
         }
 

@@ -19,6 +19,8 @@ import { textRules } from "./text-rules.js";
 
 /**
  * 所有内置 Rules
+ *
+ * @internal
  */
 export const builtInRules = [
     ...textRules,
@@ -33,33 +35,4 @@ export const builtInRules = [
     frontmatterSlugRule,
 ];
 
-// 导出分类 Rules
-export { autocorrectRule } from "./autocorrect-rule.js";
-export { directoryCreateRule } from "./directory-create-rule.js";
-export { fileCopyRule } from "./file-copy-rule.js";
-export { fmValidateRule } from "./fm-validate-rule.js";
-export { frontmatterMapRule } from "./frontmatter-map-rule.js";
-export { frontmatterSlugRule } from "./frontmatter-slug.js";
-export {
-    convertImagesRule,
-    deleteImageRule,
-    downloadImagesRule,
-    imageRules,
-    resizeImageRule,
-    uploadImagesRule,
-} from "./image-rules.js";
-export {
-    frontmatterDateRule,
-    frontmatterIdRule,
-    frontmatterTitleRule,
-    frontmatterUpdatedRule,
-    metadataRules,
-} from "./metadata-rules.js";
-// 导出具体 Rules
-export { addSectionNumbersRule, removeSectionNumbersRule, sectionRules } from "./section-rules.js";
-export {
-    promoteHeadingsRule,
-    stripFrontmatterRule,
-    textReplaceRule,
-    textRules,
-} from "./text-rules.js";
+// 注意：单独的 Rule 常量不再导出，请通过字符串 ID 使用 engine.executeRule("rule-id")

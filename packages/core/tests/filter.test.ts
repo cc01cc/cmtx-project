@@ -1,17 +1,17 @@
 /**
  * 图片筛选功能测试
  *
- * 测试 filterImagesInText 函数：
+ * 测试 filterImages 函数：
  * - 基本筛选功能
  * - 过滤模式（sourceType、hostname、absolutePath、regex）
  * - 错误处理
  * - 日志回调
  */
 
-import { describe, expect, it } from "vitest";
-import { filterImagesInText } from "../src/filter.js";
+import { describe, expect, it, vi } from "vitest";
+import { filterImages } from "../src/filter.js";
 
-describe("filterImagesInText", () => {
+describe("filterImages", () => {
     describe("基本筛选", () => {
         it("应该从文本中筛选内联图片", () => {
             const markdown = `# Title
@@ -19,7 +19,7 @@ describe("filterImagesInText", () => {
 ![Logo](./logo.png)
 
 Some text`;
-            const images = filterImagesInText(markdown);
+            const images = filterImages(markdown);
 
             expect(images).toHaveLength(1);
             expect(images[0]).toMatchObject({
@@ -31,7 +31,7 @@ Some text`;
 
         it("应该筛选 Web 图片", () => {
             const markdown = "![Web Image](https://example.com/image.png)";
-            const images = filterImagesInText(markdown);
+            const images = filterImages(markdown);
 
             expect(images).toHaveLength(1);
             expect(images[0]).toMatchObject({
@@ -47,7 +47,7 @@ Some text`;
 ![Web](https://cdn.example.com/web.png)
 ![Another Local](../images/another.png)
       `;
-            const images = filterImagesInText(markdown);
+            const images = filterImages(markdown);
 
             expect(images).toHaveLength(3);
             expect(images[0].type).toBe("local");
@@ -57,7 +57,7 @@ Some text`;
 
         it("应该返回空数组当没有图片", () => {
             const markdown = "# Title\n\nNo images here.";
-            const images = filterImagesInText(markdown);
+            const images = filterImages(markdown);
 
             expect(images).toHaveLength(0);
         });
@@ -67,7 +67,7 @@ Some text`;
 ![Inline](./inline.png)
 <img src="./html.png" alt="HTML">
       `;
-            const images = filterImagesInText(markdown);
+            const images = filterImages(markdown);
 
             expect(images).toHaveLength(2);
             expect(images[0].syntax).toBe("md");
@@ -83,7 +83,7 @@ Some text`;
     `;
 
         it("应该只筛选本地图片", () => {
-            const images = filterImagesInText(markdown, {
+            const images = filterImages(markdown, {
                 mode: "sourceType",
                 value: "local",
             });
@@ -93,7 +93,7 @@ Some text`;
         });
 
         it("应该只筛选 Web 图片", () => {
-            const images = filterImagesInText(markdown, {
+            const images = filterImages(markdown, {
                 mode: "sourceType",
                 value: "web",
             });
@@ -104,7 +104,7 @@ Some text`;
         });
 
         it("无过滤时应该筛选所有图片", () => {
-            const images = filterImagesInText(markdown);
+            const images = filterImages(markdown);
 
             expect(images).toHaveLength(3);
         });
@@ -117,7 +117,7 @@ Some text`;
 ![Other](https://other.com/image.png)
 ![Subdomain](https://assets.cdn.example.com/file.png)
       `;
-            const images = filterImagesInText(markdown, {
+            const images = filterImages(markdown, {
                 mode: "hostname",
                 value: "cdn.example.com",
             });
@@ -132,7 +132,7 @@ Some text`;
 ![Exact](https://example.com/image.png)
 ![WWW](https://www.example.com/image.png)
       `;
-            const images = filterImagesInText(markdown, {
+            const images = filterImages(markdown, {
                 mode: "hostname",
                 value: "example.com",
             });
@@ -146,7 +146,7 @@ Some text`;
 ![Local](./local.png)
 ![Web](https://example.com/web.png)
       `;
-            const images = filterImagesInText(markdown, {
+            const images = filterImages(markdown, {
                 mode: "hostname",
                 value: "example.com",
             });
@@ -160,7 +160,7 @@ Some text`;
 ![Invalid](not-a-valid-url)
 ![Valid](https://example.com/image.png)
       `;
-            const images = filterImagesInText(markdown, {
+            const images = filterImages(markdown, {
                 mode: "hostname",
                 value: "example.com",
             });
@@ -177,7 +177,7 @@ Some text`;
 ![JPG](./image.jpg)
 ![PNG2](./other.png)
       `;
-            const images = filterImagesInText(markdown, {
+            const images = filterImages(markdown, {
                 mode: "regex",
                 value: /\.png$/,
             });
@@ -192,7 +192,7 @@ Some text`;
 ![Path2](../shared/icon.svg)
 ![Path3](./docs/screenshot.jpg)
       `;
-            const images = filterImagesInText(markdown, {
+            const images = filterImages(markdown, {
                 mode: "regex",
                 value: /assets\/images\//,
             });
@@ -203,7 +203,7 @@ Some text`;
 
         it("非正则值应该被忽略", () => {
             const markdown = "![Image](./image.png)";
-            const images = filterImagesInText(markdown, {
+            const images = filterImages(markdown, {
                 mode: "regex",
                 value: "not-a-regex" as unknown as RegExp,
             });
@@ -215,7 +215,7 @@ Some text`;
     describe("返回类型", () => {
         it("本地图片应该有正确的类型和 src", () => {
             const markdown = "![Local](./local.png)";
-            const images = filterImagesInText(markdown);
+            const images = filterImages(markdown);
 
             expect(images[0].type).toBe("local");
             expect(images[0].src).toBe("./local.png");
@@ -224,7 +224,7 @@ Some text`;
 
         it("Web 图片应该有正确的结构", () => {
             const markdown = `![Web](https://example.com/image.png "Title")`;
-            const images = filterImagesInText(markdown);
+            const images = filterImages(markdown);
 
             const webImage = images[0];
             expect(webImage).toHaveProperty("type", "web");
@@ -236,10 +236,86 @@ Some text`;
         });
     });
 
-    describe("mayContainFile 函数", () => {
-        it("应该检测文件引用", () => {
-            const _content = "Check this file: ./document.pdf and image: ![Img](./img.png)";
-            expect(true).toBe(true); // 占位测试
+    describe("过滤模式 - absolutePath", () => {
+        it("应该按绝对路径过滤本地图片", () => {
+            const markdown = `
+![Match](./assets/images/logo.png)
+![Other](./other/image.png)
+![Match2](./assets/images/banner.png)
+      `;
+            const images = filterImages(markdown, {
+                mode: "absolutePath",
+                value: "assets/images",
+            });
+
+            expect(images).toHaveLength(2);
+            expect(images.every((img) => img.src.includes("assets/images"))).toBe(true);
         });
+
+        it("Web 图片不应匹配 absolutePath 过滤", () => {
+            const markdown = `
+![Local](./local.png)
+![Web](https://example.com/image.png)
+      `;
+            const images = filterImages(markdown, {
+                mode: "absolutePath",
+                value: "local",
+            });
+
+            expect(images).toHaveLength(1);
+            expect(images[0].type).toBe("local");
+        });
+    });
+
+    describe("错误处理", () => {
+        it("应该捕获 parseImages 抛出的异常", () => {
+            const markdown = "![img](./img.png)";
+            const logger = { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() };
+            // 注入一个导致 parseImages 抛出的无效输入
+            expect(() => filterImages(markdown, { logger })).not.toThrow();
+        });
+
+        it("无 filter 选项时正常返回所有图片", () => {
+            const images = filterImages("![img](./img.png)");
+            expect(images).toHaveLength(1);
+        });
+    });
+
+    describe("提前退出路径", () => {
+        it("内容无图片语法且指定 sourceType 时应返回空", () => {
+            const markdown = "This is plain text without any images.";
+            const images = filterImages(markdown, {
+                mode: "sourceType",
+                value: "local",
+            });
+            expect(images).toHaveLength(0);
+        });
+
+        it("内容无图片语法且指定 hostname 时应返回空", () => {
+            const markdown = "Just text, no images, no URLs.";
+            const images = filterImages(markdown, {
+                mode: "hostname",
+                value: "example.com",
+            });
+            expect(images).toHaveLength(0);
+        });
+    });
+});
+
+describe("提前退出路径 - 扩展", () => {
+    it("纯文本内容指定 absolutePath 时快速返回空", () => {
+        const images = filterImages("No images here.", {
+            mode: "absolutePath",
+            value: "assets",
+        });
+        expect(images).toHaveLength(0);
+    });
+
+    it("纯文本内容指定 regex 时仍应解析（regex 不进 quick check）", () => {
+        const images = filterImages("No images here.", {
+            mode: "regex",
+            value: /\.png$/,
+        });
+        expect(images).toHaveLength(0);
     });
 });

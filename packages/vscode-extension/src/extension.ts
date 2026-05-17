@@ -7,6 +7,8 @@ import {
     addSectionNumbersCommand,
     addSectionNumbersRuleCommand,
     applyPreset,
+    cleanupDirectoryCommand,
+    cleanupImagesRuleCommand,
     clearPresignedCacheCommand,
     convertImagesRuleCommand,
     deleteImage,
@@ -36,7 +38,6 @@ import {
     uploadSelectedImages,
     zoomIn,
     zoomOut,
-    pruneDirectoryCommand,
     downloadFromExplorer,
 } from "./commands/index.js";
 import {
@@ -108,6 +109,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
         ["cmtx.removeSectionNumbers", removeSectionNumbersCommand],
         ["cmtx.rule.execute", executeRuleCommand],
         ["cmtx.rule.applyPreset", executePresetCommand],
+        ["cmtx.rule.cleanup-images", cleanupImagesRuleCommand],
         ["cmtx.rule.upload-images", uploadImagesRuleCommand],
         ["cmtx.rule.frontmatter-id", frontmatterIdRuleCommand],
         ["cmtx.rule.frontmatter-slug", frontmatterSlugRuleCommand],
@@ -125,7 +127,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
         ["cmtx.rule.transfer-images", transferImagesRuleCommand],
         ["cmtx.explorer.uploadFile", uploadFileFromExplorer],
         ["cmtx.explorer.uploadDirectory", uploadDirectoryFromExplorer],
-        ["cmtx.explorer.pruneDirectory", pruneDirectoryCommand],
+        ["cmtx.explorer.cleanupDirectory", cleanupDirectoryCommand],
         ["cmtx.explorer.downloadImages", downloadFromExplorer],
     ] as const;
 

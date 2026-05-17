@@ -1,4 +1,4 @@
-import { filterImagesInText, isWebSource } from "@cmtx/core";
+import { filterImages, isWebSource } from "@cmtx/core";
 import * as vscode from "vscode";
 import { showError, showInfo } from "../infra/notification.js";
 import {
@@ -58,7 +58,7 @@ async function doUploadSelectedImages(): Promise<void> {
     }
 
     // Validate: Check if selection contains local images
-    const imagesInSelection = filterImagesInText(selectedText);
+    const imagesInSelection = filterImages(selectedText);
     const localImages = imagesInSelection.filter((img) => !isWebSource(img.src));
 
     if (localImages.length === 0) {

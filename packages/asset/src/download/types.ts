@@ -6,7 +6,7 @@
  * 定义下载功能所需的所有类型接口和配置结构。
  */
 
-import type { IStorageAdapter } from "@cmtx/storage";
+import type { StorageAdapter } from "@cmtx/storage";
 import type { BaseNamingVariables } from "../shared/types.js";
 
 // ==================== 命名模板变量 ====================
@@ -97,7 +97,7 @@ export interface DownloadFilter {
  */
 export interface InternalDownloadConfig {
     /** 存储适配器（可选，用于私有存储下载） */
-    adapter?: IStorageAdapter;
+    adapter?: StorageAdapter;
 
     /** 下载选项 */
     options: DownloadOptions;
@@ -140,7 +140,7 @@ export interface DownloadResult {
     total: number;
 
     /** 成功数 */
-    success: number;
+    succeeded: number;
 
     /** 失败数 */
     failed: number;

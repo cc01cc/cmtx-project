@@ -2,7 +2,7 @@
  * 加密 API 封装
  *
  * 提供更友好的 API 来使用 FF1 加密功能。
- * 采用自动 WASM 加载机制，用户无需手动调用 loadWASM()。
+ * 使用前必须先调用 `loadWASM()`。
  */
 
 import { decrypt_string, encrypt_string, FF1Cipher, isWasmLoaded } from "./index.js";
@@ -41,7 +41,7 @@ export function prepareFPEKey(key: string | Buffer): Uint8Array {
 /**
  * 创建 FF1 加密器
  *
- * 首次调用时会自动加载 WASM 模块。
+ * 使用前必须先调用 `loadWASM()`。
  *
  * @param key - 加密密钥
  * @param radix - 进制（默认 36）
@@ -49,9 +49,9 @@ export function prepareFPEKey(key: string | Buffer): Uint8Array {
  *
  * @example
  * ```typescript
- * import { createFF1Cipher, prepareFPEKey } from '@cmtx/fpe-wasm';
+ * import { loadWASM, createFF1Cipher, prepareFPEKey } from '@cmtx/fpe-wasm';
  *
- * // 无需手动加载 WASM，首次使用时自动加载
+ * await loadWASM();
  * const key = prepareFPEKey('my-secret-key');
  * const cipher = createFF1Cipher(key, 36);
  * const encrypted = cipher.encrypt(data);

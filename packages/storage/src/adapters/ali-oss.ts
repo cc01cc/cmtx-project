@@ -5,7 +5,7 @@
  * @module adapters/ali-oss
  *
  * @description
- * 实现 IStorageAdapter 接口，用于上传文件到阿里云 OSS。
+ * 实现 StorageAdapter 接口，用于上传文件到阿里云 OSS。
  *
  * @remarks
  * ## 功能特性
@@ -37,7 +37,7 @@
  * @example
  * ```typescript
  * import OSS from "ali-oss";
- * import { AliOSSAdapter } from "@cmtx/storage/adapters/ali-oss";
+ * import { AliyunOSSAdapter } from "@cmtx/storage/adapters/ali-oss";
  *
  * const client = new OSS({
  *   region: "oss-cn-hangzhou",
@@ -46,11 +46,11 @@
  *   bucket: "your-bucket-name"
  * });
  *
- * const adapter = new AliOSSAdapter(client);
+ * const adapter = new AliyunOSSAdapter(client);
  * ```
  *
- * @see {@link AliOSSAdapter} - 主要导出类
- * @see {@link IStorageAdapter} - 适配器接口
+ * @see {@link AliyunOSSAdapter} - 主要导出类
+ * @see {@link StorageAdapter} - 适配器接口
  * @see {@link AdapterUploadResult} - 上传结果类型
  * @see {@link UploadBufferOptions} - Buffer 上传选项
  *
@@ -64,7 +64,7 @@ import { pipeline } from "node:stream/promises";
 import type OSS from "ali-oss";
 import type {
     AdapterUploadResult,
-    IStorageAdapter,
+    StorageAdapter,
     ObjectMeta,
     UploadBufferOptions,
 } from "../types.js";
@@ -77,13 +77,13 @@ import type {
  *
  * @public
  */
-export type AliOSSClient = OSS;
+export type AliyunOSSClient = OSS;
 
 /**
  * 阿里云 OSS 存储适配器
  *
  * @remarks
- * 封装 ali-oss 客户端，实现 IStorageAdapter 接口。
+ * 封装 ali-oss 客户端，实现 StorageAdapter 接口。
  *
  * 特性：
  * - 自动处理 HTTP/HTTPS URL
@@ -94,7 +94,7 @@ export type AliOSSClient = OSS;
  * 基本使用：
  * ```typescript
  * import OSS from "ali-oss";
- * import { AliOSSAdapter } from "@cmtx/storage/adapters/ali-oss";
+ * import { AliyunOSSAdapter } from "@cmtx/storage/adapters/ali-oss";
  *
  * const client = new OSS({
  *   region: process.env.ALIYUN_OSS_REGION ?? "oss-cn-hangzhou",
@@ -103,7 +103,7 @@ export type AliOSSClient = OSS;
  *   bucket: process.env.ALIYUN_OSS_BUCKET ?? "my-bucket"
  * });
  *
- * const adapter = new AliOSSAdapter(client);
+ * const adapter = new AliyunOSSAdapter(client);
  *
  * const result = await adapter.upload("/path/to/image.png", "images/image.png");
  * console.log(result.url);
@@ -111,11 +111,11 @@ export type AliOSSClient = OSS;
  *
  * @public
  */
-export class AliOSSAdapter implements IStorageAdapter {
+export class AliyunOSSAdapter implements StorageAdapter {
     /**
      * @param client - 阿里云 OSS 客户端实例
      */
-    constructor(private readonly client: AliOSSClient) {}
+    constructor(private readonly client: AliyunOSSClient) {}
 
     /**
      * 上传文件到阿里云 OSS

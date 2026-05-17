@@ -9,7 +9,7 @@
  *
  * ## 支持的存储服务
  *
- * - 阿里云 OSS ({@link AliOSSAdapter})
+ * - 阿里云 OSS ({@link AliyunOSSAdapter})
  * - 腾讯云 COS ({@link TencentCOSAdapter})
  * - AWS S3 (计划中)
  * - MinIO (计划中)
@@ -19,7 +19,7 @@
  * ### 阿里云 OSS
  *
  * ```typescript
- * import { AliOSSAdapter } from "@cmtx/storage/adapters/ali-oss";
+ * import { AliyunOSSAdapter } from "@cmtx/storage/adapters/ali-oss";
  * import OSS from "ali-oss";
  *
  * const client = new OSS({
@@ -29,7 +29,7 @@
  *   bucket: "your-bucket"
  * });
  *
- * const adapter = new AliOSSAdapter(client);
+ * const adapter = new AliyunOSSAdapter(client);
  * const result = await adapter.upload("/path/to/file.png", "images/file.png");
  * console.log(result.url);
  * ```
@@ -82,21 +82,23 @@ export type {
     CloudCredentials,
     CloudProvider,
     CloudStorageConfig,
-    IStorageAdapter,
+    StorageAdapter,
     ObjectMeta,
-    StorageServiceConfig,
     TencentCredentials,
     UploadBufferOptions,
 } from "./types.js";
 
 // ==================== 凭证工厂 ====================
 
-/**
- * @category 凭证工厂
- */
 export { createCredentials } from "./credentials.js";
+export type { CredentialConfig } from "./credentials.js";
+
+// ==================== URL 检测工具 ====================
 
 /**
- * @category 凭证工厂
+ * URL 检测工具从 `@cmtx/asset` 迁入，仅保留 `isStorageUrl` 作为公开 API。
+ * 其余函数（detectStorageUrl、isAliyunOssUrl 等）已内部化，
+ * 需要时可从 `./url-detector.js` 直接导入。
  */
-export type { CredentialConfig } from "./credentials.js";
+export { isStorageUrl } from "./url-detector.js";
+export type { StorageUrlDetectOptions } from "./url-detector.js";

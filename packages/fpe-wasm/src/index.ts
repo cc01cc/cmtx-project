@@ -1,36 +1,33 @@
 /* eslint-disable no-console */
 
 /**
- * FPE WASM 模块 - 自动加载实现
+ * FPE WASM 模块
  *
- * 采用懒加载 + Promise 缓存机制，用户无需手动调用 loadWASM()。
- * 首次使用加密功能时会自动加载 WASM 模块。
+ * 采用懒加载 + Promise 缓存机制。首次使用前必须先调用 `loadWASM()`。
  *
- * @example 基本使用（推荐）
+ * @example 基本使用
  * ```typescript
- * import { FF1Cipher, prepareFPEKey } from '@cmtx/fpe-wasm';
+ * import { loadWASM, createFF1Cipher, prepareFPEKey } from '@cmtx/fpe-wasm';
+ *
+ * await loadWASM();
  *
  * const key = prepareFPEKey('my-secret-key');
- * const cipher = new FF1Cipher(key, 36);
+ * const cipher = createFF1Cipher(key, 36);
  * const encrypted = cipher.encrypt(data);
  * ```
  *
- * @example 手动加载（可选）
- * ```typescript
- * import { loadWASM } from '@cmtx/fpe-wasm';
- *
- * await loadWASM(); // 预加载 WASM
- * ```
- *
- * @example VS Code Extension（手动加载）
+ * @example VS Code Extension（手动传入 WASM buffer）
  * ```typescript
  * import { readFileSync } from 'node:fs';
- * import { join, dirname } from 'node:path';
- * import { loadWASM } from '@cmtx/fpe-wasm';
+ * import { join } from 'node:path';
+ * import { loadWASM, createFF1Cipher, prepareFPEKey } from '@cmtx/fpe-wasm';
  *
- * const wasmPath = join(__dirname, 'cmtx_fpe_wasm_bg.wasm');
- * const wasmBuffer = readFileSync(wasmPath);
+ * const wasmBuffer = readFileSync(join(__dirname, 'cmtx_fpe_wasm_bg.wasm'));
  * await loadWASM({ data: wasmBuffer });
+ *
+ * const key = prepareFPEKey('my-secret-key');
+ * const cipher = createFF1Cipher(key, 36);
+ * const encrypted = cipher.encrypt(data);
  * ```
  */
 
@@ -42,7 +39,8 @@ import init, { type InitInput, type InitOutput } from "../pkg/cmtx_fpe_wasm.js";
 let wasmInitPromise: Promise<InitOutput> | null = null;
 let wasmOutput: InitOutput | null = null;
 
-export interface ILoadWASMOptions {
+/** WASM 加载选项 */
+export interface LoadWasmOptions {
     /** WASM 数据，可选。不提供时自动从 pkg 目录加载 */
     data?: InitInput;
 }
@@ -98,7 +96,7 @@ export type { InitInput, InitOutput } from "../pkg/cmtx_fpe_wasm.js";
  *
  * @category WASM 加载
  */
-export async function loadWASM(options?: ILoadWASMOptions): Promise<void> {
+export async function loadWASM(options?: LoadWasmOptions): Promise<void> {
     if (wasmOutput) {
         return;
     }

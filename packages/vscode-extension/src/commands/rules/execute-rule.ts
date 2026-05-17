@@ -5,12 +5,7 @@ import {
     type RuleEngine,
     type RuleResult,
 } from "@cmtx/rule-engine";
-import {
-    createUploadService,
-    createDownloadAssetsService,
-    createTransferAssetsService,
-} from "@cmtx/asset";
-import { dirname } from "node:path";
+import { createUploadService, createDownloadService, createTransferService } from "@cmtx/asset";
 import * as vscode from "vscode";
 import { createStorageAdapterAsync, createVsCodeContainer } from "../../container.js";
 import {
@@ -150,7 +145,7 @@ async function setupDownloadService(
     }
 
     const downloadAdapter = await createStorageAdapterAsync(downloadStorageConfig);
-    const downloadService = createDownloadAssetsService({
+    const downloadService = createDownloadService({
         sourceAdapters: [{ domain: "*", adapter: downloadAdapter }],
     });
     container.register(downloadService);
@@ -188,7 +183,7 @@ async function setupTransferService(
     }
 
     const targetAdapter = await createStorageAdapterAsync(targetStorageConfig);
-    const transferService = createTransferAssetsService({
+    const transferService = createTransferService({
         sourceAdapters,
         targetAdapter,
         targetDomain: transferConfig.targetStorage.domain || undefined,
@@ -200,14 +195,14 @@ async function setupTransferService(
 
 function buildRuleContext(
     editor: vscode.TextEditor,
-    _workspaceFolder: vscode.WorkspaceFolder,
+    workspaceFolder: vscode.WorkspaceFolder,
     container: ReturnType<typeof createVsCodeContainer>,
     ruleLogger?: ReturnType<typeof getModuleLogger>,
 ): RuleContext {
     return {
         document: editor.document.getText(),
         filePath: editor.document.uri.fsPath,
-        baseDirectory: dirname(editor.document.uri.fsPath),
+        baseDirectory: workspaceFolder.uri.fsPath,
         services: container,
         logger: ruleLogger,
     };

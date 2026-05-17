@@ -12,9 +12,9 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { replaceImagesInText, updateImageAttribute } from "../src/replace.js";
+import { updateImageRefs, updateImageAttribute } from "../src/replace.js";
 
-describe("replaceImagesInText - 基础替换", () => {
+describe("updateImageRefs - 基础替换", () => {
     const markdown = `# 测试文档
 
 这是一个本地图片：![Old Logo](./old-logo.png)
@@ -24,7 +24,7 @@ Web 图片：![Example](https://example.com/image.jpg)
 带标题的图片：![Local](../images/test.png "Test Image")`;
 
     it("应该替换 src", () => {
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             { field: "src", pattern: "./old-logo.png", newSrc: "./new-logo.png" },
         ]);
 
@@ -33,7 +33,7 @@ Web 图片：![Example](https://example.com/image.jpg)
     });
 
     it("应该使用正则表达式替换 src", () => {
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             { field: "src", pattern: /\.png$/g, newSrc: ".webp" },
         ]);
 
@@ -42,7 +42,7 @@ Web 图片：![Example](https://example.com/image.jpg)
     });
 
     it("应该同时替换多个字段", () => {
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             {
                 field: "src",
                 pattern: "./old-logo.png",
@@ -57,14 +57,14 @@ Web 图片：![Example](https://example.com/image.jpg)
     });
 
     it("空的 options 数组应该返回无变化", () => {
-        const result = replaceImagesInText(markdown, []);
+        const result = updateImageRefs(markdown, []);
 
         expect(result.replacements).toHaveLength(0);
         expect(result.newText).toBe(markdown);
     });
 
     it("应该处理没有匹配的规则", () => {
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             { field: "src", pattern: "./non-existent.png", newSrc: "./new.png" },
         ]);
 
@@ -73,10 +73,10 @@ Web 图片：![Example](https://example.com/image.jpg)
     });
 });
 
-describe("replaceImagesInText - 空值插入场景", () => {
+describe("updateImageRefs - 空值插入场景", () => {
     it("指定 src 时，为空的 alt 插入新值", () => {
         const markdown = "![](./image.png)";
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             { field: "src", pattern: "./image.png", newAlt: "新描述" },
         ]);
 
@@ -86,7 +86,7 @@ describe("replaceImagesInText - 空值插入场景", () => {
 
     it("指定 src 时，为空的 title 插入新值", () => {
         const markdown = "![Alt](./image.png)";
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             { field: "src", pattern: "./image.png", newTitle: "新标题" },
         ]);
 
@@ -96,7 +96,7 @@ describe("replaceImagesInText - 空值插入场景", () => {
 
     it("指定 src 时，同时为空的 alt 和 title 插入新值", () => {
         const markdown = "![](./image.png)";
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             {
                 field: "src",
                 pattern: "./image.png",
@@ -112,7 +112,7 @@ describe("replaceImagesInText - 空值插入场景", () => {
 
     it("指定 raw 时，为空的字段插入新值", () => {
         const markdown = "![](./image.png)";
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             {
                 field: "raw",
                 pattern: /!\[\]\(.*\.png\)/,
@@ -128,7 +128,7 @@ describe("replaceImagesInText - 空值插入场景", () => {
 
     it("HTML 标签中，为空的 alt 插入新值", () => {
         const html = `<img src="./image.png">`;
-        const result = replaceImagesInText(html, [
+        const result = updateImageRefs(html, [
             { field: "src", pattern: "./image.png", newAlt: "新描述" },
         ]);
 
@@ -138,7 +138,7 @@ describe("replaceImagesInText - 空值插入场景", () => {
 
     it("HTML 标签中，为空的 title 插入新值", () => {
         const html = `<img src="./image.png" alt="描述">`;
-        const result = replaceImagesInText(html, [
+        const result = updateImageRefs(html, [
             { field: "src", pattern: "./image.png", newTitle: "新标题" },
         ]);
 
@@ -147,10 +147,10 @@ describe("replaceImagesInText - 空值插入场景", () => {
     });
 });
 
-describe("replaceImagesInText - 字段保留", () => {
+describe("updateImageRefs - 字段保留", () => {
     it("只替换 src，保留 alt 和 title", () => {
         const markdown = `![原描述](./old.png "原标题")`;
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             { field: "src", pattern: "./old.png", newSrc: "./new.png" },
         ]);
 
@@ -162,7 +162,7 @@ describe("replaceImagesInText - 字段保留", () => {
 
     it("替换 src 和 alt，保留 title", () => {
         const markdown = `![原描述](./old.png "原标题")`;
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             {
                 field: "src",
                 pattern: "./old.png",
@@ -179,7 +179,7 @@ describe("replaceImagesInText - 字段保留", () => {
 
     it("只替换 alt 和 title，保留 src", () => {
         const markdown = `![原描述](./image.png "原标题")`;
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             {
                 field: "src",
                 pattern: "./image.png",
@@ -195,10 +195,10 @@ describe("replaceImagesInText - 字段保留", () => {
     });
 });
 
-describe("replaceImagesInText - raw 模式", () => {
+describe("updateImageRefs - raw 模式", () => {
     it("raw 模式可以匹配整个图片标签", () => {
         const markdown = "![Old](./old.png) and ![New](./new.png)";
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             {
                 field: "raw",
                 pattern: /!\[Old\]\(.*\.png\)/,
@@ -214,7 +214,7 @@ describe("replaceImagesInText - raw 模式", () => {
 
     it("raw 模式可以匹配 HTML 标签", () => {
         const html = `<img src="./old.png">`;
-        const result = replaceImagesInText(html, [
+        const result = updateImageRefs(html, [
             {
                 field: "raw",
                 pattern: /<img src=".*\.png">/,
@@ -228,13 +228,13 @@ describe("replaceImagesInText - raw 模式", () => {
     });
 });
 
-describe("replaceImagesInText - 正则和全局替换", () => {
+describe("updateImageRefs - 正则和全局替换", () => {
     it("应该处理多个相同 src 的图片", () => {
         const markdown = `![Image1](./same.png)
 ![Image2](./same.png)
 ![Image3](./same.png)`;
 
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             { field: "src", pattern: "./same.png", newSrc: "./updated.png" },
         ]);
 
@@ -248,7 +248,7 @@ describe("replaceImagesInText - 正则和全局替换", () => {
 ![Image1](./old1.png)
 ![Image2](./old2.png)`;
 
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             { field: "src", pattern: "./old1.png", newSrc: "./new1.png" },
             { field: "src", pattern: "./old2.png", newSrc: "./new2.png" },
         ]);
@@ -259,10 +259,10 @@ describe("replaceImagesInText - 正则和全局替换", () => {
     });
 });
 
-describe("replaceImagesInText - HTML 标签", () => {
+describe("updateImageRefs - HTML 标签", () => {
     it("应该处理 HTML img 标签的替换", () => {
         const html = `<img src="./image.png" alt="HTML Image" title="Original Title">`;
-        const result = replaceImagesInText(html, [
+        const result = updateImageRefs(html, [
             {
                 field: "src",
                 pattern: "./image.png",
@@ -278,10 +278,10 @@ describe("replaceImagesInText - HTML 标签", () => {
     });
 });
 
-describe("replaceImagesInText - 其他场景", () => {
+describe("updateImageRefs - 其他场景", () => {
     it("应该返回替换的详细信息", () => {
         const markdown = "![Image](./image.png)";
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             {
                 field: "src",
                 pattern: "./image.png",
@@ -312,7 +312,7 @@ describe("replaceImagesInText - 其他场景", () => {
 
 结束。`;
 
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             { field: "src", pattern: "./image.png", newSrc: "./new.png" },
         ]);
 
@@ -322,9 +322,9 @@ describe("replaceImagesInText - 其他场景", () => {
     });
 });
 
-describe("replaceImagesInText - 边界情况", () => {
+describe("updateImageRefs - 边界情况", () => {
     it("应该处理空的 Markdown 文本", () => {
-        const result = replaceImagesInText("", [
+        const result = updateImageRefs("", [
             { field: "src", pattern: "./old.png", newSrc: "./new.png" },
         ]);
 
@@ -333,7 +333,7 @@ describe("replaceImagesInText - 边界情况", () => {
     });
 
     it("应该处理只有空白字符的文本", () => {
-        const result = replaceImagesInText("   \n\t  ", [
+        const result = updateImageRefs("   \n\t  ", [
             { field: "src", pattern: "./old.png", newSrc: "./new.png" },
         ]);
 
@@ -343,7 +343,7 @@ describe("replaceImagesInText - 边界情况", () => {
 
     it("应该处理特殊字符的 alt 文本", () => {
         const markdown = '![Alt with "quotes"](./image.png)';
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             { field: "src", pattern: "./image.png", newSrc: "./new.png" },
         ]);
 
@@ -353,7 +353,7 @@ describe("replaceImagesInText - 边界情况", () => {
 
     it("应该处理包含 URL 编码字符的 src", () => {
         const markdown = "![Alt](./image%20with%20spaces.png)";
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             {
                 field: "src",
                 pattern: "./image%20with%20spaces.png",
@@ -368,7 +368,7 @@ describe("replaceImagesInText - 边界情况", () => {
         const markdown = `![Alt
 Text](./image.png)`;
         // 多行 alt 的匹配行为取决于正则实现
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             { field: "src", pattern: "./image.png", newSrc: "./new.png" },
         ]);
 
@@ -379,7 +379,7 @@ Text](./image.png)`;
 
     it("应该处理 HTML 标签中的自闭合语法", () => {
         const html = `<img src="./image.png" alt="Description" />`;
-        const result = replaceImagesInText(html, [
+        const result = updateImageRefs(html, [
             { field: "src", pattern: "./image.png", newSrc: "./new.png" },
         ]);
 
@@ -389,7 +389,7 @@ Text](./image.png)`;
 
     it("应该处理 HTML 标签中的无引号属性", () => {
         const html = `<img src=./image.png alt=Description>`;
-        const result = replaceImagesInText(html, [
+        const result = updateImageRefs(html, [
             { field: "src", pattern: "./image.png", newSrc: "./new.png" },
         ]);
 
@@ -398,7 +398,7 @@ Text](./image.png)`;
 
     it("应该处理多个连续的替换规则", () => {
         const markdown = "![A](./a.png) ![B](./b.png) ![C](./c.png)";
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             { field: "src", pattern: "./a.png", newSrc: "./x.png" },
             { field: "src", pattern: "./b.png", newSrc: "./y.png" },
             { field: "src", pattern: "./c.png", newSrc: "./z.png" },
@@ -414,7 +414,7 @@ Text](./image.png)`;
         // 先替换 a.png 为 b.png，再替换 b.png 为 c.png
         // 注意：由于替换是顺序执行的，第一个替换后的结果会被第二个规则再次处理
         const markdown = "![A](./a.png)";
-        const result = replaceImagesInText(markdown, [
+        const result = updateImageRefs(markdown, [
             { field: "src", pattern: "./a.png", newSrc: "./b.png" },
             { field: "src", pattern: "./b.png", newSrc: "./c.png" },
         ]);

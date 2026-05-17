@@ -1,8 +1,14 @@
 import { generateWithModel } from "../providers/vercel-adapter.js";
 import type { AIModelConfig } from "../config/types.js";
 
+/**
+ * Slug 生成选项
+ * @public
+ */
 export interface SlugOptions {
+    /** 温度参数（默认 0.3） */
     temperature?: number;
+    /** 最大 token 数（默认 300） */
     maxTokens?: number;
 }
 
@@ -18,6 +24,28 @@ export const SLUG_PROMPT_TEMPLATE = `Generate a URL-friendly slug from the follo
 Title: {title}
 Content: {content}`;
 
+/**
+ * 使用 AI 生成 URL Slug
+ *
+ * 将标题（及可选内容）转换为 URL 友好的 slug。
+ * 非 ASCII 字符（如中文）会自动转换为拼音或 ASCII 等价物。
+ *
+ * @param modelConfig - AI 模型配置
+ * @param title - 标题
+ * @param content - 可选的内容（用于上下文）
+ * @param options - 可选的生成选项
+ * @returns URL slug
+ *
+ * @example
+ * ```typescript
+ * const slug = await generateSlug(
+ *   { provider: "deepseek", model: "deepseek-chat", apiKey: "sk-xxx" },
+ *   "我的第一篇博客文章",
+ * );
+ * // "wo-de-di-yi-pian-bo-ke-wen-zhang"
+ * ```
+ * @public
+ */
 export async function generateSlug(
     modelConfig: AIModelConfig,
     title: string,

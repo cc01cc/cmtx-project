@@ -1,8 +1,1 @@
-/**
- * @cmtx/mcp-server - MCP JSON-RPC 2.0 服务器
- *
- * @packageDocumentation
- * @module @cmtx/mcp-server
- */
-
-export * from "./server.js";
+// 库入口已移除。本包仅通过 bin/cmtx-mcp 作为 CLI 使用。

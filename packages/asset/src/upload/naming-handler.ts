@@ -50,7 +50,8 @@ import { basename, extname } from "node:path";
 import type { LocalFileImageMatch } from "../file/types.js";
 import { renderTemplate } from "@cmtx/template";
 import { dummyLogger, type Logger } from "@cmtx/core";
-import { DEFAULT_NAMING_TEMPLATE, generateMD5 } from "../shared/index.js";
+import { DEFAULT_NAMING_TEMPLATE } from "../shared/constants.js";
+import { generateMD5 } from "../shared/md5.js";
 import type { BaseNamingVariables } from "../shared/types.js";
 import type { StorageConfig } from "./config.js";
 

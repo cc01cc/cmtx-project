@@ -44,12 +44,9 @@
  * ```
  */
 
-export * from "./download-service.js";
 export {
-    DEFAULT_NAMING_TEMPLATE,
-    generateNamingVariables,
-    generateUniqueFileName,
-    parseUrlForNaming,
-} from "./naming-handler.js";
-export * from "./types.js";
-export * from "./url-matcher.js";
+    createDownloadService,
+    type DownloadService,
+    type DownloadServiceConfig,
+} from "./download-service.js";
+export type { DownloadOptions, DownloadProgress, DownloadResult } from "./types.js";

@@ -40,102 +40,45 @@
  * - [Jekyll](https://jekyllrb.com/docs/frontmatter/) - 静态站点生成器，frontmatter 约定来源
  * - [section-matter](https://github.com/cmti-tig/term) - 章节级 frontmatter 解析实现
  *
- * @see {@link DocumentMetadata} - 文档元数据类型
- * @see {@link MetadataExtractOptions} - 提取选项
- * @see {@link parseFrontmatter} - frontmatter 边界解析
+ * @see {@link splitFrontmatter} - frontmatter 边界解析
  */
 
-import * as fs from "node:fs";
-import * as path from "node:path";
 import yaml from "js-yaml";
 import type {
-    DocumentMetadata,
+    DocEntry,
     FrontmatterUpdateResult,
     FrontmatterValue,
     HeadingConvertOptions,
-    MetadataExtractOptions,
     SectionHeading,
     SectionHeadingExtractOptions,
     UpsertFrontmatterOptions,
 } from "./types.js";
 
 /**
- * 从文件提取文档元数据
+ * 提取 Markdown 文本中的 frontmatter 内容
  *
- * 支持多数据源，按优先级依次尝试：
- * 1. Frontmatter YAML（优先级最高）- 从 `---` YAML 块中提取
- * 2. Markdown Heading - 提取指定等级的标题（如 `# 标题`）
- * 3. 文件名（备选方案）- 当前两者都不存在时，使用文件名（不含扩展名）
- *
- * @param filePath - 本地 Markdown 文件的绝对或相对路径
- * @param options - 提取选项
- * @returns 文档元数据对象
- * @throws {Error} 文件不存在或无权限读取时抛出错误
+ * @param markdown - Markdown 文本
+ * @returns frontmatter 的 YAML 解析结果，无 frontmatter 时返回 undefined
  *
  * @example
  * ```typescript
- * // 从文件提取元数据
- * const metadata = extractMetadata('/path/to/document.md');
- * console.log(metadata.title); // 从 Frontmatter 或标题中提取
+ * const md = `---
+ * title: "My Document"
+ * date: 2024-01-01
+ * ---
  *
- * // 指定大标题等级
- * const metadata2 = extractMetadata('/path/to/doc.md', { headingLevel: 2 });
+ * Content`;
+ *
+ * const fm = extractFrontmatter(md);
+ * fm?.title // "My Document"
+ * fm?.date  // "2024-01-01"
  * ```
  * @public
  */
-export function extractMetadata(
-    filePath: string,
-    options: MetadataExtractOptions = {},
-): DocumentMetadata {
-    const { headingLevel = 1 } = options;
-
-    // 规范化路径
-    const absolutePath = path.resolve(filePath);
-
-    // 读取文件内容
-    let content: string;
-    try {
-        content = fs.readFileSync(absolutePath, "utf-8");
-    } catch (error) {
-        const err = error as NodeJS.ErrnoException;
-        if (err.code === "ENOENT") {
-            throw new Error(`File not found: ${absolutePath}`, { cause: error });
-        }
-        if (err.code === "EACCES") {
-            throw new Error(`Permission denied: ${absolutePath}`, { cause: error });
-        }
-        throw new Error(`Failed to read file: ${absolutePath}`, { cause: error });
-    }
-
-    const metadata: DocumentMetadata = { title: "" };
-
-    // 1. 尝试从 Frontmatter 中提取元数据
-    const { hasFrontmatter, data } = parseFrontmatter(content);
-    if (hasFrontmatter) {
-        try {
-            const parsed = parseYamlFrontmatter(data);
-            Object.assign(metadata, parsed);
-        } catch {
-            // Frontmatter 解析失败时继续
-        }
-    }
-
-    // 2. 如果 Frontmatter 中没有标题，从指定等级的标题中提取
-    if (!metadata.title) {
-        const headingRegex = new RegExp(String.raw`^${"#".repeat(headingLevel)}\s+(.+)$`, "m");
-        const headingMatch = headingRegex.exec(content);
-        if (headingMatch) {
-            metadata.title = headingMatch[1].trim();
-        }
-    }
-
-    // 3. 如果仍无标题，使用文件名（去掉扩展名）
-    if (!metadata.title) {
-        const filename = path.basename(absolutePath, path.extname(absolutePath));
-        metadata.title = filename;
-    }
-
-    return metadata;
+export function extractFrontmatter(markdown: string): Record<string, FrontmatterValue> | undefined {
+    const { hasFrontmatter, data } = splitFrontmatter(markdown);
+    if (!hasFrontmatter) return undefined;
+    return parseYamlFrontmatter(data);
 }
 
 /**
@@ -312,7 +255,7 @@ export function convertHeadingToFrontmatter(
     const cleanMarkdown = markdown.replace(headingMatch[0], "").trimStart();
 
     // 如果已经存在 Frontmatter，则使用 upsert 逻辑合并
-    const { hasFrontmatter } = parseFrontmatter(markdown);
+    const { hasFrontmatter } = splitFrontmatter(markdown);
     if (hasFrontmatter) {
         const result = upsertFrontmatterFields(cleanMarkdown, { title: titleText });
         return result.markdown;
@@ -337,7 +280,7 @@ export function convertHeadingToFrontmatter(
  * - 跟踪修改细节（新增、更新、未变化）
  *
  * @param markdown - Markdown 文本
- * @param fields - 要更新或新增的字段对象（值可以是字符串、字符串数组或 null）
+ * @param fields - 要更新或新增的字段对象
  * @param options - 更新选项
  * @returns 包含修改摘要和完整 Markdown 的结果对象
  *
@@ -349,17 +292,19 @@ export function convertHeadingToFrontmatter(
  *   author: 'Bob',           // 更新
  *   date: '2026-02-07',      // 新增
  *   tags: ['a', 'b'],        // 新增数组
+ *   order: 1,                // 新增数字
+ *   published: true,         // 新增布尔
  *   description: null        // 设置为 null
  * });
  *
  * console.log(result.updated);  // ['author']
- * console.log(result.added);    // ['date', 'tags', 'description']
+ * console.log(result.added);    // ['date', 'tags', 'order', 'published', 'description']
  * ```
  * @public
  */
 export function upsertFrontmatterFields(
     markdown: string,
-    fields: Record<string, string | string[] | null>,
+    fields: Record<string, FrontmatterValue>,
     options: UpsertFrontmatterOptions = {},
 ): FrontmatterUpdateResult {
     const { format = "yaml", createIfMissing = true } = options;
@@ -379,7 +324,7 @@ export function upsertFrontmatterFields(
     };
 
     // 提取现有 Frontmatter
-    const { hasFrontmatter, data, content } = parseFrontmatter(markdown);
+    const { hasFrontmatter, data, content } = splitFrontmatter(markdown);
     let existingMetadata: Record<string, FrontmatterValue> = {};
     let cleanMarkdown = markdown;
     const hadFrontmatter = hasFrontmatter;
@@ -443,7 +388,7 @@ export function upsertFrontmatterFields(
 /**
  * Frontmatter 解析结果
  */
-export interface FrontmatterParseResult {
+export interface SplitFrontmatterResult {
     hasFrontmatter: boolean;
     data: string;
     content: string;
@@ -463,7 +408,7 @@ export interface FrontmatterParseResult {
  * @see gray-matter {@link https://github.com/jonschlinkert/gray-matter}
  * @see Jekyll Frontmatter {@link https://jekyllrb.com/docs/frontmatter/}
  */
-export function parseFrontmatter(input: string): FrontmatterParseResult {
+export function splitFrontmatter(input: string): SplitFrontmatterResult {
     const lines = input.split(/\r?\n/);
     const stack: string[] = [];
     const dataLines: string[] = [];
@@ -531,7 +476,7 @@ function isDelimiter(line: string): boolean {
 }
 
 export function removeFrontmatter(markdown: string): string {
-    const { hasFrontmatter, content } = parseFrontmatter(markdown);
+    const { hasFrontmatter, content } = splitFrontmatter(markdown);
     if (hasFrontmatter) {
         return content.trim();
     }
@@ -541,25 +486,18 @@ export function removeFrontmatter(markdown: string): string {
 /**
  * 解析 YAML Frontmatter 内容
  *
- * 使用自定义正则表达式解析，轻量级实现。所有值统一返回为字符串或字符串数组，简化解析逻辑。
- * 如需进一步的类型转换（如 boolean、number），由下游代码自行处理。
- *
- * **支持的结构：**
- * - 基础值：转换为字符串返回
- * - 数组：单行 `[a,b,c]` 和多行 `- item` 格式
- * - 简单键值对
+ * 使用 js-yaml 标准库解析，保留原生 YAML 类型：
+ * - string / number / boolean 保留原始类型
+ * - 数组元素同样保留原始类型
+ * - Date 转为 ISO date string
  *
  * **不支持的结构：**
  * - 复杂对象/嵌套结构
  * - 多行字符串（|、>）
- * - 日期/时间类型
  * - 锚点和别名
- * - 流式和块式混合
- *
- * @note 如需完整 YAML 规范支持，使用 @cmtx/metadata 的 `parseFullFrontmatter()` 函数
  *
  * @param content - YAML 内容
- * @returns 解析后的对象（所有值均为字符串、字符串数组或 null）
+ * @returns 解析后的 frontmatter 字段
  * @public
  */
 export function parseYamlFrontmatter(content: string): Record<string, FrontmatterValue> {
@@ -578,7 +516,7 @@ export function parseYamlFrontmatter(content: string): Record<string, Frontmatte
  * 标准化 Frontmatter 值为支持的类型
  *
  * @param obj - 解析后的对象
- * @returns 标准化后的对象，值类型为 string | string[] | null
+ * @returns 标准化后的对象
  */
 function normalizeFrontmatterValues(
     obj: Record<string, unknown>,
@@ -589,66 +527,51 @@ function normalizeFrontmatterValues(
             result[key] = null;
         } else if (typeof value === "string") {
             result[key] = value;
+        } else if (typeof value === "number") {
+            result[key] = value;
+        } else if (typeof value === "boolean") {
+            result[key] = value;
         } else if (Array.isArray(value)) {
-            result[key] = value.map(String);
+            result[key] = normalizeFmArray(value);
         } else if (value instanceof Date) {
             result[key] = value.toISOString().split("T")[0];
         }
-        // 忽略其他类型（boolean, number, object 等）
+        // 忽略其他类型（object 等）
     }
     return result;
+}
+
+function normalizeFmArray(arr: unknown[]): FrontmatterValue[] {
+    return arr.map((item) => {
+        if (typeof item === "string") return item;
+        if (typeof item === "number") return item;
+        if (typeof item === "boolean") return item;
+        if (item === null) return null;
+        if (Array.isArray(item)) return normalizeFmArray(item);
+        // oxlint no-base-to-string: catch-all for unknown types
+        return String(item);
+    });
 }
 
 /**
  * 生成 YAML Frontmatter 字符串
  *
+ * 委托给 js-yaml.dump 进行序列化，确保与 js-yaml.load 的行为对称。
+ *
  * @param obj - 要序列化的对象
- * @returns Frontmatter 字符串
+ * @returns Frontmatter 字符串（含 --- 头尾）
  * @public
  */
 export function generateFrontmatterYaml(obj: Record<string, FrontmatterValue>): string {
-    const lines: string[] = [];
-
-    // 判断字符串是否需要引导
-    const needsQuoting = (str: string) => {
-        if (!str) return false;
-        if (str.includes("\n")) return true;
-
-        const trimmed = str.trim();
-        return (
-            trimmed.includes(": ") ||
-            trimmed.includes("#") ||
-            /^[[\]{}&*!%@`|>"-]/.test(trimmed) ||
-            /^\d+$/.test(trimmed)
-        );
-    };
-
-    const formatValue = (val: unknown) => {
-        const str = String(val);
-        if (needsQuoting(str)) {
-            const escaped = str.replaceAll('"', String.raw`\"`).replaceAll("\n", String.raw`\n`);
-            return `"${escaped}"`;
-        }
-        return str;
-    };
-
-    for (const [key, value] of Object.entries(obj)) {
-        if (Array.isArray(value)) {
-            lines.push(`${key}:`);
-            for (const item of value) {
-                lines.push(`  - ${formatValue(item)}`);
-            }
-        } else if (value === null) {
-            // null 值显示为 YAML null
-            lines.push(`${key}: null`);
-        } else if (value === undefined) {
-        } else {
-            lines.push(`${key}: ${formatValue(value)}`);
-        }
-    }
-
-    const content = lines.join("\n");
-    return `---\n${content}\n---`;
+    const content = yaml.dump(obj, {
+        indent: 2,
+        lineWidth: -1,
+        quotingType: '"',
+        forceQuotes: false,
+        noRefs: true,
+        sortKeys: false,
+    });
+    return `---\n${content}---`;
 }
 
 /**
@@ -658,7 +581,7 @@ export function generateFrontmatterYaml(obj: Record<string, FrontmatterValue>): 
  */
 function processFieldUpdate(
     key: string,
-    newValue: string | string[] | null,
+    newValue: FrontmatterValue,
     merged: Record<string, FrontmatterValue>,
     result: FrontmatterUpdateResult,
 ): void {
@@ -709,7 +632,7 @@ function processFieldUpdate(
  */
 export function deleteFrontmatterFields(markdown: string, fieldKeys: string[]): string {
     // 提取现有 Frontmatter
-    const { hasFrontmatter, data, content } = parseFrontmatter(markdown);
+    const { hasFrontmatter, data, content } = splitFrontmatter(markdown);
     if (!hasFrontmatter) {
         // 没有 Frontmatter，返回原文档
         return markdown;
@@ -726,14 +649,14 @@ export function deleteFrontmatterFields(markdown: string, fieldKeys: string[]): 
     // 获取内容部分
     const cleanMarkdown = content.trim();
 
-    // 生成新 Frontmatter（如果还有字段）
+    // 生成新 Frontmatter（如果没有剩余字段，保留空 frontmatter 块）
     if (Object.keys(metadata).length > 0) {
         const newFrontmatter = generateFrontmatterYaml(metadata);
         return `${newFrontmatter}\n\n${cleanMarkdown}`;
     }
 
-    // 没有剩余字段，只返回内容
-    return cleanMarkdown;
+    // 保留空的 frontmatter 块，移除整个块应使用 removeFrontmatter
+    return `---\n---\n\n${cleanMarkdown}`;
 }
 
 /**
@@ -765,7 +688,7 @@ export function deleteFrontmatterFields(markdown: string, fieldKeys: string[]): 
  */
 export function extractTitleFromMarkdown(markdown: string): string | undefined {
     // 首先检查 Frontmatter 中的 title 字段
-    const { hasFrontmatter, data } = parseFrontmatter(markdown);
+    const { hasFrontmatter, data } = splitFrontmatter(markdown);
     if (hasFrontmatter) {
         try {
             const frontmatter = parseYamlFrontmatter(data);
@@ -773,7 +696,8 @@ export function extractTitleFromMarkdown(markdown: string): string | undefined {
                 const title = frontmatter.title;
                 // 如果是数组，取第一个元素；如果是字符串，直接返回；null 则继续检查
                 if (Array.isArray(title)) {
-                    return title[0];
+                    const first = title[0];
+                    return typeof first === "string" ? first : undefined;
                 }
                 if (typeof title === "string") {
                     return title;
@@ -797,7 +721,7 @@ export function extractTitleFromMarkdown(markdown: string): string | undefined {
 /**
  * 从 Markdown 文档中提取 frontmatter 的指定字段值
  *
- * 使用 {@link parseFrontmatter} 和 {@link parseYamlFrontmatter} 函数解析 frontmatter，
+ * 使用 {@link splitFrontmatter} 和 {@link parseYamlFrontmatter} 函数解析 frontmatter，
  * 然后返回指定字段的值。
  *
  * @param markdown - Markdown 文本
@@ -824,7 +748,7 @@ export function extractTitleFromMarkdown(markdown: string): string | undefined {
  * @public
  */
 export function extractFrontmatterField(markdown: string, fieldName: string): string | undefined {
-    const { data } = parseFrontmatter(markdown);
+    const { data } = splitFrontmatter(markdown);
     if (!data) {
         return undefined;
     }
@@ -845,4 +769,34 @@ export function extractFrontmatterField(markdown: string, fieldName: string): st
     }
 
     return String(value);
+}
+
+/**
+ * 对文档条目按 sidebar_order 排序
+ *
+ * 排序规则：
+ * 1. 有 sidebar_order（number）的按数字升序排列
+ * 2. 无 sidebar_order 的按 title 字母序排列
+ * 3. 规则 2 的条目始终排在规则 1 之后
+ *
+ * @param entries - 文档条目数组
+ * @param field - 排序依据的 frontmatter 字段名（默认 "sidebar_order"）
+ * @returns 新数组（不修改原数组）
+ * @public
+ */
+export function sortByOrder<T extends DocEntry>(entries: T[], field = "sidebar_order"): T[] {
+    return [...entries].sort((a, b) => {
+        const aOrder = a.frontmatter[field];
+        const bOrder = b.frontmatter[field];
+        const aHasOrder = typeof aOrder === "number";
+        const bHasOrder = typeof bOrder === "number";
+
+        if (aHasOrder && bHasOrder) {
+            return aOrder - bOrder;
+        }
+        if (aHasOrder) return -1;
+        if (bHasOrder) return 1;
+
+        return a.title.localeCompare(b.title);
+    });
 }

@@ -12,17 +12,17 @@ import type {
     AliyunCredentials,
     CloudCredentials,
     CloudProvider,
-    IStorageAdapter,
+    StorageAdapter,
     ObjectMeta,
-    TencentCredentials,
     UploadBufferOptions,
 } from "../src/index.js";
+import { createCredentials } from "../src/index.js";
 
 describe("模块导出测试", () => {
     describe("类型导出", () => {
-        it("应该导出 IStorageAdapter 类型", () => {
+        it("应该导出 StorageAdapter 类型", () => {
             // 类型测试在编译时验证，这里只验证类型存在
-            const adapter: IStorageAdapter = {
+            const adapter: StorageAdapter = {
                 upload: async () => ({ name: "test", url: "https://example.com/test" }),
                 getSignedUrl: async () => "https://example.com/signed",
                 delete: async () => {},
@@ -79,14 +79,13 @@ describe("模块导出测试", () => {
             expect(credentials.provider).toBe("aliyun-oss");
         });
 
-        it("应该导出 TencentCredentials 类型", () => {
-            const credentials: TencentCredentials = {
-                provider: "tencent-cos",
+        it("应该支持 tencent-cos 凭证", () => {
+            const credentials = createCredentials("tencent-cos", {
                 secretId: "test-id",
                 secretKey: "test-key",
                 region: "ap-guangzhou",
                 bucket: "test-bucket-1250000000",
-            };
+            });
             expect(credentials.provider).toBe("tencent-cos");
         });
 

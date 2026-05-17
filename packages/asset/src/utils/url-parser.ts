@@ -13,8 +13,8 @@
  * - 支持签名 URL 识别
  */
 
-import { filterImagesInText } from "@cmtx/core";
-import { isStorageUrl } from "./storage-url-detector.js";
+import { filterImages } from "@cmtx/core";
+import { isStorageUrl } from "@cmtx/storage";
 
 /**
  * 图片信息
@@ -84,8 +84,8 @@ export class UrlParser {
      * @returns 图片信息列表
      */
     extractImageUrls(markdown: string): ImageInfo[] {
-        // 使用 filterImagesInText 提取所有远程图片
-        const images = filterImagesInText(markdown, {
+        // 使用 filterImages 提取所有远程图片
+        const images = filterImages(markdown, {
             mode: "sourceType",
             value: "web",
         });

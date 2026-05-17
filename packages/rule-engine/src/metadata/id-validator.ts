@@ -35,22 +35,20 @@ async function checkFileForId(
 }
 
 /**
- * 检查给定的 ID 是否在指定的 Markdown 文件中唯一
+ * 检查 ID 在文档集合中是否唯一
  *
- * 扫描与 glob 模式匹配的所有 Markdown 文件，提取其 frontmatter 中的 ID，
- * 检查新 ID 是否与任何现有 ID 重复。仅检查包含 frontmatter 且有 ID 字段的文件。
+ * 遍历匹配指定 glob 模式的所有 Markdown 文件，检查 frontmatter 中的 id 字段
+ * 是否与新 ID 冲突。支持大小写敏感/不敏感模式。
  *
  * @param newId - 要检查的新 ID
- * @param globPattern - glob 文件模式（例如：`**\/*.md`, `docs/**\/*.md`）
- * @param options - 检查选项
- * @returns true 如果 ID 唯一（安全使用），false 如果 ID 已存在
+ * @param globPattern - 匹配文档的 glob 模式，如 "posts/**\/*.md"
+ * @param options - 配置选项
+ * @returns 如果 ID 唯一返回 true，否则返回 false
  *
  * @example
+ * 基本用法
  * ```typescript
- * const isUnique = await isUniqueId('my-doc-123', '**\/*.md');
- * if (isUnique) {
- *   console.log('ID is safe to use');
- * }
+ * const isUnique = await isUniqueId('myId', 'posts/**\/*.md');
  * ```
  *
  * @example
@@ -59,6 +57,8 @@ async function checkFileForId(
  * const isUnique = await isUniqueId('myId', '**\/*.md', { caseSensitive: true });
  * // 'myId' 和 'MyId' 被视为不同的 ID
  * ```
+ *
+ * @internal
  */
 export async function isUniqueId(
     newId: string,

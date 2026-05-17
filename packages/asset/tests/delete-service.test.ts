@@ -20,7 +20,7 @@ describe("DeleteService", () => {
         await writeFile(mdFilePath, `# Doc\n\n![Photo](photo.png)\n`, "utf-8");
 
         service = new DeleteService({
-            workspaceRoot: TEST_DIR,
+            baseDirectory: TEST_DIR,
             options: {
                 strategy: "hard-delete",
             },

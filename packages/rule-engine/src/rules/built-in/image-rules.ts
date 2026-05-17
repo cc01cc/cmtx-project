@@ -8,14 +8,18 @@
  * 提供图片处理相关的 Rules，如转换 HTML、上传等。
  */
 
+import { isAbsolute, resolve } from "node:path";
 import { DeleteService } from "@cmtx/asset";
+import type { ReplaceConfig } from "@cmtx/asset";
+// type-only imports are erased at compile time - avoids Rolldown assertion panic (SPRINT-006)
+import type { ParsedImage } from "@cmtx/core";
 import type {
     ConflictResolutionStrategy,
-    DownloadAssetsService,
+    DownloadService,
     Rule,
     RuleContext,
     RuleResult,
-    TransferAssetsService,
+    TransferService,
     UploadService,
 } from "../rule-types.js";
 
@@ -104,6 +108,27 @@ interface UploadImagesRuleConfig {
 
     /** 冲突处理策略 */
     conflictStrategy?: ConflictResolutionStrategy;
+
+    /** 使用哪个存储配置 */
+    useStorage?: string;
+
+    /** 文件命名模板 */
+    namingTemplate?: string;
+
+    /** 上传路径前缀 */
+    prefix?: string;
+
+    /** 自定义域名（CDN） */
+    domain?: string;
+
+    /** 输出格式 */
+    imageFormat?: "markdown" | "html";
+
+    /** 字段替换配置 */
+    replace?: ReplaceConfig;
+
+    /** 并发数 */
+    concurrency?: number;
 }
 
 /**
@@ -150,6 +175,13 @@ export const uploadImagesRule: Rule = {
             const result = await uploadService.uploadImagesInDocument(
                 contentToProcess,
                 baseDirectory!,
+                {
+                    namingTemplate: config?.namingTemplate,
+                    prefix: config?.prefix,
+                    domain: config?.domain,
+                    replace: config?.replace,
+                    conflictStrategy: config?.conflictStrategy,
+                },
             );
 
             // 如果有选区，需要将处理后的内容拼接回原文档
@@ -159,7 +191,7 @@ export const uploadImagesRule: Rule = {
 
             return {
                 content: finalContent,
-                modified: result.uploaded > 0,
+                modified: result.succeeded > 0,
                 messages,
             };
         } catch (error) {
@@ -185,6 +217,15 @@ export interface DownloadImagesConfig {
 
     /** 域名过滤 */
     domain?: string;
+
+    /** 本地保存命名模板 */
+    namingTemplate?: string;
+
+    /** 并发下载数 */
+    concurrency?: number;
+
+    /** 是否覆盖已存在文件 */
+    overwrite?: boolean;
 }
 
 /**
@@ -211,26 +252,29 @@ export const downloadImagesRule: Rule = {
         }
 
         // 从 services 获取下载服务
-        const downloadService = services.get<DownloadAssetsService>("download");
+        const downloadService = services.get<DownloadService>("download");
 
         if (!downloadService) {
             return {
                 content: document,
                 modified: false,
-                messages: ["缺少 DownloadAssetsService，跳过下载"],
+                messages: ["缺少 DownloadService，跳过下载"],
             };
         }
 
         try {
-            // 使用 DownloadAssetsService 的下载功能
+            // 使用 DownloadService 的下载功能
             const outputDir = config?.outputDir ?? baseDirectory ?? "./images";
             const result = await downloadService.downloadImages(document, outputDir, {
                 domain: config?.domain,
+                namingTemplate: config?.namingTemplate,
+                concurrency: config?.concurrency,
+                overwrite: config?.overwrite,
             });
 
             const messages: string[] = [];
-            if (result.success > 0) {
-                messages.push(`✓ 下载 ${result.success} 个图片`);
+            if (result.succeeded > 0) {
+                messages.push(`✓ 下载 ${result.succeeded} 个图片`);
             }
             if (result.skipped > 0) {
                 messages.push(`○ 跳过 ${result.skipped} 个文件`);
@@ -241,7 +285,7 @@ export const downloadImagesRule: Rule = {
 
             return {
                 content: document, // 下载不修改文档内容
-                modified: result.success > 0,
+                modified: result.succeeded > 0,
                 messages: messages.length > 0 ? messages : ["没有文件下载"],
             };
         } catch (error) {
@@ -259,9 +303,6 @@ export const downloadImagesRule: Rule = {
  * 图片删除 Rule 配置
  */
 export interface DeleteImageConfig {
-    /** 是否启用删除 */
-    delete?: boolean;
-
     /** 删除策略 */
     strategy?: "trash" | "move" | "hard-delete";
 
@@ -270,30 +311,25 @@ export interface DeleteImageConfig {
 
     /** 是否强制删除（忽略引用检查） */
     force?: boolean;
+
+    /** move 策略的目标目录 */
+    trashDir?: string;
 }
 
 /**
  * 图片删除 Rule
  *
  * @description
- * 删除本地图片文件，可选择从所有引用的 Markdown 文件中移除引用。
+ * 提取当前文档中的本地图片，逐一安全检查引用后删除。
+ * 有引用且非 force 模式时跳过文件删除（可独立清理引用）。
  */
 export const deleteImageRule: Rule = {
     id: "delete-image",
     name: "删除图片",
-    description: "删除本地图片文件并清理引用",
+    description: "安全删除当前文档的本地图片（引用检查）",
 
     async execute(context: RuleContext, config?: DeleteImageConfig): Promise<RuleResult> {
         const { document, baseDirectory } = context;
-        const shouldDelete = config?.delete ?? true;
-
-        if (!shouldDelete) {
-            return {
-                content: document,
-                modified: false,
-                messages: ["未启用删除"],
-            };
-        }
 
         if (!baseDirectory) {
             return {
@@ -304,19 +340,13 @@ export const deleteImageRule: Rule = {
         }
 
         try {
-            // 直接使用 DeleteService（纯本地操作，不需要存储适配器）
-            const deleteService = new DeleteService({
-                workspaceRoot: baseDirectory,
-                options: {
-                    strategy: config?.strategy ?? "trash",
-                    removeFromMarkdown: config?.removeFromMarkdown ?? true,
-                    force: config?.force ?? false,
-                },
-            });
-
-            // 从文档中提取本地图片引用
-            const { filterImagesInText } = await import("@cmtx/core");
-            const images = filterImagesInText(document, {
+            const { filterImages } = require("@cmtx/core") as {
+                filterImages: (
+                    md: string,
+                    options: { mode: string; value: string },
+                ) => Array<{ src: string }>;
+            };
+            const images = filterImages(document, {
                 mode: "sourceType",
                 value: "local",
             });
@@ -329,20 +359,34 @@ export const deleteImageRule: Rule = {
                 };
             }
 
+            const deleteService = new DeleteService({
+                baseDirectory,
+                options: {
+                    strategy: config?.strategy ?? "trash",
+                    removeFromMarkdown: config?.removeFromMarkdown ?? true,
+                    force: config?.force ?? false,
+                },
+            });
+
             let totalDeleted = 0;
             let totalReferencesRemoved = 0;
 
             for (const img of images) {
-                const { isAbsolute, resolve } = await import("node:path");
                 const absPath = isAbsolute(img.src)
                     ? resolve(img.src)
                     : resolve(baseDirectory, img.src);
 
-                const target = await deleteService.scanReferences(absPath);
-                const deleteResult = await deleteService.delete(target);
+                const result = await deleteService.safeDelete(absPath, {
+                    strategy: config?.strategy,
+                    removeFromMarkdown: config?.removeFromMarkdown,
+                    force: config?.force,
+                    trashDir: config?.trashDir,
+                });
 
-                totalDeleted += deleteResult.details.filter((d) => d.success).length;
-                totalReferencesRemoved += deleteResult.referencesRemovedFrom;
+                if (result.deleted && result.deleteResult) {
+                    totalDeleted += result.deleteResult.deletedCount;
+                    totalReferencesRemoved += result.deleteResult.referencesRemovedFrom;
+                }
             }
 
             const messages: string[] = [];
@@ -355,7 +399,7 @@ export const deleteImageRule: Rule = {
 
             return {
                 content: document,
-                modified: totalDeleted > 0,
+                modified: totalDeleted > 0 || totalReferencesRemoved > 0,
                 messages: messages.length > 0 ? messages : ["没有文件删除"],
             };
         } catch (error) {
@@ -368,6 +412,106 @@ export const deleteImageRule: Rule = {
         }
     },
 };
+
+/**
+ * 清理图片 Rule 配置
+ */
+export interface CleanupImagesConfig {
+    /** 删除策略 */
+    strategy?: "trash" | "move" | "hard-delete";
+
+    /** 是否强制删除（跳过引用检查，cleanup 语义下为跳过确认） */
+    force?: boolean;
+
+    /** 可选，覆盖应用层默认根目录 */
+    baseDirectory?: string;
+
+    /** move 策略的目标目录 */
+    trashDir?: string;
+}
+
+/**
+ * 清理图片 Rule
+ *
+ * @description
+ * 扫描 baseDirectory 下所有未被 Markdown 引用的 orphan 图片并批量清理。
+ * 使用 configuration 中的 baseDirectory 覆盖（支持相对/绝对路径），
+ * 否则使用 context.baseDirectory。
+ */
+export const cleanupImagesRule: Rule = {
+    id: "cleanup-images",
+    name: "清理图片",
+    description: "清理未被引用的本地图片",
+
+    async execute(context: RuleContext, config?: CleanupImagesConfig): Promise<RuleResult> {
+        const { baseDirectory: contextBaseDir } = context;
+
+        let baseDir = contextBaseDir;
+        if (config?.baseDirectory) {
+            baseDir = isAbsolute(config.baseDirectory)
+                ? resolve(config.baseDirectory)
+                : resolve(contextBaseDir ?? "", config.baseDirectory);
+        }
+
+        if (!baseDir) {
+            return {
+                content: context.document,
+                modified: false,
+                messages: ["缺少 baseDirectory，跳过清理"],
+            };
+        }
+
+        try {
+            const deleteService = new DeleteService({
+                baseDirectory: baseDir,
+                options: {
+                    strategy: config?.strategy ?? "trash",
+                },
+            });
+
+            const result = await deleteService.pruneDirectory(baseDir, {
+                strategy: config?.strategy,
+                trashDir: config?.trashDir,
+            });
+
+            const messages: string[] = [];
+            if (result.deletedCount > 0) {
+                messages.push(
+                    `清理 ${result.deletedCount} 个文件，释放 ${(result.freedSize / 1024).toFixed(1)}KB`,
+                );
+            }
+            if (result.failedCount > 0) {
+                messages.push(`${result.failedCount} 个文件失败`);
+            }
+            if (result.skippedCount > 0) {
+                messages.push(`${result.skippedCount} 个文件跳过`);
+            }
+
+            return {
+                content: context.document,
+                modified: false,
+                messages: messages.length > 0 ? messages : ["没有需要清理的图片"],
+            };
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            return {
+                content: context.document,
+                modified: false,
+                messages: [`清理失败：${message}`],
+            };
+        }
+    },
+};
+
+/**
+ * 缩放域名配置
+ */
+interface ResizeDomainConfig {
+    /** 域名 */
+    domain: string;
+    /** 提供商：aliyun-oss | tencent-cos | html（html=回退客户端缩放） */
+    provider?: string;
+}
 
 /**
  * 图片尺寸调整 Rule 配置
@@ -386,7 +530,20 @@ export interface ResizeImageConfig {
     direction?: "in" | "out";
 
     /** 可用宽度列表 */
-    availableWidths?: number[];
+    widths?: number[];
+
+    /**
+     * 域名配置
+     * 匹配的域名使用服务器端缩放（通过 URL 参数），
+     * 不匹配的域名使用客户端缩放（修改 img 标签 width/height 属性）。
+     * provider 取值:
+     *   aliyun-oss: ?x-oss-process=image/resize,w_{width}
+     *   tencent-cos: ?imageMogr2/thumbnail/{width}x
+     *   html: 回退到客户端缩放
+     * 参考: <https://help.aliyun.com/zh/oss/user-guide/resize-images-4>
+     *      <https://cloud.tencent.com/document/product/460/36540>
+     */
+    domains?: ResizeDomainConfig[];
 
     /** 选区范围（用于只处理部分文档） */
     selection?: {
@@ -395,156 +552,182 @@ export interface ResizeImageConfig {
     };
 }
 
+// setImageDimensions/toHtmlImage/processImageElements
+// 已由 @cmtx/core 提供或 replaced by replaceElementWithDimensions
+
 /**
- * 设置图片尺寸属性（width 和 height）
+ * 构建服务器端缩放 URL
+ *
+ * @param src - 原始图片 URL
+ * @param width - 目标宽度（像素）
+ * @param provider - 存储提供商
+ * @returns 处理后 URL，或 null（不支持的 provider/格式）
  */
-function setImageDimensions(
-    html: string,
-    targetWidth?: number | string,
-    targetHeight?: number | string,
-): string {
-    let result = html;
-
-    // 处理 width
-    if (targetWidth !== undefined) {
-        const widthStr = String(targetWidth);
-        // 检查是否已有 width 属性
-        if (/width\s*=\s*["'][^"']*["']/.test(result) || /width\s*=\s*\d+/.test(result)) {
-            // 替换现有 width
-            result = result.replace(/width\s*=\s*["']?\d+["']?/, `width="${widthStr}"`);
-        } else {
-            // 在 src 属性后添加 width
-            result = result.replace(
-                /(<img\s+[^>]*src\s*=\s*["'][^'"]+["'])/,
-                `$1 width="${widthStr}"`,
-            );
-        }
+function buildServerResizeUrl(src: string, width: number, provider: string): string | null {
+    const separator = src.includes("?") ? "&" : "?";
+    switch (provider) {
+        case "aliyun-oss":
+            return `${src}${separator}x-oss-process=image/resize,w_${width}`;
+        case "tencent-cos":
+            return `${src}${separator}imageMogr2/thumbnail/${width}x`;
+        default:
+            return null;
     }
-
-    // 处理 height
-    if (targetHeight !== undefined) {
-        const heightStr = String(targetHeight);
-        // 检查是否已有 height 属性
-        if (/height\s*=\s*["'][^"']*["']/.test(result) || /height\s*=\s*\d+/.test(result)) {
-            // 替换现有 height
-            result = result.replace(/height\s*=\s*["']?\d+["']?/, `height="${heightStr}"`);
-        } else {
-            // 在 width 属性后添加 height（如果没有 width 则在 src 后）
-            if (targetWidth !== undefined) {
-                result = result.replace(/(width\s*=\s*["'][^"']*["'])/, `$1 height="${heightStr}"`);
-            } else {
-                result = result.replace(
-                    /(<img\s+[^>]*src\s*=\s*["'][^'"]+["'])/,
-                    `$1 height="${heightStr}"`,
-                );
-            }
-        }
-    }
-
-    return result;
 }
 
 /**
- * 将 Markdown 图片转换为带尺寸的 HTML img 标签
+ * 检查图片 src 是否匹配已配置的缩放域名，匹配时返回对应 provider
  */
-function convertMarkdownImageToHtmlWithDimensions(
-    markdown: string,
-    targetWidth?: number | string,
-    targetHeight?: number | string,
-): string {
-    return markdown.replace(
-        /!\[([^\]]*)\]\(([^)]+)(?:\s+"([^"]*)")?\)/g,
-        (_match, alt: string, src: string, title?: string) => {
-            let html = `<img src="${src}" alt="${alt}"`;
-            if (targetWidth !== undefined) {
-                html += ` width="${targetWidth}"`;
+function matchResizeDomain(
+    src: string,
+    domains: ResizeDomainConfig[] | undefined,
+): ResizeDomainConfig | undefined {
+    if (!domains || domains.length === 0) return undefined;
+    try {
+        const url = new URL(src);
+        return domains.find(
+            (d) => url.hostname === d.domain || url.hostname.endsWith(`.${d.domain}`),
+        );
+    } catch {
+        return undefined;
+    }
+}
+
+function resizeElements(
+    content: string,
+    elements: ParsedImage[],
+    finalTargetWidth: number | string | undefined,
+    targetHeight: number | string | undefined,
+    domains: ResizeDomainConfig[] | undefined,
+    convertMdToHtml: (md: string, attrs?: Record<string, string>) => string,
+    setImgDims: (html: string, attrs?: Record<string, string>) => string,
+): { content: string; server: number; client: number } {
+    let result = content;
+    let server = 0;
+    let client = 0;
+
+    for (const element of elements) {
+        const matched = matchResizeDomain(element.src, domains);
+        const useServer =
+            typeof finalTargetWidth === "number" &&
+            matched?.provider &&
+            matched.provider !== "html";
+
+        if (useServer) {
+            const serverUrl = buildServerResizeUrl(
+                element.src,
+                finalTargetWidth,
+                matched!.provider!,
+            );
+            if (serverUrl) {
+                result = result.replace(element.raw, element.raw.replace(element.src, serverUrl));
+                server++;
+                continue;
             }
-            if (targetHeight !== undefined) {
-                html += ` height="${targetHeight}"`;
-            }
-            if (title) {
-                html += ` title="${title}"`;
-            }
-            html += ">";
-            return html;
-        },
-    );
+        }
+
+        result = replaceElementWithDimensions(
+            result,
+            element,
+            finalTargetWidth,
+            targetHeight,
+            convertMdToHtml,
+            setImgDims,
+        );
+        client++;
+    }
+
+    return { content: result, server, client };
+}
+
+function requireCoreImageUtils() {
+    return require("@cmtx/core") as {
+        parseImages: (md: string) => ParsedImage[];
+        setImageDimensions: (html: string, attrs?: Record<string, string>) => string;
+        toHtmlImage: (md: string, attrs?: Record<string, string>) => string;
+    };
+}
+
+function buildResizeResult(
+    document: string,
+    content: string,
+    selection: { startOffset: number; endOffset: number } | undefined,
+    server: number,
+    client: number,
+    finalTargetWidth: number | string | undefined,
+): RuleResult {
+    const finalContent = selection
+        ? document.substring(0, selection.startOffset) +
+          content +
+          document.substring(selection.endOffset)
+        : content;
+
+    const messages: string[] = [];
+    if (server > 0) messages.push(`服务端缩放 ${server} 个图片（width=${finalTargetWidth}）`);
+    if (client > 0) messages.push(`客户端缩放 ${client} 个图片（width=${finalTargetWidth}）`);
+
+    return {
+        content: finalContent,
+        modified: server + client > 0,
+        messages: messages.length > 0 ? messages : ["没有修改"],
+    };
 }
 
 /**
  * 图片尺寸调整 Rule
  *
  * @description
- * 调整 HTML 图片的宽度和高度属性，支持 Markdown 转 HTML。
+ * 调整图片尺寸，支持两种模式：
+ * 1. 服务器端缩放：匹配 domains 时，通过 URL 参数让 OSS/COS 返回缩放后的图片
+ * 2. 客户端缩放：未匹配时，修改 img 标签的 width/height 属性
  */
 export const resizeImageRule: Rule = {
     id: "resize-image",
     name: "调整图片尺寸",
-    description: "调整图片宽度和高度（HTML 格式）",
+    description: "调整图片宽度和高度，支持 OSS/COS 服务端缩放和客户端属性缩放",
 
     execute(context: RuleContext, config?: ResizeImageConfig): RuleResult {
-        const { document } = context;
-        const shouldResize = config?.resize ?? true;
-
-        if (!shouldResize) {
-            return {
-                content: document,
-                modified: false,
-                messages: ["未启用尺寸调整"],
-            };
+        if (config?.resize === false) {
+            return { content: context.document, modified: false, messages: ["未启用尺寸调整"] };
         }
 
-        // 导入 resize 模块函数
-        const { parseImageElements } = require("@cmtx/core");
-
-        const availableWidths = config?.availableWidths ?? [200, 400, 600, 800];
-        const targetWidth = config?.targetWidth;
-        const targetHeight = config?.targetHeight;
-
-        // 处理选区
-        let contentToProcess = document;
         const selection = config?.selection;
+        const contentToProcess = selection
+            ? context.document.substring(selection.startOffset, selection.endOffset)
+            : context.document;
 
-        if (selection) {
-            contentToProcess = document.substring(selection.startOffset, selection.endOffset);
-        }
-
-        // 解析图片元素
-        const elements = parseImageElements(contentToProcess);
+        const { parseImages, setImageDimensions, toHtmlImage } = requireCoreImageUtils();
+        const elements = parseImages(contentToProcess);
 
         if (elements.length === 0) {
-            return {
-                content: document,
-                modified: false,
-                messages: ["没有找到图片"],
-            };
+            return { content: context.document, modified: false, messages: ["没有找到图片"] };
         }
 
-        // 计算目标宽度
-        const finalTargetWidth = resolveTargetWidth(targetWidth, config, elements, availableWidths);
+        const widths = config?.widths ?? [200, 400, 600, 800];
+        const finalTargetWidth = resolveTargetWidth(config?.targetWidth, config, elements, widths);
 
-        // 处理图片元素
-        const newContent = processImageElements(
+        const {
+            content: newContent,
+            server,
+            client,
+        } = resizeElements(
             contentToProcess,
             elements,
             finalTargetWidth,
-            targetHeight,
+            config?.targetHeight,
+            config?.domains,
+            toHtmlImage,
+            setImageDimensions,
         );
 
-        // 如果有选区，拼接回原文档
-        const finalContent = applySelection(document, newContent, selection);
-
-        const modified = finalContent !== document;
-
-        const widthDesc = finalTargetWidth !== undefined ? `width=${finalTargetWidth}` : "";
-        const heightDesc = targetHeight !== undefined ? `height=${targetHeight}` : "";
-        const sizeDesc = [widthDesc, heightDesc].filter(Boolean).join(", ");
-
-        return {
-            content: finalContent,
-            modified,
-            messages: modified ? [`调整尺寸：${sizeDesc}`] : ["没有修改"],
-        };
+        return buildResizeResult(
+            context.document,
+            newContent,
+            selection,
+            server,
+            client,
+            finalTargetWidth,
+        );
     },
 };
 
@@ -552,12 +735,12 @@ export const resizeImageRule: Rule = {
  * 构建上传结果消息列表
  */
 function buildUploadResultMessages(result: {
-    uploaded: number;
+    succeeded: number;
     skipped: unknown[] | undefined;
     failed: unknown[] | undefined;
 }): string[] {
     const messages: string[] = [];
-    const uploadedCount = result.uploaded;
+    const uploadedCount = result.succeeded;
     const skippedCount = (result.skipped as unknown[] | undefined)?.length ?? 0;
     const failedCount = (result.failed as unknown[] | undefined)?.length ?? 0;
 
@@ -598,45 +781,72 @@ function applySelection(
 function resolveTargetWidth(
     targetWidth: number | string | undefined,
     config: ResizeImageConfig | undefined,
-    elements: { type: string; originalText: string }[],
-    availableWidths: number[],
+    elements: ParsedImage[],
+    widths: number[],
 ): number | string | undefined {
     if (targetWidth !== undefined) return targetWidth;
     if (config?.direction) {
-        const { detectCurrentWidth, calculateTargetWidth } = require("@cmtx/core");
-        const currentWidth = detectCurrentWidth(elements, availableWidths);
-        return calculateTargetWidth(currentWidth, config.direction, availableWidths);
+        const currentWidth = detectCurrentWidth(elements);
+        return calculateTargetWidth(currentWidth, config.direction, widths);
     }
-    return availableWidths[Math.floor(availableWidths.length / 2)];
+    return widths[Math.floor(widths.length / 2)];
+}
+
+function detectCurrentWidth(elements: ParsedImage[]): number {
+    for (const element of elements) {
+        if (element.width) {
+            return parseInt(element.width, 10);
+        }
+    }
+    return 0;
+}
+
+function calculateTargetWidth(
+    currentWidth: number,
+    direction: "in" | "out",
+    widths: number[],
+): number {
+    const sorted = [...widths].sort((a, b) => a - b);
+    const currentIndex = sorted.findIndex((w) => w >= currentWidth);
+
+    if (direction === "in") {
+        if (currentIndex === -1) {
+            return sorted[sorted.length - 1];
+        }
+        return currentIndex < sorted.length - 1 ? sorted[currentIndex + 1] : sorted[currentIndex];
+    } else {
+        if (currentIndex <= 0) {
+            return sorted[0];
+        }
+        return sorted[currentIndex - 1];
+    }
 }
 
 /**
- * 处理图片元素（Markdown + HTML）
+ * 对单个图片元素应用客户端尺寸缩放
+ *
+ * Markdown 元素转为带 width/height 的 HTML img 标签；
+ * HTML 元素在已有 img 标签上追加 width/height 属性。
  */
-function processImageElements(
+function replaceElementWithDimensions(
     content: string,
-    elements: { type: string; originalText: string }[],
+    element: ParsedImage,
     finalTargetWidth: number | string | undefined,
     targetHeight: number | string | undefined,
+    convertMdToHtml: (md: string, attrs?: Record<string, string>) => string,
+    setImgDims: (html: string, attrs?: Record<string, string>) => string,
 ): string {
-    let newContent = content;
-    for (const element of elements.filter((e) => e.type === "markdown")) {
-        newContent = newContent.replace(
-            element.originalText,
-            convertMarkdownImageToHtmlWithDimensions(
-                element.originalText,
-                finalTargetWidth,
-                targetHeight,
-            ),
-        );
-    }
-    for (const element of elements.filter((e) => e.type === "html")) {
-        newContent = newContent.replace(
-            element.originalText,
-            setImageDimensions(element.originalText, finalTargetWidth, targetHeight),
-        );
-    }
-    return newContent;
+    const attrs: Record<string, string> = {};
+    if (finalTargetWidth !== undefined) attrs.width = String(finalTargetWidth);
+    if (targetHeight !== undefined) attrs.height = String(targetHeight);
+    const attrsForHtml = Object.keys(attrs).length > 0 ? attrs : undefined;
+
+    const replacement =
+        element.syntax === "md"
+            ? convertMdToHtml(element.raw, attrsForHtml)
+            : setImgDims(element.raw, attrsForHtml);
+
+    return content.replace(element.raw, replacement);
 }
 
 /**
@@ -657,6 +867,12 @@ export interface TransferImagesConfig {
     concurrency?: number;
     /** 是否删除源文件（move 模式） */
     deleteSource?: boolean;
+    /** 下载并发控制 */
+    maxConcurrentDownloads?: number;
+    /** 临时目录 */
+    tempDir?: string;
+    /** 是否覆盖目标文件 */
+    overwrite?: boolean;
 }
 
 /**
@@ -684,13 +900,13 @@ export const transferImagesRule: Rule = {
         }
 
         // 从 services 获取转移服务
-        const transferService = services.get<TransferAssetsService>("transfer");
+        const transferService = services.get<TransferService>("transfer");
 
         if (!transferService) {
             return {
                 content: document,
                 modified: false,
-                messages: ["缺少 TransferAssetsService，跳过转移"],
+                messages: ["缺少 TransferService，跳过转移"],
             };
         }
 
@@ -698,13 +914,15 @@ export const transferImagesRule: Rule = {
             const result = await transferService.transferImages(document, filePath, {
                 sourceDomain: config?.sourceDomain,
                 targetDomain: config?.targetDomain,
+                targetPrefix: config?.targetPrefix,
+                namingTemplate: config?.namingTemplate,
                 concurrency: config?.concurrency,
                 deleteSource: config?.deleteSource,
             });
 
             const messages: string[] = [];
-            if (result.transferred > 0) {
-                messages.push(`转移 ${result.transferred} 张图片`);
+            if (result.succeeded > 0) {
+                messages.push(`转移 ${result.succeeded} 张图片`);
             }
             if (result.skipped > 0) {
                 messages.push(`跳过 ${result.skipped} 个文件`);
@@ -715,7 +933,7 @@ export const transferImagesRule: Rule = {
 
             return {
                 content: result.content,
-                modified: result.transferred > 0,
+                modified: result.succeeded > 0,
                 messages: messages.length > 0 ? messages : ["没有图片需要转移"],
             };
         } catch (error) {
@@ -737,6 +955,7 @@ export const imageRules: Rule[] = [
     uploadImagesRule,
     downloadImagesRule,
     deleteImageRule,
+    cleanupImagesRule,
     resizeImageRule,
     transferImagesRule,
 ];

@@ -7,7 +7,7 @@
  * 支持 2 种策略：全部跳过、全部替换。
  */
 
-import type { ConflictResolutionStrategy } from "@cmtx/asset";
+import type { ConflictResolutionStrategy } from "@cmtx/asset/upload";
 import * as vscode from "vscode";
 
 interface StrategyQuickPickItem extends vscode.QuickPickItem {

@@ -1,63 +1,11 @@
 import MarkdownIt from "markdown-it";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-    createHandler,
-    DomainMatcher,
-    FormatValidator,
-    PresignedUrlHandler,
-    presignedUrlPlugin,
-} from "../src/index.js";
+import { presignedUrlPlugin } from "../src/index.js";
 
 describe("模块导出", () => {
     it("应该导出 presignedUrlPlugin 函数", () => {
         expect(presignedUrlPlugin).toBeInstanceOf(Function);
-    });
-
-    it("应该导出 createHandler 函数", () => {
-        // createHandler might be undefined if not exported
-        if (createHandler) {
-            expect(createHandler).toBeInstanceOf(Function);
-        }
-    });
-
-    it("应该导出 PresignedUrlHandler 类", () => {
-        expect(PresignedUrlHandler).toBeDefined();
-        expect(typeof PresignedUrlHandler).toBe("function");
-    });
-
-    it("应该导出 DomainMatcher 类", () => {
-        expect(DomainMatcher).toBeDefined();
-        expect(typeof DomainMatcher).toBe("function");
-    });
-
-    it("应该导出 FormatValidator 类", () => {
-        expect(FormatValidator).toBeDefined();
-        expect(typeof FormatValidator).toBe("function");
-    });
-
-    it("应该能够创建 PresignedUrlHandler 实例", () => {
-        const md = new MarkdownIt();
-        const handler = new PresignedUrlHandler(md, {
-            requestSignedUrl: async (src: string) => src,
-            domains: ["example.com"],
-            imageFormat: "all",
-            getSignedUrl: () => null,
-        });
-        expect(handler).toBeInstanceOf(PresignedUrlHandler);
-    });
-
-    it("应该能够使用 createHandler 创建实例", () => {
-        // Note: createHandler might not be exported from index, skip if not available
-        if (typeof createHandler === "function") {
-            const handler = createHandler({
-                requestSignedUrl: async (src: string) => src,
-                domains: ["example.com"],
-                imageFormat: "all",
-                getSignedUrl: () => null,
-            });
-            expect(handler).toBeInstanceOf(PresignedUrlHandler);
-        }
     });
 });
 

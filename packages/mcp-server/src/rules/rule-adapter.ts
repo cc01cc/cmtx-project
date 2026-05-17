@@ -13,17 +13,17 @@
  */
 
 import path from "node:path";
-import type { RuleEngine, ServiceRegistry } from "@cmtx/rule-engine";
+import type { RuleEngine } from "@cmtx/rule-engine";
+import type { ServiceRegistry } from "@cmtx/rule-engine/internal";
 import {
     createRuleEngine,
-    createCoreService,
     createDefaultRuleEngine,
-    createServiceRegistry,
     type RuleContext,
     type RuleResult,
 } from "@cmtx/rule-engine";
+import { createServiceRegistry } from "@cmtx/rule-engine/internal";
 import { createUploadService } from "@cmtx/asset";
-import type { IStorageAdapter } from "@cmtx/storage";
+import type { StorageAdapter } from "@cmtx/storage";
 
 /**
  * MCP Rule 引擎适配器
@@ -64,7 +64,7 @@ export class RuleEngineAdapter {
      * 配置存储服务
      */
     configureStorage(
-        adapter: IStorageAdapter,
+        adapter: StorageAdapter,
         options?: {
             prefix?: string;
             namingTemplate?: string;
@@ -76,14 +76,6 @@ export class RuleEngineAdapter {
             namingTemplate: options?.namingTemplate,
         });
         this.registry.register(uploadService);
-    }
-
-    /**
-     * 配置核心服务
-     */
-    configureCore(): void {
-        const coreService = createCoreService();
-        this.registry.register(coreService);
     }
 
     /**

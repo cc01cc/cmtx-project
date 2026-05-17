@@ -10,7 +10,7 @@ import type { CloudCredentials } from "../../src/types.js";
 
 describe("createAdapter", () => {
     describe("阿里云 OSS", () => {
-        it("should create AliOSSAdapter with valid credentials", async () => {
+        it("should create AliyunOSSAdapter with valid credentials", async () => {
             const credentials: CloudCredentials = {
                 provider: "aliyun-oss",
                 accessKeyId: "test-access-key",
@@ -32,7 +32,7 @@ describe("createAdapter", () => {
             expect(typeof adapter.buildUrl).toBe("function");
         });
 
-        it("should create AliOSSAdapter with STS token", async () => {
+        it("should create AliyunOSSAdapter with STS token", async () => {
             const credentials: CloudCredentials = {
                 provider: "aliyun-oss",
                 accessKeyId: "test-access-key",

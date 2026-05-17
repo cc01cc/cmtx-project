@@ -76,7 +76,7 @@ export function parseImages(text: string): ParsedImage[] {
  * - 带标题：`![alt](url "title")` 或 `![alt](url 'title')`
  * - 不带标题：`![alt](url)`
  *
- * @public
+ * @internal
  */
 export function parseImagesMdSingleline(text: string): ParsedImage[] {
     const results: ParsedImage[] = [];
@@ -122,7 +122,7 @@ export function parseImagesMdSingleline(text: string): ParsedImage[] {
  * - 属性顺序、个数无关紧要
  * - src 是必需属性，缺少 src 的标签会被忽略
  *
- * @public
+ * @internal
  */
 export function parseImagesHtmlSingleline(text: string): ParsedImage[] {
     const results: ParsedImage[] = [];

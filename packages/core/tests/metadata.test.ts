@@ -8,112 +8,19 @@
  * - Frontmatter 字段更新和删除
  */
 
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
     convertHeadingToFrontmatter,
     deleteFrontmatterFields,
-    extractMetadata,
+    extractFrontmatterField,
+    extractFrontmatter,
     extractSectionHeadings,
-    extractTitleFromMarkdown,
-    parseFrontmatter,
+    splitFrontmatter,
     parseYamlFrontmatter,
     removeFrontmatter,
+    sortByOrder,
     upsertFrontmatterFields,
 } from "../src/metadata.js";
-
-// ==================== extractMetadata 测试 ====================
-
-describe("extractMetadata", () => {
-    let testDir: string;
-
-    beforeEach(() => {
-        testDir = fs.mkdtempSync(path.join(os.tmpdir(), "metadata-test-"));
-    });
-
-    describe("从 Frontmatter 提取标题", () => {
-        it("应该从 Frontmatter 中提取 title", () => {
-            const content = '---\ntitle: "From Frontmatter"\nauthor: "Alice"\n---\n\nContent';
-            const filePath = path.join(testDir, "test1.md");
-            fs.writeFileSync(filePath, content);
-
-            const metadata = extractMetadata(filePath);
-            expect(metadata.title).toBe("From Frontmatter");
-            expect(metadata.author).toBe("Alice");
-        });
-
-        it("应该从 Frontmatter 中提取多个字段", () => {
-            const content =
-                '---\ntitle: "Doc Title"\ndate: "2026-02-07"\nauthor: "Bob"\ntags:\n  - "tech"\n  - "guide"\n---\n\nContent';
-            const filePath = path.join(testDir, "test2.md");
-            fs.writeFileSync(filePath, content);
-
-            const metadata = extractMetadata(filePath);
-            expect(metadata.title).toBe("Doc Title");
-            expect(metadata.date).toBe("2026-02-07");
-            expect(metadata.author).toBe("Bob");
-            expect(Array.isArray(metadata.tags)).toBe(true);
-        });
-    });
-
-    describe("从标题提取标题", () => {
-        it("应该从一级标题中提取标题（Frontmatter 不存在时）", () => {
-            const content = "# Heading Title\n\nContent";
-            const filePath = path.join(testDir, "test3.md");
-            fs.writeFileSync(filePath, content);
-
-            const metadata = extractMetadata(filePath);
-            expect(metadata.title).toBe("Heading Title");
-        });
-
-        it("应该从指定等级的标题中提取（headingLevel=2）", () => {
-            const content = "# Main\n## Section Title\n\nContent";
-            const filePath = path.join(testDir, "test4.md");
-            fs.writeFileSync(filePath, content);
-
-            const metadata = extractMetadata(filePath, { headingLevel: 2 });
-            expect(metadata.title).toBe("Section Title");
-        });
-
-        it("应该优先使用 Frontmatter 的 title 而不是标题", () => {
-            const content = '---\ntitle: "From FM"\n---\n\n# From Heading';
-            const filePath = path.join(testDir, "test5.md");
-            fs.writeFileSync(filePath, content);
-
-            const metadata = extractMetadata(filePath);
-            expect(metadata.title).toBe("From FM");
-        });
-    });
-
-    describe("使用文件名作为备选", () => {
-        it("应该使用文件名（去扩展名）作为备选标题", () => {
-            const content = "Just content without title";
-            const filePath = path.join(testDir, "my-document.md");
-            fs.writeFileSync(filePath, content);
-
-            const metadata = extractMetadata(filePath);
-            expect(metadata.title).toBe("my-document");
-        });
-    });
-
-    describe("错误处理", () => {
-        it("应该抛出错误当文件不存在", () => {
-            const nonExistentPath = path.join(testDir, "nonexistent.md");
-            expect(() => extractMetadata(nonExistentPath)).toThrow("File not found");
-        });
-
-        it("应该处理无效的 YAML Frontmatter", () => {
-            const content = "---\ninvalid yaml: [broken\n---\n\nContent";
-            const filePath = path.join(testDir, "test6.md");
-            fs.writeFileSync(filePath, content);
-
-            // 应该不抛出错误，而是回退到其他提取方式
-            expect(() => extractMetadata(filePath)).not.toThrow();
-        });
-    });
-});
 
 // ==================== extractSectionHeadings 测试 ====================
 
@@ -344,7 +251,7 @@ describe("convertHeadingToFrontmatter", () => {
             const result = convertHeadingToFrontmatter(md);
 
             expect(result).toContain("author: Alice"); // Re-emitted without redundant quotes
-            expect(result).toContain("date: 2026-01-01");
+            expect(result).toContain('date: "2026-01-01"');
             expect(result).toContain("title: New Title");
         });
     });
@@ -422,7 +329,7 @@ describe("upsertFrontmatterFields", () => {
             expect(result.added).toContain("tags");
             expect(result.updated).toEqual(["author"]);
             expect(result.markdown).toContain("author: Bob");
-            expect(result.markdown).toContain("date: 2026-02-07");
+            expect(result.markdown).toContain('date: "2026-02-07"');
             expect(result.markdown).toContain("- a");
         });
     });
@@ -577,12 +484,12 @@ describe("deleteFrontmatterFields", () => {
         expect(result).toContain("Content");
     });
 
-    it("删除所有字段后应该移除整个 Frontmatter", () => {
+    it("删除所有字段后应该保留空的 frontmatter 块", () => {
         const md = "---\nauthor: Alice\n---\n\nContent";
         const result = deleteFrontmatterFields(md, ["author"]);
 
-        expect(result).toBe("Content");
-        expect(result).not.toContain("---");
+        expect(result).toBe("---\n---\n\nContent");
+        expect(result).toContain("---");
     });
 
     it("无 Frontmatter 时返回原文档", () => {
@@ -598,79 +505,6 @@ describe("deleteFrontmatterFields", () => {
 
         expect(result).toContain("author: Alice");
         expect(result).toContain("Content");
-    });
-});
-
-// ==================== extractTitleFromMarkdown 测试 ====================
-
-describe("extractTitleFromMarkdown", () => {
-    it("应该从 Frontmatter 中提取 title", () => {
-        const md = "---\ntitle: Frontmatter Title\n---\n\n# Heading Title";
-        const result = extractTitleFromMarkdown(md);
-
-        expect(result).toBe("Frontmatter Title");
-    });
-
-    it("应该优先使用 Frontmatter 而非标题", () => {
-        const md = "---\ntitle: FM Title\n---\n\n# Heading Title";
-        const result = extractTitleFromMarkdown(md);
-
-        expect(result).toBe("FM Title");
-    });
-
-    it("应该从一级标题中提取", () => {
-        const md = "# Heading Title\n\nContent";
-        const result = extractTitleFromMarkdown(md);
-
-        expect(result).toBe("Heading Title");
-    });
-
-    it("应该处理数组类型的 title", () => {
-        const md = "---\ntitle:\n  - First Title\n  - Second Title\n---\n\nContent";
-        const result = extractTitleFromMarkdown(md);
-
-        expect(result).toBe("First Title");
-    });
-
-    it("无 title 时应该返回 undefined", () => {
-        const md = "## Subheading\n\nContent";
-        const result = extractTitleFromMarkdown(md);
-
-        expect(result).toBeUndefined();
-    });
-
-    it("空文档应该返回 undefined", () => {
-        const result = extractTitleFromMarkdown("");
-        expect(result).toBeUndefined();
-    });
-});
-
-// ==================== extractMetadata 扩展测试 ====================
-
-describe("extractMetadata - 扩展测试", () => {
-    let testDir: string;
-
-    beforeEach(() => {
-        testDir = fs.mkdtempSync(path.join(os.tmpdir(), "metadata-test-"));
-    });
-
-    it("应该处理 EACCES 错误", () => {
-        // 创建一个无法读取的文件（在 Windows 上可能无法测试）
-        const filePath = path.join(testDir, "no-perm.md");
-        fs.writeFileSync(filePath, "content");
-
-        // 在 Unix 系统上移除读权限
-        if (process.platform !== "win32") {
-            fs.chmodSync(filePath, 0o000);
-            expect(() => extractMetadata(filePath)).toThrow("Permission denied");
-            // 恢复权限以便清理
-            fs.chmodSync(filePath, 0o644);
-        }
-    });
-
-    it("应该处理其他文件系统错误", () => {
-        // 测试无效路径
-        expect(() => extractMetadata("")).toThrow();
     });
 });
 
@@ -755,13 +589,13 @@ describe("元数据操作集成", () => {
     });
 });
 
-// ==================== parseFrontmatter 测试 ====================
+// ==================== splitFrontmatter 测试 ====================
 
-describe("parseFrontmatter", () => {
+describe("splitFrontmatter", () => {
     describe("基本功能", () => {
         it("应该正确解析标准 frontmatter", () => {
             const input = "---\ntitle: Test\nauthor: John\n---\n\nContent";
-            const result = parseFrontmatter(input);
+            const result = splitFrontmatter(input);
 
             expect(result.hasFrontmatter).toBe(true);
             expect(result.data).toBe("title: Test\nauthor: John");
@@ -770,7 +604,7 @@ describe("parseFrontmatter", () => {
 
         it("应该正确解析空 frontmatter", () => {
             const input = "---\n---\n\nContent";
-            const result = parseFrontmatter(input);
+            const result = splitFrontmatter(input);
 
             expect(result.hasFrontmatter).toBe(true);
             expect(result.data).toBe("");
@@ -779,7 +613,7 @@ describe("parseFrontmatter", () => {
 
         it("应该处理无 frontmatter 的文档", () => {
             const input = "# Title\n\nContent";
-            const result = parseFrontmatter(input);
+            const result = splitFrontmatter(input);
 
             expect(result.hasFrontmatter).toBe(false);
             expect(result.data).toBe("");
@@ -788,7 +622,7 @@ describe("parseFrontmatter", () => {
 
         it("应该处理只有开始分隔符的情况", () => {
             const input = "---\ntitle: Test\n\nContent";
-            const result = parseFrontmatter(input);
+            const result = splitFrontmatter(input);
 
             expect(result.hasFrontmatter).toBe(false);
             // 没有结束分隔符时，整个输入作为内容返回
@@ -801,7 +635,7 @@ describe("parseFrontmatter", () => {
         it("应该正确处理内容中包含 --- 的情况", () => {
             const input =
                 '---\ndescription: "Use --- to indicate"\n---\n\nContent with --- separator';
-            const result = parseFrontmatter(input);
+            const result = splitFrontmatter(input);
 
             expect(result.hasFrontmatter).toBe(true);
             expect(result.data).toBe('description: "Use --- to indicate"');
@@ -810,7 +644,7 @@ describe("parseFrontmatter", () => {
 
         it("不应该将 ---- 识别为分隔符", () => {
             const input = "----\ntitle: Test\n----\n\nContent";
-            const result = parseFrontmatter(input);
+            const result = splitFrontmatter(input);
 
             expect(result.hasFrontmatter).toBe(false);
             expect(result.content).toBe("----\ntitle: Test\n----\n\nContent");
@@ -818,7 +652,7 @@ describe("parseFrontmatter", () => {
 
         it("应该正确处理 Windows 换行符", () => {
             const input = "---\r\ntitle: Test\r\nauthor: John\r\n---\r\n\r\nContent";
-            const result = parseFrontmatter(input);
+            const result = splitFrontmatter(input);
 
             expect(result.hasFrontmatter).toBe(true);
             // 换行符会被规范化为 \n
@@ -829,7 +663,7 @@ describe("parseFrontmatter", () => {
 
         it("应该正确处理混合换行符", () => {
             const input = "---\ntitle: Test\r\n---\nContent";
-            const result = parseFrontmatter(input);
+            const result = splitFrontmatter(input);
 
             expect(result.hasFrontmatter).toBe(true);
             expect(result.data).toBe("title: Test");
@@ -838,7 +672,7 @@ describe("parseFrontmatter", () => {
 
         it("应该处理 frontmatter 后无空行的情况", () => {
             const input = "---\ntitle: Test\n---\nContent";
-            const result = parseFrontmatter(input);
+            const result = splitFrontmatter(input);
 
             expect(result.hasFrontmatter).toBe(true);
             expect(result.data).toBe("title: Test");
@@ -847,7 +681,7 @@ describe("parseFrontmatter", () => {
 
         it("应该处理带尾随空白的分隔符", () => {
             const input = "---\ntitle: Test\n--- \n\nContent";
-            const result = parseFrontmatter(input);
+            const result = splitFrontmatter(input);
 
             expect(result.hasFrontmatter).toBe(true);
             expect(result.data).toBe("title: Test");
@@ -855,7 +689,7 @@ describe("parseFrontmatter", () => {
 
         it("应该处理多行 YAML 块文字", () => {
             const input = "---\ncontent: |\n  line1\n  line2\n---\n\nContent";
-            const result = parseFrontmatter(input);
+            const result = splitFrontmatter(input);
 
             expect(result.hasFrontmatter).toBe(true);
             expect(result.data).toContain("content: |");
@@ -864,7 +698,7 @@ describe("parseFrontmatter", () => {
 
         it("应该处理带引号的字符串", () => {
             const input = "---\ntitle: \"Hello World\"\nauthor: 'Test User'\n---\n\nContent";
-            const result = parseFrontmatter(input);
+            const result = splitFrontmatter(input);
 
             expect(result.hasFrontmatter).toBe(true);
             expect(result.data).toBe("title: \"Hello World\"\nauthor: 'Test User'");
@@ -874,7 +708,7 @@ describe("parseFrontmatter", () => {
     describe("多个分隔符", () => {
         it("应该只识别第一个 frontmatter", () => {
             const input = "---\ntitle: First\n---\n\nMiddle\n\n---\ntitle: Second\n---";
-            const result = parseFrontmatter(input);
+            const result = splitFrontmatter(input);
 
             expect(result.hasFrontmatter).toBe(true);
             expect(result.data).toBe("title: First");
@@ -886,7 +720,7 @@ describe("parseFrontmatter", () => {
 
     describe("空输入", () => {
         it("应该处理空字符串", () => {
-            const result = parseFrontmatter("");
+            const result = splitFrontmatter("");
 
             expect(result.hasFrontmatter).toBe(false);
             expect(result.data).toBe("");
@@ -894,9 +728,92 @@ describe("parseFrontmatter", () => {
         });
 
         it("应该处理只有分隔符", () => {
-            const result = parseFrontmatter("---");
+            const result = splitFrontmatter("---");
 
             expect(result.hasFrontmatter).toBe(false);
         });
+    });
+});
+
+// ==================== extractFrontmatterField 测试 ====================
+
+describe("extractFrontmatterField", () => {
+    it("无 frontmatter 时应返回 undefined", () => {
+        const result = extractFrontmatterField("# Title\n\nContent", "title");
+        expect(result).toBeUndefined();
+    });
+
+    it("字段不存在时应返回 undefined", () => {
+        const md = "---\ntitle: Hello\n---\n\nContent";
+        const result = extractFrontmatterField(md, "nonexistent");
+        expect(result).toBeUndefined();
+    });
+
+    it("应该提取字符串字段", () => {
+        const md = "---\ntitle: Hello World\n---\n\nContent";
+        const result = extractFrontmatterField(md, "title");
+        expect(result).toBe("Hello World");
+    });
+
+    it("应该将数组字段 join 为字符串", () => {
+        const md = "---\ntags:\n  - tag1\n  - tag2\n---\n\nContent";
+        const result = extractFrontmatterField(md, "tags");
+        expect(result).toBe("tag1, tag2");
+    });
+
+    it("其他类型应转为字符串", () => {
+        const md = "---\ncount: 42\n---\n\nContent";
+        const result = extractFrontmatterField(md, "count");
+        expect(result).toBe("42");
+    });
+});
+
+// ==================== sortByOrder 测试 ====================
+
+describe("sortByOrder", () => {
+    const baseEntries = [
+        { title: "Charlie", frontmatter: {} },
+        { title: "Alpha", frontmatter: {} },
+        { title: "Bravo", frontmatter: {} },
+    ];
+
+    it("都有 order 时应按数字升序排列", () => {
+        const entries = [
+            { title: "Second", frontmatter: { sidebar_order: 2 } },
+            { title: "First", frontmatter: { sidebar_order: 1 } },
+            { title: "Third", frontmatter: { sidebar_order: 3 } },
+        ];
+        const result = sortByOrder(entries);
+        expect(result.map((e) => e.title)).toEqual(["First", "Second", "Third"]);
+    });
+
+    it("仅 A 有 order 时 A 应排在前面", () => {
+        const entries = [
+            { title: "Zulu", frontmatter: { sidebar_order: 1 } },
+            { title: "Alpha", frontmatter: {} },
+        ];
+        const result = sortByOrder(entries);
+        expect(result[0].title).toBe("Zulu");
+    });
+
+    it("仅 B 有 order 时 B 应排在前面", () => {
+        const entries = [
+            { title: "Alpha", frontmatter: {} },
+            { title: "Zulu", frontmatter: { sidebar_order: 1 } },
+        ];
+        const result = sortByOrder(entries);
+        expect(result[0].title).toBe("Zulu");
+    });
+
+    it("都没有 order 时应按 title 字母序排列", () => {
+        const result = sortByOrder(baseEntries);
+        expect(result.map((e) => e.title)).toEqual(["Alpha", "Bravo", "Charlie"]);
+    });
+
+    it("应该不修改原数组", () => {
+        const entries = [...baseEntries];
+        const original = [...entries];
+        sortByOrder(entries);
+        expect(entries).toEqual(original);
     });
 });

@@ -10,6 +10,8 @@ import type { Service, ServiceRegistry } from "../service-registry.js";
 
 /**
  * Service Registry 实现类
+ *
+ * @internal
  */
 export class ServiceRegistryImpl implements ServiceRegistry {
     private services = new Map<string, Service>();

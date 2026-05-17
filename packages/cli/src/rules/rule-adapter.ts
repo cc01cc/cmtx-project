@@ -13,16 +13,12 @@
  */
 
 import path from "node:path";
-import type { RuleEngine, ServiceRegistry } from "@cmtx/rule-engine";
-import {
-    createCoreService,
-    createRuleEngineContext,
-    type RuleContext,
-    type RuleResult,
-} from "@cmtx/rule-engine";
+import type { RuleEngine } from "@cmtx/rule-engine";
+import type { ServiceRegistry } from "@cmtx/rule-engine/internal";
+import { createRuleEngineContext, type RuleContext, type RuleResult } from "@cmtx/rule-engine";
 import { createUploadService } from "@cmtx/asset";
 import type { ConflictResolutionStrategy } from "@cmtx/asset/upload";
-import type { IStorageAdapter } from "@cmtx/storage";
+import type { StorageAdapter } from "@cmtx/storage";
 
 /**
  * CLI Rule 引擎适配器
@@ -62,7 +58,7 @@ export class RuleEngineAdapter {
      * 配置存储服务
      */
     configureStorage(
-        adapter: IStorageAdapter,
+        adapter: StorageAdapter,
         options?: {
             prefix?: string;
             namingTemplate?: string;
@@ -76,16 +72,6 @@ export class RuleEngineAdapter {
             conflictStrategy: options?.conflictStrategy,
         });
         this.registry.register(uploadService);
-    }
-
-    /**
-     * 配置核心服务
-     *
-     * @deprecated Core 服务未被任何内置规则使用，无需注册
-     */
-    configureCore(): void {
-        const coreService = createCoreService();
-        this.registry.register(coreService);
     }
 
     /**

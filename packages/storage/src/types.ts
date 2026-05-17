@@ -175,7 +175,7 @@ export interface ObjectMeta {
  *
  * @public
  */
-export interface IStorageAdapter {
+export interface StorageAdapter {
     /**
      * 上传文件到云存储
      * @param localPath - 本地文件路径
@@ -262,15 +262,15 @@ export interface IStorageAdapter {
  * Storage 层只负责上传/下载/删除，不包含文件命名逻辑。
  * 命名逻辑由上层（如 @cmtx/asset）处理。
  *
- * @public
+ * @internal
  */
 export interface StorageServiceConfig {
-    // TODO: IStorageAdapter 增加可选 timeout 参数（毫秒）
+    // TODO: StorageAdapter 增加可选 timeout 参数（毫秒）
     //   阿里云 OSS: put() 支持 timeout
     //   腾讯云 COS: putObject() 支持 Timeout
     //   实现后从 @cmtx/asset/config 的 CmtxUploadConfig.fileWriteTimeout 读取
     /** 存储适配器 */
-    adapter: IStorageAdapter;
+    adapter: StorageAdapter;
     /** 前缀（可选） */
     prefix?: string;
 }

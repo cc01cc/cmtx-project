@@ -1,4 +1,4 @@
-import { parseFrontmatter, parseYamlFrontmatter } from "@cmtx/core";
+import { splitFrontmatter, parseYamlFrontmatter } from "@cmtx/core";
 import type { Rule, RuleContext, RuleResult } from "../rule-types.js";
 
 interface FmValidateConfig {
@@ -21,7 +21,7 @@ export const fmValidateRule: Rule = {
             };
         }
 
-        const parsed = parseFrontmatter(context.document);
+        const parsed = splitFrontmatter(context.document);
         const fm = parsed.hasFrontmatter ? parseYamlFrontmatter(parsed.data) : {};
         const fieldValue = fm?.[config.key];
         const required = config.required !== false;

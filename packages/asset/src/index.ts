@@ -36,11 +36,11 @@
  * import { transferRemoteImages, TransferConfigBuilder } from "@cmtx/asset/transfer";
  * ```
  *
- * ### Utils 模块
- * 提供云存储 URL 检测工具函数
+ * ### Transfer 模块
+ * 用于将 Markdown 中引用的远程图片从一个存储转移到另一个存储
  *
  * ```typescript
- * import { detectStorageUrl, isSignedUrl, isStorageUrl } from "@cmtx/asset";
+ * import { TransferConfigBuilder, transferRemoteImages } from "@cmtx/asset/transfer";
  * ```
  *
  * ## 快速开始
@@ -55,178 +55,61 @@
  * const result = await service.downloadFromMarkdown("./article.md");
  *
  * // 上传本地图片
- * import { executeUploadPipeline, ConfigBuilder } from "@cmtx/asset/upload";
- *
- * const result = await executeUploadPipeline({ documentAccessor, config, basePath: "/path/to/article.md" });
- *
- * // 转移远程图片
- * import { transferRemoteImages, TransferConfigBuilder } from "@cmtx/asset/transfer";
- *
- * const result = await transferRemoteImages("/path/to/article.md", transferConfig);
- *
- * // 检测云存储 URL
- * import { detectStorageUrl } from "@cmtx/asset";
- *
- * const result = detectStorageUrl('https://mybucket.oss-cn-hangzhou.aliyuncs.com/image.png');
- * console.log(result.provider); // 'aliyun'
- * console.log(result.bucket); // 'mybucket'
- * console.log(result.region); // 'cn-hangzhou'
+ * import { ConfigBuilder } from "@cmtx/asset/upload";
+ * import { detectStorageUrl } from "@cmtx/storage";
  * ```
  */
 
 // Delete 模块导出
-export type {
-    DeleteDetail,
-    DeleteOptions,
-    DeleteProgress,
-    DeleteResult,
-    DeleteServiceConfig,
-    DeleteTarget,
-    PruneEntry,
-    PruneOptions,
-    PruneResult,
-    ReferenceInfo,
-    SafeDeleteDetail,
-    SafeDeleteOptions,
-    SafeDeleteResult,
-} from "./delete/index.js";
-export { DeleteService } from "./delete/index.js";
+export { DeleteService, resolveBaseDirectory } from "./delete/index.js";
 
 // Service 层导出（统一 Service 定义点）
 export type {
-    // 新 Service
-    CoreServiceConfig,
-    DownloadAssetsServiceConfig,
+    DownloadServiceConfig,
     SimpleDownloadResult,
     StorageDomainConfig,
-    TransferAssetsResult,
-    TransferAssetsServiceConfig,
-    UploadResult as AssetUploadResult,
+    TransferResult,
+    TransferServiceConfig,
+    UploadResult,
     UploadServiceConfig,
 } from "./services/index.js";
 export {
-    CoreService,
-    createCoreService,
-    createDownloadAssetsService,
-    createTransferAssetsService,
+    createDownloadService,
+    createTransferService,
     createUploadService,
-    DownloadAssetsService,
-    TransferAssetsService,
+    DownloadService,
+    TransferService,
     UploadService,
 } from "./services/index.js";
 export type { Service } from "./services/index.js";
-// deprecated
-export type { AssetServiceConfig } from "./services/index.js";
-export { AssetService, createAssetService } from "./services/index.js";
-
-// Download 模块导出
-export type {
-    DownloadFilter,
-    DownloadItem,
-    DownloadOptions,
-    DownloadProgress,
-    DownloadResult,
-    InternalDownloadConfig,
-    NamingVariables,
-    ParsedUrlInfo,
-} from "./download/index.js";
-export {
-    createDownloadService,
-    DEFAULT_NAMING_TEMPLATE,
-    generateNamingVariables,
-    generateUniqueFileName,
-    parseUrlForNaming,
-} from "./download/index.js";
-
-// Shared 模块导出
-export type { BaseNamingVariables } from "./shared/index.js";
-export type {
-    FileFilter,
-    SourceConfig,
-    TargetConfig,
-    TransferConfig,
-    TransferEvent,
-    TransferEventType,
-    TransferOptions,
-    TransferProgress,
-    TransferResult,
-    UrlMapping,
-} from "./transfer/index.js";
-// Transfer 模块导出
-export { TransferConfigBuilder, transferRemoteImages } from "./transfer/index.js";
-export type {
-    ConflictResolutionStrategy,
-    DeduplicationInfo,
-    FailedItem,
-    ImageCloudMapBody,
-    UploadConfig,
-    UploadEvent,
-    UploadEventType,
-    UploadResult,
-} from "./upload/index.js";
-export {
-    detectStorageUrl,
-    isAliyunOssUrl,
-    isAwsS3Url,
-    isSignedUrl,
-    isStorageUrl,
-    isTencentCosUrl,
-} from "./utils/storage-url-detector.js";
-// Utils 模块导出 - 云存储 URL 检测
-export type {
-    DetectedCloudProvider,
-    StorageUrlDetectOptions,
-    StorageUrlInfo,
-    StorageUrlType,
-} from "./utils/storage-url-types.js";
-
-// Utils 模块导出 - URL 存在性检测
-export type {
-    CheckUrlsInTextOptions,
-    CheckUrlsInTextResult,
-    UrlExistenceBatchOptions,
-    UrlExistenceBatchResult,
-    UrlExistenceCheckOptions,
-    UrlExistenceResult,
-    UrlExtractOptions,
-} from "./utils/url-existence-check.js";
-export {
-    checkUrlExists,
-    checkUrlExistsBatch,
-    checkUrlsInText,
-    extractUrlsFromText,
-} from "./utils/url-existence-check.js";
 
 // ==================== Config 模块导出（配置管理）====================
 
 export type {
+    AIConfig,
+    AIModelConfig,
+    AIProvider,
     CmtxConfig,
     CmtxPresignedUrlConfig,
     CmtxPresignedUrlDomain,
     CmtxStorageConfig,
     ConfigValidationError,
-    LoaderOptions,
     PresetConfig,
-    PresetConfigFull,
     PresignedUrlResolvedOptions,
     ReplaceConfig,
-    RuleStepConfig,
+    ValidationResult,
 } from "./config/index.js";
+export { IdGenerator } from "./id-generator.js";
+export type {
+    EncryptedIdOptions,
+    EncryptedIdValidationResult,
+    FF1EncryptOptions,
+} from "./id-generator.js";
 export {
     ConfigLoader,
-    ConfigValidator,
-    DEFAULT_CONFIG,
-    DEFAULT_CONFIG_TEMPLATE,
-    ensureConfig,
-    formatValidationErrors,
     generateDefaultConfig,
-    getConfigDirPath,
-    getConfigFilePath,
     loadConfigFromFile,
     loadConfigFromString,
     resolvePresignedUrlOptions,
-    saveConfigToFile,
-    substituteEnvVars,
-    substituteEnvVarsInObject,
     validateConfig,
 } from "./config/index.js";

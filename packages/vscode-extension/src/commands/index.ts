@@ -10,4 +10,4 @@ export * from "./rules/index.js";
 export { addSectionNumbersCommand, removeSectionNumbersCommand } from "./section-numbers.js";
 export { uploadSelectedImages } from "./upload.js";
 export { uploadFileFromExplorer, uploadDirectoryFromExplorer } from "./upload-from-explorer.js";
-export { pruneDirectoryCommand } from "./delete-from-explorer.js";
+export { cleanupDirectoryCommand } from "./delete-from-explorer.js";

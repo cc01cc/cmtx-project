@@ -8,13 +8,20 @@
 
 import {
     convertHeadingToFrontmatter,
+    deleteFrontmatterFields,
+    extractFrontmatter,
     extractFrontmatterField,
+    extractSectionHeadings,
+    generateCounterValue,
+    parseYamlFrontmatter,
+    removeFrontmatter,
+    splitFrontmatter,
     upsertFrontmatterFields,
+    type FrontmatterValue,
 } from "@cmtx/core";
-import { ensureWasmLoaded } from "../../metadata/fpe-ff1.js";
-import { IdGenerator } from "../../metadata/id-generator.js";
+import { IdGenerator } from "@cmtx/asset";
+import { loadWASM } from "@cmtx/fpe-wasm";
 import type { Rule, RuleContext, RuleResult } from "../rule-types.js";
-import type { CounterService } from "../service-registry.js";
 
 /**
  * 标题转 frontmatter Rule 配置
@@ -197,23 +204,22 @@ function collectCounterIds(template: string, ff1: GenerateIdConfig["ff1"]): stri
 async function peekCounter(
     counterId: string,
     config: GenerateIdConfig | undefined,
-    services: RuleContext["services"],
 ): Promise<number> {
     if (config?.peekCounterValue) return await config.peekCounterValue(counterId);
-    const cs = services.get<CounterService>("counter");
-    return cs ? cs.current(counterId) : 0;
+    throw new Error(`frontmatter-id: 模板包含计数器 "${counterId}" 但未提供 peekCounterValue 回调`);
 }
 
 async function commitCounter(
     counterId: string,
     config: GenerateIdConfig | undefined,
-    services: RuleContext["services"],
 ): Promise<void> {
     if (config?.commitCounterValue) {
         await config.commitCounterValue(counterId);
         return;
     }
-    services.get<CounterService>("counter")?.next(counterId);
+    throw new Error(
+        `frontmatter-id: 模板包含计数器 "${counterId}" 但未提供 commitCounterValue 回调`,
+    );
 }
 
 function counterConfig(
@@ -267,7 +273,7 @@ export const frontmatterIdRule: Rule = {
     description: "在 frontmatter 中生成 ID（支持 template 组合变量）",
 
     async execute(context: RuleContext, config?: GenerateIdConfig): Promise<RuleResult> {
-        const { document, services } = context;
+        const { document } = context;
         const { template, fieldName = "id", prefix = "", ff1 } = config ?? {};
 
         if (!template)
@@ -275,7 +281,7 @@ export const frontmatterIdRule: Rule = {
 
         if (hasFf1InTemplate(template)) {
             try {
-                await ensureWasmLoaded();
+                await loadWASM();
             } catch (error) {
                 return {
                     content: document,
@@ -306,7 +312,7 @@ export const frontmatterIdRule: Rule = {
             const generator = new IdGenerator();
             const needed = collectCounterIds(template, ff1);
             const counterValues: Record<string, number> = {};
-            for (const id of needed) counterValues[id] = await peekCounter(id, config, services);
+            for (const id of needed) counterValues[id] = await peekCounter(id, config);
 
             let rendered = renderTemplateVariables(template, {
                 generator,
@@ -318,7 +324,7 @@ export const frontmatterIdRule: Rule = {
             if (prefix) rendered = `${prefix}${rendered}`;
 
             const result = upsertFrontmatterFields(document, { [fieldName]: rendered });
-            for (const id of needed) await commitCounter(id, config, services);
+            for (const id of needed) await commitCounter(id, config);
 
             return {
                 content: result.markdown,

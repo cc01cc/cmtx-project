@@ -15,12 +15,12 @@
  *
  * ## 支持的下载源
  * - 公开 URL：直接 HTTP 下载
- * - 私有存储：通过 IStorageAdapter.downloadToFile 下载
+ * - 私有存储：通过 StorageAdapter.downloadToFile 下载
  */
 
 import { promises as fs } from "node:fs";
 import { dirname, join } from "node:path";
-import type { IStorageAdapter } from "@cmtx/storage";
+import type { StorageAdapter } from "@cmtx/storage";
 import { renderTemplate } from "@cmtx/template";
 import pLimit from "p-limit";
 import {
@@ -36,7 +36,7 @@ import { createUrlMatcher, type UrlMatcher } from "./url-matcher.js";
  */
 export interface DownloadServiceConfig {
     /** 存储适配器（可选，用于私有存储下载） */
-    adapter?: IStorageAdapter;
+    adapter?: StorageAdapter;
 
     /** 下载选项 */
     options: DownloadOptions;
@@ -82,7 +82,7 @@ export class DownloadService {
         if (matchedUrls.length === 0) {
             return {
                 total: 0,
-                success: 0,
+                succeeded: 0,
                 failed: 0,
                 skipped: 0,
                 items: [],
@@ -104,7 +104,7 @@ export class DownloadService {
         // 统计结果
         const result: DownloadResult = {
             total: items.length,
-            success: 0,
+            succeeded: 0,
             failed: 0,
             skipped: 0,
             items,
@@ -115,7 +115,7 @@ export class DownloadService {
             if (item.skipped) {
                 result.skipped++;
             } else if (item.success) {
-                result.success++;
+                result.succeeded++;
             } else {
                 result.failed++;
                 result.errors.push({
@@ -301,7 +301,7 @@ export class DownloadService {
     private async downloadWithAdapter(
         remotePath: string,
         localPath: string,
-        adapter: IStorageAdapter,
+        adapter: StorageAdapter,
     ): Promise<number> {
         const maxRetries = 3;
         let lastError: Error | undefined;

@@ -7,12 +7,7 @@ import type {
     CmtxPresignedUrlDomain,
     CmtxStorageConfig,
 } from "@cmtx/asset/config";
-import {
-    ConfigLoader,
-    generateDefaultConfig,
-    saveConfigToFile,
-    substituteEnvVarsInObject,
-} from "@cmtx/asset/config";
+import { ConfigLoader, generateDefaultConfig, saveConfigToFile } from "@cmtx/asset/config";
 import type { PresetConfig, RuleConfig } from "@cmtx/rule-engine";
 import * as vscode from "vscode";
 import { getModuleLogger } from "./unified-logger.js";
@@ -152,16 +147,15 @@ export async function loadCmtxConfig(
     try {
         const loader = new ConfigLoader();
         const config = await loader.loadFromFile(configPath);
-        const substitutedConfig = substituteEnvVarsInObject(config);
 
         logger.info(`Loaded config from: ${configPath}`);
 
         // 如果提供了 outputChannel，输出配置日志
         if (outputChannel) {
-            logConfigDetails(substitutedConfig, outputChannel);
+            logConfigDetails(config, outputChannel);
         }
 
-        return substitutedConfig;
+        return config;
     } catch (error) {
         logger.error(`Failed to load config from ${configPath}:`, error);
         throw new Error(

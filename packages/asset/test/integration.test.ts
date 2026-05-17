@@ -2,16 +2,15 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { applyReplacementOps, filterImages, isWebSource } from "@cmtx/core";
+import { renderTemplate } from "@cmtx/template";
 import {
     batchUploadImages,
     matchesToSources,
     renderReplacementText,
-    applyReplacementOps,
     type BatchUploadResultItem,
 } from "../src/upload/index.js";
 import type { ReplacementOp, UploadSource } from "../src/upload/strategies.js";
-import { filterImagesInText, isWebSource } from "@cmtx/core";
-import { renderTemplate } from "@cmtx/template";
 
 const TEST_DIR = resolve(process.cwd(), ".test-integration");
 const DOCS_DIR = join(TEST_DIR, "docs");
@@ -50,7 +49,7 @@ async function uploadContent(
     adapter: any,
     namingTemplate?: string,
 ): Promise<{ content: string; uploaded: BatchUploadResultItem[] }> {
-    const allMatches = filterImagesInText(content);
+    const allMatches = filterImages(content);
     const localMatches = allMatches.filter((m) => !isWebSource(m.src));
 
     if (localMatches.length === 0) {
@@ -177,7 +176,7 @@ describe("综合集成测试", () => {
                 },
             };
 
-            const allMatches = filterImagesInText(content);
+            const allMatches = filterImages(content);
             const localMatches = allMatches.filter((m) => !isWebSource(m.src));
             const sources = matchesToSources(localMatches, DOCS_DIR);
 

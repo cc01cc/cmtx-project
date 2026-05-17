@@ -1,10 +1,10 @@
-import type { IStorageAdapter } from "@cmtx/storage";
+import type { StorageAdapter } from "@cmtx/storage";
 import { createStorageAdapterAsync } from "../container.js";
 import { getStorageConfig, getUploadConfigFromCmtx, loadCmtxConfig } from "./cmtx-config.js";
 import * as vscode from "vscode";
 
 export interface ExplorerUploadConfig {
-    adapter: IStorageAdapter;
+    adapter: StorageAdapter;
     namingTemplate: string;
     prefix: string;
     conflictStrategy: { type: "skip-all" | "replace-all" };

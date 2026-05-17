@@ -25,9 +25,6 @@
  * ### 日志 ({@link module:logger})
  * 提供统一的日志记录接口（Logger interface）和 no-op 默认实现（dummyLogger）。
  *
- * ### 监控 ({@link module:monitoring})
- * 提供性能监控和指标收集功能。
- *
  * ## 架构特点
  *
  * 采用**正则统一架构**：
@@ -46,20 +43,20 @@
  *
  * ```typescript
  * import {
- *   filterImagesInText,
- *   replaceImagesInText,
+ *   filterImages,
+ *   updateImageRefs,
  *   type Logger,
  *   dummyLogger,
  * } from '@cmtx/core';
  *
  * // 筛选图片
- * const images = filterImagesInText(markdown, {
+ * const images = filterImages(markdown, {
  *   mode: 'sourceType',
  *   value: 'local'
  * });
  *
  * // 替换图片
- * const result = replaceImagesInText(markdown, [
+ * const result = updateImageRefs(markdown, [
  *   {
  *     field: 'src',
  *     pattern: './old.png',
@@ -79,7 +76,6 @@
  * @see {@link module:types} - 类型定义
  * @see {@link module:utils} - 工具函数
  * @see {@link module:logger} - 日志功能
- * @see {@link module:monitoring} - 监控功能
  */
 
 // ==================== 常量 ====================
@@ -87,28 +83,24 @@
 /**
  * @category 核心
  */
-export { METADATA_REGEX } from "./constants/regex.js";
-
-// ==================== 图片筛选 ====================
-
 /**
  * @category 图片
  */
-export { filterImagesInText } from "./filter.js";
+export { filterImages } from "./filter.js";
 
 // ==================== 图片解析 ====================
 
 /**
  * @category 图片
  */
-export { parseImages, parseImagesHtmlSingleline, parseImagesMdSingleline } from "./parser.js";
+export { parseImages } from "./parser.js";
 
 // ==================== 图片替换 ====================
 
 /**
  * @category 图片
  */
-export { replaceImagesInText, updateImageAttribute } from "./replace.js";
+export { updateImageRefs } from "./replace.js";
 
 // ==================== 图片格式化 ====================
 
@@ -122,17 +114,7 @@ export { formatHtmlImage, formatMarkdownImage } from "./utils.js";
 /**
  * @category 图片
  */
-export {
-    calculateTargetWidth,
-    convertMarkdownImageToHtml,
-    convertMarkdownImageToHtmlWithWidth,
-    detectCurrentWidth,
-    detectImageWidth,
-    type ImageElement,
-    parseImageElements,
-    resizeImageWidth,
-    type WidthDirection,
-} from "./resize.js";
+export { toHtmlImage, setImageDimensions } from "./resize.js";
 
 // ==================== 元数据处理 ====================
 
@@ -142,13 +124,10 @@ export {
 export {
     convertHeadingToFrontmatter,
     deleteFrontmatterFields,
+    extractFrontmatter,
     extractFrontmatterField,
-    extractMetadata,
     extractSectionHeadings,
-    extractTitleFromMarkdown,
-    type FrontmatterParseResult,
-    generateFrontmatterYaml,
-    parseFrontmatter,
+    splitFrontmatter,
     parseYamlFrontmatter,
     removeFrontmatter,
     upsertFrontmatterFields,
@@ -161,27 +140,15 @@ export {
  */
 export { addSectionNumbers, removeSectionNumbers } from "./section-numbers.js";
 
-// ==================== 多正则操作 ====================
-
-/**
- * @category 多正则
- */
-export { findAllMatches, replaceWithMultipleRegex } from "./multi-regex.js";
-
 // ==================== 工具函数 ====================
+
+// 工具函数已内部化，不作公开导出
 
 /**
  * @category 工具函数
  */
-export {
-    isLocalAbsolutePath,
-    isPathInside,
-    isValidUrl,
-    isWebSource,
-    normalizePath,
-    parseUrlSafe,
-    replaceAltVariables,
-} from "./utils.js";
+export { isWebSource } from "./utils.js";
+export { applyReplacementOps } from "./replace.js";
 
 // ==================== 日志 ====================
 
@@ -194,40 +161,12 @@ export type { Logger } from "./logger.js";
  * @category 日志
  */
 export { consoleLogger, dummyLogger } from "./logger.js";
-
-// ==================== 监控 ====================
-
-/**
- * @category 监控
- */
-export type {
-    ExtensionMetrics,
-    LogConfig,
-    LogEntry,
-    PerformanceMetric,
-    PerformanceReport,
-    SystemMetrics,
-} from "./monitoring.js";
-
-/**
- * @category 监控
- */
-export { MetricsCollector, PerformanceMonitor } from "./monitoring.js";
+export { LuhnAlgorithm } from "./luhn.js";
+export { generateCounterValue } from "./counter-value.js";
+export type { CounterValueConfig } from "./counter-value.js";
 
 // ==================== 类型定义 ====================
 
-// -------------------- 核心类型 --------------------
-
-/**
- * @category 核心
- */
-export type { LogLevel, ValidationResult } from "./types.js";
-
-// -------------------- 图片匹配 --------------------
-
-/**
- * @category 图片
- */
 export type { ImageMatch, ParsedImage } from "./types.js";
 
 // -------------------- 筛选类型 --------------------
@@ -242,57 +181,18 @@ export type { ImageFilterMode, ImageFilterOptions, ImageFilterValue } from "./ty
 /**
  * @category 图片
  */
-export type { ReplacementDetail, ReplaceOptions, ReplaceResult } from "./types.js";
+export type { ReplaceOptions, ReplaceResult } from "./types.js";
 
-// -------------------- 错误处理 --------------------
-
-/**
- * @category 核心
- */
-export { CoreError, ErrorCode } from "./types.js";
-
-// -------------------- 多正则类型 --------------------
+// -------------------- 文档操作类型 --------------------
 
 /**
- * @category 多正则
+ * @category 文档操作
  */
-export type {
-    FindMatchesResult,
-    MatchResult,
-    MatchStatistics,
-    MultiRegexFindOptions,
-    MultiRegexOptions,
-    MultiRegexResult,
-    MultiRegexRule,
-    RuleApplyDetail,
-} from "./types.js";
+export type { ReplacementOp } from "./types.js";
 
 // -------------------- 元数据类型 --------------------
 
 /**
  * @category 元数据
  */
-export type {
-    DocumentMetadata,
-    FrontmatterUpdateResult,
-    FrontmatterValue,
-    HeadingConvertOptions,
-    MetadataExtractOptions,
-    SectionHeading,
-    SectionHeadingExtractOptions,
-    UpsertFrontmatterOptions,
-} from "./types.js";
-
-// -------------------- 章节编号类型 --------------------
-
-/**
- * @category 章节编号
- */
-export type { SectionNumbersOptions, SectionNumbersResult } from "./types.js";
-
-// -------------------- 图片格式化 --------------------
-
-/**
- * @category 图片
- */
-export type { FormatHtmlImageOptions, FormatMarkdownImageOptions } from "./types.js";
+export type { DocEntry, FrontmatterValue } from "./types.js";

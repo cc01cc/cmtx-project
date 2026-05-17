@@ -10,7 +10,7 @@
  * import { DeleteService } from '@cmtx/asset/delete';
  *
  * const service = new DeleteService({
- *     workspaceRoot: '/path/to/workspace',
+ *     baseDirectory: '/path/to/workspace',
  *     options: {
  *         strategy: 'trash',
  *         removeFromMarkdown: true,
@@ -23,18 +23,4 @@
  */
 
 export { DeleteService } from "./delete-service.js";
-export type {
-    DeleteDetail,
-    DeleteOptions,
-    DeleteProgress,
-    DeleteResult,
-    DeleteServiceConfig,
-    DeleteTarget,
-    PruneEntry,
-    PruneOptions,
-    PruneResult,
-    ReferenceInfo,
-    SafeDeleteDetail,
-    SafeDeleteOptions,
-    SafeDeleteResult,
-} from "./types.js";
+export { resolveBaseDirectory } from "./resolve-base-dir.js";

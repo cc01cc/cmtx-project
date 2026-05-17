@@ -302,4 +302,14 @@ describe("findAllMatches 查询功能", () => {
 
         expect(result.originalText).toBe(originalText);
     });
+
+    it("应处理零宽度匹配避免无限循环", () => {
+        const result = findAllMatches("abc", {
+            rules: [{ pattern: /(?=.)/g, id: "zero-width" }],
+        });
+
+        expect(result.statistics["zero-width"].count).toBe(3);
+        expect(result.matches).toHaveLength(3);
+        expect(result.matches.every((m) => m.matchedText === "")).toBe(true);
+    });
 });

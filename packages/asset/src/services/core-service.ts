@@ -7,7 +7,7 @@
  * 从 @cmtx/core 上移，作为 Service 层的一部分。
  */
 
-import { filterImagesInText, replaceImagesInText } from "@cmtx/core";
+import { filterImages, updateImageRefs } from "@cmtx/core";
 import type { ImageFilterOptions, ImageMatch, ReplaceOptions, ReplaceResult } from "@cmtx/core";
 import type { Service } from "./service-registry.js";
 
@@ -22,8 +22,9 @@ export interface CoreServiceConfig {
 /**
  * Core Service 实现
  *
- * @description
- * 包装 @cmtx/core 的核心函数，提供统一的 Service 接口
+ * @deprecated 已无生产调用方。直接使用 @cmtx/core 的 filterImages / updateImageRefs 函数 API。
+ * 将在下一个 minor 版本 (0.6.0) 中移除。
+ * @internal
  */
 export class CoreService implements Service<CoreServiceConfig> {
     readonly id = "core" as const;
@@ -52,7 +53,7 @@ export class CoreService implements Service<CoreServiceConfig> {
      */
     filterImages(document: string, options?: ImageFilterOptions): ImageMatch[] {
         this.logger?.("debug", "[CoreService] Filtering images");
-        return filterImagesInText(document, options);
+        return filterImages(document, options);
     }
 
     /**
@@ -61,9 +62,9 @@ export class CoreService implements Service<CoreServiceConfig> {
      * @param replacements - 替换规则
      * @returns 替换后的文档内容
      */
-    replaceImages(document: string, replacements: ReplaceOptions[]): string {
+    updateImageRefs(document: string, replacements: ReplaceOptions[]): string {
         this.logger?.("debug", `[CoreService] Replacing ${replacements.length} images`);
-        const result: ReplaceResult = replaceImagesInText(document, replacements);
+        const result: ReplaceResult = updateImageRefs(document, replacements);
         return result.newText;
     }
 }

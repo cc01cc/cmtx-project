@@ -6,11 +6,7 @@ export {
     setupConfigListener,
 } from "./cmtx-config.js";
 export type { ConfigValidationError } from "@cmtx/asset/config";
-export {
-    formatValidationErrors,
-    showConfigValidationErrors,
-    validateConfig,
-} from "./config-validator.js";
+export { validateConfig } from "./config-validator.js";
 export { setOutputChannel as setConfigWatcherOutputChannel } from "./config-watcher.js";
 export {
     applyDocumentChanges,

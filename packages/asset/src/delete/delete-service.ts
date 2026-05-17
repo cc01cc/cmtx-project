@@ -29,7 +29,7 @@ import { glob } from "tinyglobby";
  * import { DeleteService } from '@cmtx/asset/delete';
  *
  * const service = new DeleteService({
- *     workspaceRoot: '/path/to/workspace',
+ *     baseDirectory: '/path/to/workspace',
  *     options: {
  *         strategy: 'trash',
  *         removeFromMarkdown: true,
@@ -46,7 +46,7 @@ import { glob } from "tinyglobby";
 
 import { promises as fs } from "node:fs";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
-import type { Logger } from "@cmtx/core";
+import { dummyLogger, type Logger } from "@cmtx/core";
 import { isWebSource, parseImages } from "@cmtx/core";
 import type { DeleteFileOptions } from "./types.js";
 import type { LocalImageEntry } from "../file/types.js";
@@ -75,10 +75,10 @@ export class DeleteService {
     private readonly fileService: FileService;
     private logger?: Logger;
 
-    constructor(config: DeleteServiceConfig, logger?: Logger) {
+    constructor(config: DeleteServiceConfig = {} as DeleteServiceConfig) {
         this.config = config;
         this.fileService = new FileService();
-        this.logger = logger;
+        this.logger = config.logger ?? dummyLogger;
     }
 
     // ==================== 公开 API ====================
@@ -170,7 +170,7 @@ export class DeleteService {
      * @example
      * ```typescript
      * const service = new DeleteService({
-     *     workspaceRoot: '/path/to/workspace',
+     *     baseDirectory: '/path/to/workspace',
      * });
      *
      * // 基本用法：有引用时跳过删除
@@ -236,11 +236,11 @@ export class DeleteService {
     async findReferencesInWorkspace(imagePath: string, isLocal: boolean): Promise<ReferenceInfo[]> {
         this.logger?.info(`[DeleteService] Finding references in workspace`);
 
-        const workspaceRoot = this.config.workspaceRoot;
+        const baseDir = this.config.baseDirectory;
         const references: ReferenceInfo[] = [];
         const normalizedPath = isLocal ? this.normalizeLocalPath(imagePath) : imagePath;
 
-        const mdFiles = await this.findMarkdownFiles(workspaceRoot);
+        const mdFiles = await this.findMarkdownFiles(baseDir);
 
         for (const filePath of mdFiles) {
             try {
@@ -256,7 +256,7 @@ export class DeleteService {
                 if (count > 0) {
                     references.push({
                         filePath,
-                        relativePath: relative(workspaceRoot, filePath),
+                        relativePath: relative(baseDir, filePath),
                         count,
                     });
                 }
@@ -374,8 +374,8 @@ export class DeleteService {
         if (isAbsolute(imagePath)) {
             return resolve(imagePath);
         }
-        // 相对路径相对于 workspace root
-        return resolve(this.config.workspaceRoot, imagePath);
+        // 相对路径相对于 baseDirectory
+        return resolve(this.config.baseDirectory, imagePath);
     }
 
     /**

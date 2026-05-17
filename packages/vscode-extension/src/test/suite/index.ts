@@ -1,5 +1,5 @@
 import * as path from "node:path";
-import { glob } from "glob";
+import { glob } from "tinyglobby";
 import Mocha from "mocha";
 
 export async function run(): Promise<void> {

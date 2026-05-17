@@ -5,7 +5,7 @@
  * @module adapters/tencent-cos
  *
  * @description
- * 实现 IStorageAdapter 接口，用于上传文件到腾讯云 COS。
+ * 实现 StorageAdapter 接口，用于上传文件到腾讯云 COS。
  *
  * @remarks
  * ## 功能特性
@@ -26,8 +26,8 @@
  *
  * - **SecretId**: 密钥 ID
  * - **SecretKey**: 密钥 Key
- * - **Bucket**: 存储桶名称（格式：bucketname-appid）
- * - **Region**: 地域（如 ap-guangzhou）
+ * - **bucket**: 存储桶名称（格式：bucketname-appid）
+ * - **region**: 地域（如 ap-guangzhou）
  *
  * ## 返回格式
  *
@@ -45,13 +45,13 @@
  * });
  *
  * const adapter = new TencentCOSAdapter(cos, {
- *   Bucket: "my-bucket-1250000000",
- *   Region: "ap-guangzhou",
+ *   bucket: "my-bucket-1250000000",
+ *   region: "ap-guangzhou",
  * });
  * ```
  *
  * @see {@link TencentCOSAdapter} - 主要导出类
- * @see {@link IStorageAdapter} - 适配器接口
+ * @see {@link StorageAdapter} - 适配器接口
  * @see {@link AdapterUploadResult} - 上传结果类型
  * @see {@link UploadBufferOptions} - Buffer 上传选项
  *
@@ -63,7 +63,7 @@
 import { createWriteStream } from "node:fs";
 import type {
     AdapterUploadResult,
-    IStorageAdapter,
+    StorageAdapter,
     ObjectMeta,
     UploadBufferOptions,
 } from "../types.js";
@@ -74,18 +74,18 @@ import type { CosClient } from "./cos-types.js";
  *
  * @public
  */
-export interface CosAdapterConfig {
+export interface TencentCOSAdapterConfig {
     /** 存储桶名称（格式：bucketname-appid） */
-    Bucket: string;
+    bucket: string;
     /** 地域（如 ap-guangzhou） */
-    Region: string;
+    region: string;
 }
 
 /**
  * 腾讯云 COS 存储适配器
  *
  * @remarks
- * 封装 cos-nodejs-sdk-v5 客户端，实现 IStorageAdapter 接口。
+ * 封装 cos-nodejs-sdk-v5 客户端，实现 StorageAdapter 接口。
  *
  * 特性：
  * - 自动处理 HTTP/HTTPS URL
@@ -104,8 +104,8 @@ export interface CosAdapterConfig {
  * });
  *
  * const adapter = new TencentCOSAdapter(cos, {
- *   Bucket: "my-bucket-1250000000",
- *   Region: "ap-guangzhou",
+ *   bucket: "my-bucket-1250000000",
+ *   region: "ap-guangzhou",
  * });
  *
  * const result = await adapter.upload("/path/to/image.png", "images/image.png");
@@ -114,15 +114,22 @@ export interface CosAdapterConfig {
  *
  * @public
  */
-export class TencentCOSAdapter implements IStorageAdapter {
+export class TencentCOSAdapter implements StorageAdapter {
+    private readonly sdkConfig: { Bucket: string; Region: string };
+
     /**
      * @param client - 腾讯云 COS 客户端实例
-     * @param config - 适配器配置（包含 Bucket 和 Region）
+     * @param config - 适配器配置（包含 bucket 和 region）
      */
     constructor(
         private readonly client: CosClient,
-        private readonly config: CosAdapterConfig,
-    ) {}
+        private readonly config: TencentCOSAdapterConfig,
+    ) {
+        this.sdkConfig = {
+            Bucket: config.bucket,
+            Region: config.region,
+        };
+    }
 
     /**
      * 上传文件到腾讯云 COS
@@ -141,8 +148,8 @@ export class TencentCOSAdapter implements IStorageAdapter {
         return new Promise((resolve, reject) => {
             this.client.uploadFile(
                 {
-                    Bucket: this.config.Bucket,
-                    Region: this.config.Region,
+                    Bucket: this.sdkConfig.Bucket,
+                    Region: this.sdkConfig.Region,
                     Key: remotePath,
                     FilePath: localPath,
                 },
@@ -194,8 +201,8 @@ export class TencentCOSAdapter implements IStorageAdapter {
         options?: import("../types.js").GetSignedUrlOptions,
     ): Promise<string> {
         const params: Record<string, unknown> = {
-            Bucket: this.config.Bucket,
-            Region: this.config.Region,
+            Bucket: this.sdkConfig.Bucket,
+            Region: this.sdkConfig.Region,
             Key: remotePath,
             Sign: true,
             Expires: expires,
@@ -254,8 +261,8 @@ export class TencentCOSAdapter implements IStorageAdapter {
                 Body: Buffer;
                 Headers?: Record<string, string>;
             } = {
-                Bucket: this.config.Bucket,
-                Region: this.config.Region,
+                Bucket: this.sdkConfig.Bucket,
+                Region: this.sdkConfig.Region,
                 Key: key,
                 Body: body,
             };
@@ -300,8 +307,8 @@ export class TencentCOSAdapter implements IStorageAdapter {
         return new Promise((resolve, reject) => {
             this.client.getObject(
                 {
-                    Bucket: this.config.Bucket,
-                    Region: this.config.Region,
+                    Bucket: this.sdkConfig.Bucket,
+                    Region: this.sdkConfig.Region,
                     Key: remotePath,
                     Output: createWriteStream(localPath),
                 },
@@ -341,8 +348,8 @@ export class TencentCOSAdapter implements IStorageAdapter {
         return new Promise((resolve, reject) => {
             this.client.headObject(
                 {
-                    Bucket: this.config.Bucket,
-                    Region: this.config.Region,
+                    Bucket: this.sdkConfig.Bucket,
+                    Region: this.sdkConfig.Region,
                     Key: remotePath,
                 },
                 (err: Error | null, data?: { Headers?: Record<string, string> }) => {
@@ -388,8 +395,8 @@ export class TencentCOSAdapter implements IStorageAdapter {
         return new Promise((resolve) => {
             this.client.headObject(
                 {
-                    Bucket: this.config.Bucket,
-                    Region: this.config.Region,
+                    Bucket: this.sdkConfig.Bucket,
+                    Region: this.sdkConfig.Region,
                     Key: remotePath,
                 },
                 (err: (Error & { statusCode?: number }) | null) => {
@@ -421,8 +428,8 @@ export class TencentCOSAdapter implements IStorageAdapter {
         return new Promise((resolve, reject) => {
             this.client.deleteObject(
                 {
-                    Bucket: this.config.Bucket,
-                    Region: this.config.Region,
+                    Bucket: this.sdkConfig.Bucket,
+                    Region: this.sdkConfig.Region,
                     Key: remotePath,
                 },
                 (err: Error | null) => {
@@ -448,6 +455,6 @@ export class TencentCOSAdapter implements IStorageAdapter {
      * @returns HTTPS URL
      */
     buildUrl(key: string): string {
-        return `https://${this.config.Bucket}.cos.${this.config.Region}.myqcloud.com/${key}`;
+        return `https://${this.config.bucket}.cos.${this.config.region}.myqcloud.com/${key}`;
     }
 }

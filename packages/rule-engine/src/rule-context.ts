@@ -27,20 +27,21 @@
  * ```
  */
 
-import type { IStorageAdapter } from "@cmtx/storage";
-import {
-    createDownloadAssetsService,
-    createTransferAssetsService,
-    createUploadService,
-} from "@cmtx/asset";
+import type { StorageAdapter } from "@cmtx/storage";
+import { createDownloadService, createTransferService, createUploadService } from "@cmtx/asset";
 import type {
-    DownloadAssetsServiceConfig,
+    DownloadServiceConfig,
     StorageDomainConfig,
-    TransferAssetsServiceConfig,
+    TransferServiceConfig,
     UploadServiceConfig,
 } from "@cmtx/asset";
-import { createDefaultRuleEngine, createServiceRegistry } from "./rules/index.js";
-import type { RuleEngine, ServiceRegistry } from "./rules/index.js";
+import { createDefaultRuleEngine } from "./rules/index.js";
+import type { RuleEngine } from "./rules/index.js";
+
+// ServiceRegistry 和 createServiceRegistry 已从公共入口移除
+// 内部消费者从相对路径导入
+import { createServiceRegistry } from "./rules/services/service-registry-impl.js";
+import type { ServiceRegistry } from "./rules/service-registry.js";
 
 /**
  * Rule 引擎上下文创建选项
@@ -51,17 +52,26 @@ export interface CreateRuleEngineContextOptions {
     /** 上传服务配置（单存储目标） */
     upload?: UploadServiceConfig;
     /** 下载服务配置（多存储源） */
-    download?: DownloadAssetsServiceConfig;
+    download?: DownloadServiceConfig;
     /** 转移服务配置（源 → 目标） */
-    transfer?: TransferAssetsServiceConfig;
+    transfer?: TransferServiceConfig;
 
     // ========== 向后兼容（deprecated） ==========
 
-    /** @deprecated 使用 upload.adapter 替代 */
-    assetAdapter?: IStorageAdapter;
-    /** @deprecated 使用 upload.prefix 替代 */
+    /**
+     * @deprecated 使用 upload.adapter 替代。
+     * 将在下一个 minor 版本 (0.6.0) 中移除。
+     */
+    assetAdapter?: StorageAdapter;
+    /**
+     * @deprecated 使用 upload.prefix 替代。
+     * 将在下一个 minor 版本 (0.6.0) 中移除。
+     */
     assetPrefix?: string;
-    /** @deprecated 使用 upload.namingTemplate 替代 */
+    /**
+     * @deprecated 使用 upload.namingTemplate 替代。
+     * 将在下一个 minor 版本 (0.6.0) 中移除。
+     */
     assetNamingTemplate?: string;
 }
 
@@ -106,11 +116,11 @@ export function createRuleEngineContext(
 
     // 注册 DownloadAssetsService
     if (options?.download) {
-        registry.register(createDownloadAssetsService(options.download));
+        registry.register(createDownloadService(options.download));
     } else if (options?.assetAdapter) {
         // 向后兼容：使用同一个 adapter 作为下载源
         registry.register(
-            createDownloadAssetsService({
+            createDownloadService({
                 sourceAdapters: [{ domain: "*", adapter: options.assetAdapter }],
                 namingTemplate: options.assetNamingTemplate,
             }),
@@ -119,7 +129,7 @@ export function createRuleEngineContext(
 
     // 注册 TransferAssetsService
     if (options?.transfer) {
-        registry.register(createTransferAssetsService(options.transfer));
+        registry.register(createTransferService(options.transfer));
     }
 
     return { engine, registry };
